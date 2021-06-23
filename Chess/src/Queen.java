@@ -47,13 +47,12 @@ public class Queen extends Piece{
         }
         // check if movement is diagonal or in a straight line
         if(isDiagonal){ // diagonal moves checking
-            if (Math.abs(getRow(start) - getRow(end)) != Math.abs(getCol(start) - getCol(end))) return false;
+            return Math.abs(getRow(start) - getRow(end)) == Math.abs(getCol(start) - getCol(end));
 
         }
         else{   // straight move checking
-            if(getCol(start) != getCol(end) && getRow(start) != getRow(end)) return false;
+            return getCol(start) == getCol(end) || getRow(start) == getRow(end);
         }
-        return true;    // if tile is not occupied
     }
 
     @Override
