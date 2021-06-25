@@ -2,7 +2,6 @@ import java.util.ArrayList;
 
 public abstract class Piece {
     protected final boolean colour; // White == 1, Black == 0;
-
     protected int position; // position of piece on board
     protected Board board; // reference to the chess board
 

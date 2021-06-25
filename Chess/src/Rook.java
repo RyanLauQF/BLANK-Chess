@@ -5,7 +5,7 @@ public class Rook extends Piece{
     /*
      * Move Rules:
      * 1) Rook only moves/attacks vertically or horizontally (up, down, left, right)
-     * 2) TODO Castling. If rook is moved, whichever side the rook is on loses castling rights
+     * 2) Rook can jump to castle with king
      *
      * Rook moves by sliding. Check if piece is blocked by any piece. If piece is enemy, attack is possible.
      * Similar implementation to a Bishop

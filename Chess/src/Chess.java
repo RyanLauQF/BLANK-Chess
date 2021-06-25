@@ -2,16 +2,14 @@ import java.util.Scanner;
 
 /*
  * TODO:
- *  1) Complete CheckGameEnd class to check if a move is legal and does not result in a mate
- *  2) Implement castling and En passant
- *  3) Implement Move method to move pieces on a board (based on any possible legal moves)
- *  4) Chess game should now be working.
- *  5) *Build engine based on working game
+ *  1) Implement Promotion
+ *  2) Chess game should now be working.
+ *  3) *Build engine based on working game
  *
  */
 
 public class Chess {
-    private Board board;
+    private final Board board;
 
     public Chess(){
         // initiate board
