@@ -1,4 +1,6 @@
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Scanner;
 import java.util.Stack;
 
 public class Board {
@@ -28,6 +30,7 @@ public class Board {
     private int blackKingPosition;
     private boolean[] whiteAttackMap;
     private boolean[] blackAttackMap;
+
     // used to reset attack data without reinitialising entire boolean array
     private Stack<Integer> trackWhiteMap;
     private Stack<Integer> trackBlackMap;
@@ -124,13 +127,15 @@ public class Board {
     /**
      * Gets all legal moves on the board for the current side's turn
      * E.g. if its white's turn, get all white legal moves.
-     * @return list of possible positions of all legal moves on the board
+     * @return list of positions of all legal moves on the board
      */
-    public ArrayList<Integer> getLegalMoves(){
+    public ArrayList<Integer> getAllLegalMoves(){
         ArrayList <Integer> moveList = new ArrayList<>();
         // pseudo-legal moves are filtered out when generating moves from individual pieces
         if (isWhiteTurn()){  // get all white legal moves
-            for(int each : getWhitePieces()){ // goes through all white pieces
+            Integer[] arr = new Integer[getWhitePieces().size()];
+            getWhitePieces().toArray(arr);
+            for(int each : arr){ // goes through all white pieces
                 moveList.addAll(board[each].getPiece().getLegalMoves()); // merge list
             }
         }
@@ -140,6 +145,65 @@ public class Board {
             }
         }
         return moveList;
+    }
+
+    /**
+     * Move a piece on the board based on move rules and update the board
+     * whilst checking if the game has ended.
+     *
+     * Information to be updated:
+     *      1) Piece location from start to end tile (update location of alive piece when it moves)
+     *      2) Castling rights (is updated when makeMove() is called)
+     *      3) Enpassant availability
+     *      4) Pawn promotion if pawn reached last row (Select either Rook, Knight, Bishop or Queen)
+     *      5) 50 move rule
+     *      6) Change to opponent's turn
+     *
+     * @param startPosition refers to the (starting) location of piece being moved
+     * @param endPosition refers to the final location the piece will end up
+     */
+    public void move(int startPosition, int endPosition){
+        // check legality of move from start to end position
+        checkLegalMove(startPosition, endPosition);
+        Move move = new Move(this, startPosition, endPosition);
+        // process enpassant, promotion and turn data after making move
+        if(move.isPawnDoubleMove()){
+            // add enpassant possibility
+            setEnpassant((startPosition + endPosition) / 2);
+        }
+        else{   // no enpassant move possible
+            setEnpassant(-1);
+        }
+        move.makeMove();
+
+        // change turn to opposite side
+        setTurn(!isWhiteTurn());
+    }
+
+    /**
+     * Checks that move being made is a legal move
+     * @param startPosition refers to the location of piece being moved
+     * @param endPosition refers to the final location the piece will end up
+     */
+    private void checkLegalMove(int startPosition, int endPosition){
+        // Check start position has a piece to be moved
+        if(!getTile(startPosition).isOccupied()){
+            throw new IllegalArgumentException("Piece to be moved cannot be found.");
+        }
+        if(getTile(endPosition).isOccupied() && getTile(endPosition).getPiece().toString().equals("K")){
+            throw new IllegalArgumentException("Illegal to capture enemy King");
+        }
+        // Check that move being made is legal
+        boolean isLegalMove = false;
+        for(int legalMoves : getTile(startPosition).getPiece().getLegalMoves()){
+            if(legalMoves == endPosition){
+                isLegalMove = true;
+                break;
+            }
+        }
+        if(!isLegalMove){
+            throw new IllegalArgumentException("Illegal move");
+        }
     }
 
     /**
@@ -171,19 +235,10 @@ public class Board {
     }
 
     /**
-     * Move a piece on the board and update the board
-     * @param startPosition refers to the start position of the piece to be moved
-     * @param endPosition refers to the end position of the piece to be moved
-     */
-    public void move(int startPosition, int endPosition){
-        // TODO
-    }
-
-    /**
      * Takes a piece that is attacked and removes it from the board
      * @param position refers to the position of the piece being attacked and removed from the board
      */
-    public void killPiece(Integer position){
+    public void removePiece(Integer position){
         if(board[position].getPiece().isWhite()){
             whitePieces.remove(position);
         }
@@ -314,7 +369,11 @@ public class Board {
         return fullMoveNum;
     }
 
-    private int getCol(int position){
+    public int getRow(int position){
+        return (position - (position % 8)) / 8;
+    }
+
+    public int getCol(int position){
         return position % 8;
     }
 
@@ -353,12 +412,12 @@ public class Board {
         this.enpassantPosition = position;
     }
 
-    public void setWhiteAttackMap(int bitIndex, boolean isTrue){
-        whiteAttackMap[bitIndex] = isTrue;
+    public void setWhiteAttackMap(int index, boolean isTrue){
+        whiteAttackMap[index] = isTrue;
     }
 
-    public void setBlackAttackMap(int bitIndex, boolean isTrue){
-        blackAttackMap[bitIndex] = isTrue;
+    public void setBlackAttackMap(int index, boolean isTrue){
+        blackAttackMap[index] = isTrue;
     }
 
     public void setHalfMoveClock(int halfMoveClock){
@@ -396,28 +455,53 @@ public class Board {
 
     public static void main(String[] args){
         Board b = new Board();
-        String FEN = "k7/8/8/Pp6/8/8/8/K7 w - b6 0 1";
+        String FEN = "rnbqkbnr/pp1p1ppp/8/2pPp3/8/8/PPP1PPPP/RNBQKBNR w KQkq c6 0 1";
         b.init(FEN);
 
         b.state();
         System.out.println();
-        System.out.print("Moves: ");
-        if (b.isWhiteTurn()) System.out.println("(White)");
-        else System.out.println("(Black)");
-
-        int counter = 0;
-        for(int move : b.getLegalMoves()){
-            System.out.print(move + " ");
-            counter++;
-        }
-        System.out.println();
-
-        System.out.println("Count: " + counter);
-        System.out.print("King position: ");
-        if (b.isWhiteTurn()) System.out.println(b.getWhiteKingPosition());
-        else System.out.println(b.getBlackKingPosition());
-        System.out.println("FEN: " + FEN);
-
         System.out.println(b.getEnpassant());
+//        System.out.print("Moves: ");
+//        if (b.isWhiteTurn()) System.out.println("(White)");
+//        else System.out.println("(Black)");
+//
+//        int counter = 0;
+//        for(int move : b.getAllLegalMoves()){
+//            System.out.print(move + " ");
+//            counter++;
+//        }
+//        System.out.println();
+//
+//        System.out.println("Count: " + counter);
+//        System.out.print("King position: ");
+//        if (b.isWhiteTurn()) System.out.println(b.getWhiteKingPosition());
+//        else System.out.println(b.getBlackKingPosition());
+//        System.out.println("FEN: " + FEN);
+
+        while(true){
+            if (b.isWhiteTurn()) System.out.println("(White)");
+            else System.out.println("(Black)");
+            Scanner sc = new Scanner(System.in);
+            System.out.println("Enter start position of piece to move: ");
+            int start;
+            start = sc.nextInt();
+            while(start < 0 || start > 63 || !b.getTile(start).isOccupied()
+                    || b.getTile(start).getPiece().isWhite() != b.isWhiteTurn()
+                    || b.getTile(start).getPiece().getLegalMoves().size() == 0){
+                System.out.println("Enter start position of piece to move: ");
+                start = sc.nextInt();
+            }
+            System.out.println("Legal Moves: ");
+            for(int move : b.getTile(start).getPiece().getLegalMoves()){
+                System.out.print(move + " ");
+            }
+            System.out.println();
+            System.out.println("Enter end position of piece: ");
+            int end = sc.nextInt();
+            b.move(start, end);
+            b.state();
+            System.out.println(b.getEnpassant());
+        }
+
     }
 }

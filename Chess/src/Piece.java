@@ -23,9 +23,10 @@ public abstract class Piece {
         for(int move : defendingSquares){
             if(board.getTile(move).isOccupied()){   // check if piece is attacking / defending another piece
                 // filter out allied pieces as it cannot move to tiles occupied by allied pieces
-                if(board.getTile(move).getPiece().isWhite() == this.isWhite()) continue;
+                if(board.getTile(move).getPiece().isWhite() == this.isWhite()) {
+                    continue;
+                }
             }
-
             /*
              *  At this point, the move will become a pseudo-legal move.
              *  test the pseudo-legal move to check if king is under check after moving any piece
@@ -34,7 +35,9 @@ public abstract class Piece {
             Move movement = new Move(this.board, this.position, move);
             movement.makeMove();    // make the move on the board without making a copy
             // if king is not under check after making the move, the move is legal.
-            if(!this.board.isKingChecked()) moveList.add(move);
+            if(!this.board.isKingChecked()) {
+                moveList.add(move);
+            }
             movement.unMake();  // revert board back to its original state
         }
         return moveList;
