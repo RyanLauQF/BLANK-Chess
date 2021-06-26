@@ -10,6 +10,7 @@ public class Move {
         this.startPosition = startPosition;
         this.endPosition = endPosition;
         this.attackedPiece = null;
+        this.isEnpassant = false;
     }
 
     // makes the move on the board
@@ -18,7 +19,6 @@ public class Move {
         Tile endTile = board.getTile(getEnd());
 
         if(!startTile.isOccupied()){
-            System.out.println(startTile.getPosition());
             throw new IllegalArgumentException("Tile does not contain a piece to move.");
         }
         updatePiecePosition(getStart(), getEnd());
@@ -41,33 +41,33 @@ public class Move {
         if(startTile.getPiece().toString().equals("K")){    // if piece is a King
             // update king position on board
             board.setKingPosition(getEnd(), startTile.getPiece().isWhite());
-            // check if it is a castling move and move the rook
+            // check if it is a castling move and move the rook (update rook position)
             if(isKingSideCastling()){
                 if(startTile.getPiece().isWhite()){
                     // shift white king side rook (from position 63 to 61) and remove castling rights
+                    updatePiecePosition(63, 61);
                     board.getTile(61).setPiece(board.getTile(63).getPiece());
                     board.getTile(63).setPiece(null);
-                    board.setWhiteKingSideCastle(false);
                 }
                 else{
                     // shift black king side rook (from position 7 to 5) and remove castling rights
+                    updatePiecePosition(7, 5);
                     board.getTile(5).setPiece(board.getTile(7).getPiece());
                     board.getTile(7).setPiece(null);
-                    board.setBlackKingSideCastle(false);
                 }
             }
             else if(isQueenSideCastling()){
                 if(startTile.getPiece().isWhite()){
-                    // shift white queen side rook (from position 56 to 69) and remove castling rights
+                    // shift white queen side rook (from position 56 to 59) and remove castling rights
+                    updatePiecePosition(56, 59);
                     board.getTile(59).setPiece(board.getTile(56).getPiece());
                     board.getTile(56).setPiece(null);
-                    board.setWhiteQueenSideCastle(false);
                 }
                 else{
                     // shift black queen side rook (from position 0 to 3) and remove castling rights
+                    updatePiecePosition(0, 3);
                     board.getTile(3).setPiece(board.getTile(0).getPiece());
                     board.getTile(0).setPiece(null);
-                    board.setBlackQueenSideCastle(false);
                 }
             }
         }
@@ -92,29 +92,29 @@ public class Move {
             if(isKingSideCastling()){
                 if(endTile.getPiece().isWhite()){
                     // shift back white king side rook (from position 61 to 63) and remove castling rights
+                    updatePiecePosition(61, 63);
                     board.getTile(63).setPiece(board.getTile(61).getPiece());
                     board.getTile(61).setPiece(null);
-                    board.setWhiteKingSideCastle(true);
                 }
                 else{
                     // shift back black king side rook (from position 5 to 7) and remove castling rights
+                    updatePiecePosition(5, 7);
                     board.getTile(7).setPiece(board.getTile(5).getPiece());
                     board.getTile(5).setPiece(null);
-                    board.setBlackKingSideCastle(true);
                 }
             }
             else if(isQueenSideCastling()){
                 if(endTile.getPiece().isWhite()){
                     // shift back white queen side rook (from position 59 to 56) and remove castling rights
+                    updatePiecePosition(59, 56);
                     board.getTile(56).setPiece(board.getTile(59).getPiece());
                     board.getTile(59).setPiece(null);
-                    board.setWhiteQueenSideCastle(true);
                 }
                 else{
                     // shift back black queen side rook (from position 3 to 0) and remove castling rights
+                    updatePiecePosition(3, 0);
                     board.getTile(0).setPiece(board.getTile(3).getPiece());
                     board.getTile(3).setPiece(null);
-                    board.setBlackQueenSideCastle(true);
                 }
             }
         }
@@ -145,12 +145,12 @@ public class Move {
      */
     private void updatePiecePosition(Integer startPosition, int endPosition){
         if(board.getTile(startPosition).getPiece().isWhite()){
-            // if it is a white piece moving, update white pieces hashset
+            // if it is a white piece moving, update white pieces list
             board.getWhitePieces().remove(startPosition);
             board.getWhitePieces().add(endPosition);
         }
         else{
-            // if it is a black piece moving, update black pieces hashset
+            // if it is a black piece moving, update black pieces list
             board.getBlackPieces().remove(startPosition);
             board.getBlackPieces().add(endPosition);
         }
@@ -199,7 +199,7 @@ public class Move {
      * Checks move being made is an Enpassant capture
      * @return true if it is an enpassant move
      */
-    private boolean isEnpassantCapture(){
+    public boolean isEnpassantCapture(){
         return board.getTile(getStart()).getPiece().toString().equals("P") && board.getEnpassant() == getEnd();
     }
 

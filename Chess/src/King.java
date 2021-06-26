@@ -84,7 +84,7 @@ public class King extends Piece {
             rookPosition = this.getPosition() + 3;
         }
         else{
-            rookPosition = this.getPosition() - 3;
+            rookPosition = this.getPosition() + 3;
         }
         // if king side rook is at position check if path is clear to castle
         if(super.board.getTile(rookPosition).isOccupied() && super.board.getTile(rookPosition).getPiece().toString().equals("R")){
@@ -113,7 +113,7 @@ public class King extends Piece {
             rookPosition = this.getPosition() - 4;
         }
         else{
-            rookPosition = this.getPosition() + 4;
+            rookPosition = this.getPosition() - 4;
         }
         // if king side rook is at position check if path is clear to castle
         if(super.board.getTile(rookPosition).isOccupied() && super.board.getTile(rookPosition).getPiece().toString().equals("R")){

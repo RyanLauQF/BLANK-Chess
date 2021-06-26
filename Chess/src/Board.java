@@ -1,8 +1,28 @@
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.Scanner;
 import java.util.Stack;
 
+/*
+ *     Board class used in Chess-Engine to keep track of the board state for each move
+ *     Copyright (C) 2021 Ryan Lau Q. F.
+ *
+ *     This program is free software: you can redistribute it and/or modify
+ *     it under the terms of the GNU General Public License as published by
+ *     the Free Software Foundation, either version 3 of the License, or
+ *     (at your option) any later version.
+ *
+ *     This program is distributed in the hope that it will be useful,
+ *     but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *     GNU General Public License for more details.
+ *
+ *     You should have received a copy of the GNU General Public License
+ *     along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+/**
+ * @author Ryan Lau Q. F.
+ */
 public class Board {
     // turn-related data
     private boolean isWhiteTurn;
@@ -71,6 +91,9 @@ public class Board {
         calcBlackAttackMap();
     }
 
+    /**
+     * Calculates data to get attack map of white pieces (all squares that white pieces control)
+     */
     public void calcWhiteAttackMap(){
         // get all squares which white pieces are attacking and set to true
         for(int each : getWhitePieces()){
@@ -89,6 +112,9 @@ public class Board {
         }
     }
 
+    /**
+     * Calculates data to get attack map of black pieces (all squares that black pieces control)
+     */
     public void calcBlackAttackMap(){
         // get all squares which black pieces are attacking and set to true
         for(int each : getBlackPieces()){
@@ -133,14 +159,16 @@ public class Board {
         ArrayList <Integer> moveList = new ArrayList<>();
         // pseudo-legal moves are filtered out when generating moves from individual pieces
         if (isWhiteTurn()){  // get all white legal moves
-            Integer[] arr = new Integer[getWhitePieces().size()];
-            getWhitePieces().toArray(arr);
-            for(int each : arr){ // goes through all white pieces
+            Integer[] whitePieces = new Integer[getWhitePieces().size()];
+            getWhitePieces().toArray(whitePieces);
+            for(int each : whitePieces){ // goes through all white pieces
                 moveList.addAll(board[each].getPiece().getLegalMoves()); // merge list
             }
         }
         else{   // get all black legal moves
-            for(int each : getBlackPieces()){ // goes through all white pieces
+            Integer[] blackPieces = new Integer[getBlackPieces().size()];
+            getBlackPieces().toArray(blackPieces);
+            for(int each : blackPieces){ // goes through all white pieces
                 moveList.addAll(board[each].getPiece().getLegalMoves()); // merge list
             }
         }
@@ -153,7 +181,7 @@ public class Board {
      *
      * Information to be updated:
      *      1) Piece location from start to end tile (update location of alive piece when it moves)
-     *      2) Castling rights (is updated when makeMove() is called)
+     *      2) Castling rights
      *      3) Enpassant availability
      *      4) Pawn promotion if pawn reached last row (Select either Rook, Knight, Bishop or Queen)
      *      5) 50 move rule
@@ -165,17 +193,36 @@ public class Board {
     public void move(int startPosition, int endPosition){
         // check legality of move from start to end position
         checkLegalMove(startPosition, endPosition);
+
+        // disables castling rights if either king or rook is moving
+        if(hasCastlingRights()){
+            // disable both king and queen side castling if king is moving
+            if(getTile(startPosition).getPiece().toString().equals("K")){
+                if(isWhiteTurn()){
+                    setWhiteKingSideCastle(false);
+                    setWhiteQueenSideCastle(false);
+                }
+                else{
+                    setBlackKingSideCastle(false);
+                    setBlackQueenSideCastle(false);
+                }
+            }
+            // disable castling rights if a rook is moving
+            else if(getTile(startPosition).getPiece().toString().equals("R")){
+                disableRookSideCastling(isWhiteTurn(), startPosition);
+            }
+        }
+        // makes the move
         Move move = new Move(this, startPosition, endPosition);
-        // process enpassant, promotion and turn data after making move
+        // process enpassant
+        int enpassantPosition = -1;
         if(move.isPawnDoubleMove()){
             // add enpassant possibility
-            setEnpassant((startPosition + endPosition) / 2);
-        }
-        else{   // no enpassant move possible
-            setEnpassant(-1);
+            enpassantPosition = (startPosition + endPosition) / 2;
         }
         move.makeMove();
-
+        setEnpassant(enpassantPosition);
+        // process promotion and turn data after making move
         // change turn to opposite side
         setTurn(!isWhiteTurn());
     }
@@ -296,11 +343,45 @@ public class Board {
         return list;
     }
 
-    public boolean canEnpassant(){
-        return getEnpassant() != -1;
+    /**
+     * Checks if the current side has any castling rights
+     * @return true if either king side or queen side castling is present for the current side
+     */
+    private boolean hasCastlingRights(){
+        if(isWhiteTurn()){
+            return getWhiteKingSideCastle() || getWhiteQueenSideCastle();
+        }
+        else{
+            return getBlackKingSideCastle() || getBlackQueenSideCastle();
+        }
     }
 
-    /*** GETTER FUNCTIONS ***/
+    /**
+     * If a rook of either side has moved from its starting position, disable castling for that side
+     * @param isWhiteRook refers to the side which the rook is on
+     * @param rookPosition refers to the position of the rook
+     */
+    private void disableRookSideCastling(boolean isWhiteRook, int rookPosition){
+        if(isWhiteRook){
+            if(rookPosition == 63){
+                setWhiteKingSideCastle(false);
+            }
+            else if(rookPosition == 56){
+                setWhiteQueenSideCastle(false);
+            }
+        }
+        else{
+            if(rookPosition == 7){
+                setBlackKingSideCastle(false);
+            }
+            else if(rookPosition == 0){
+                setBlackQueenSideCastle(false);
+            }
+        }
+    }
+
+//  /******** GETTER FUNCTIONS ********/
+//  ------------------------------------
     public ArrayList<Integer> getWhitePieces(){
         return whitePieces;
     }
@@ -341,6 +422,10 @@ public class Board {
         return enpassantPosition;
     }
 
+    public boolean canEnpassant(){
+        return getEnpassant() != -1;
+    }
+
     /**
      * @return position of pawn that will be captured due to the enpassant move
      */
@@ -369,15 +454,27 @@ public class Board {
         return fullMoveNum;
     }
 
+    /**
+     * Gets the row which the current index belongs to on the chess board
+     * @param position refers to the index on the board
+     * @return the row of the index (i.e. index 8 is on row 1)
+     */
     public int getRow(int position){
         return (position - (position % 8)) / 8;
     }
 
+    /**
+     * Gets the column which the current index belongs to on the chess board
+     * @param position refers to the index on the board
+     * @return the column of the index (i.e. index 8 is on column 0)
+     */
     public int getCol(int position){
         return position % 8;
     }
 
-    /*** SET FUNCTIONS ***/
+//  /******** SET FUNCTIONS ********/
+//  ---------------------------------
+
     public void setTurn(boolean whiteTurn){
         this.isWhiteTurn = whiteTurn;
     }
@@ -391,7 +488,6 @@ public class Board {
         }
     }
 
-    /*** SET CASTLING RIGHTS ***/
     public void setWhiteKingSideCastle(boolean ableToCastle){
         this.whiteKingSideCastle = ableToCastle;
     }
@@ -428,7 +524,11 @@ public class Board {
         this.fullMoveNum = fullMoveNum;
     }
 
-    public void state(){    // print board
+    /**
+     * Prints out state of board to show location of pieces for each side
+     * along with the index of tiles on the board to compare
+     */
+    public void state(){
         for(int i = 0; i < 8; i++){
             for(int k = 0; k < 8; k++){
                 if(board[k + (i * 8)].getPiece() == null){
@@ -453,14 +553,22 @@ public class Board {
         }
     }
 
+    /**
+     * Unit testing
+     * > Able to play Chess on CLI. (Promotion has not been implemented)
+     */
     public static void main(String[] args){
         Board b = new Board();
-        String FEN = "rnbqkbnr/pp1p1ppp/8/2pPp3/8/8/PPP1PPPP/RNBQKBNR w KQkq c6 0 1";
-        b.init(FEN);
+        // Custom FEN input
+        // String FEN = "rnbqkbnr/1ppppppp/p7/8/3P4/8/PPP1PPPP/RNBQKBNR w KQkq - 0 1";
+        b.init(FENUtilities.startFEN);
 
         b.state();
         System.out.println();
-        System.out.println(b.getEnpassant());
+        System.out.println("Enpassant: " + b.getEnpassant());
+
+//        ** USED FOR DEBUGGING INDIVIDUAL BOARD MOVES **
+//        -----------------------------------------------
 //        System.out.print("Moves: ");
 //        if (b.isWhiteTurn()) System.out.println("(White)");
 //        else System.out.println("(Black)");
@@ -477,14 +585,15 @@ public class Board {
 //        if (b.isWhiteTurn()) System.out.println(b.getWhiteKingPosition());
 //        else System.out.println(b.getBlackKingPosition());
 //        System.out.println("FEN: " + FEN);
+//        -----------------------------------------------
 
-        while(true){
+        // Used to play CLI chess
+        while(b.getAllLegalMoves().size() != 0){
             if (b.isWhiteTurn()) System.out.println("(White)");
             else System.out.println("(Black)");
             Scanner sc = new Scanner(System.in);
             System.out.println("Enter start position of piece to move: ");
-            int start;
-            start = sc.nextInt();
+            int start = sc.nextInt();
             while(start < 0 || start > 63 || !b.getTile(start).isOccupied()
                     || b.getTile(start).getPiece().isWhite() != b.isWhiteTurn()
                     || b.getTile(start).getPiece().getLegalMoves().size() == 0){
@@ -498,10 +607,15 @@ public class Board {
             System.out.println();
             System.out.println("Enter end position of piece: ");
             int end = sc.nextInt();
+            while(end < 0 || end > 63 || !b.getTile(start).getPiece().isLegalMove(end)){
+                System.out.println("Enter end position of piece: ");
+                end = sc.nextInt();
+            }
             b.move(start, end);
             b.state();
-            System.out.println(b.getEnpassant());
+            System.out.println("Enpassant: " + b.getEnpassant());
         }
-
+        // Check how game has ended
+        GameStatus.checkGameEnded(b);
     }
 }
