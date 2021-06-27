@@ -560,8 +560,8 @@ public class Board {
     public static void main(String[] args){
         Board b = new Board();
         // Custom FEN input
-        // String FEN = "rnbqkbnr/1ppppppp/p7/8/3P4/8/PPP1PPPP/RNBQKBNR w KQkq - 0 1";
-        b.init(FENUtilities.startFEN);
+        String FEN = "r3kbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+        b.init(FEN);
 
         b.state();
         System.out.println();

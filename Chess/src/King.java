@@ -45,10 +45,10 @@ public class King extends Piece {
         }
         else{
             if(checkKingSideCastling()){
-                list.add(this.getPosition() - 2);   // king jumps 2 squares to the left for king side castling
+                list.add(this.getPosition() + 2);   // king jumps 2 squares to the left for king side castling
             }
             if(checkQueenSideCastling()){
-                list.add(this.getPosition() + 2);   // king jumps 2 squares to the right for queen side castling
+                list.add(this.getPosition() - 2);   // king jumps 2 squares to the right for queen side castling
             }
         }
         return list;
