@@ -71,10 +71,22 @@ public class Pawn extends Piece {
         else if((Math.abs(start - end) == 7 || Math.abs(start - end) == 9)){
             if(super.board.getTile(end).isOccupied()){
                 if(start % 8 == 0){ // pawn on left edge
-                    return Math.abs(start - end) != 9; // return false if it tries to attack left square
+                    // return false if it tries to attack left square
+                    if(this.isWhite()){
+                        return Math.abs(start - end) != 9;  // white side
+                    }
+                    else{
+                        return Math.abs(start - end) == 9;  // black side
+                    }
                 }
                 else if(start % 8 == 7 ){   // pawn on right edge
-                    return Math.abs(start - end) != 7; // return false if it tries to attack right square
+                    // return false if it tries to attack right square
+                    if(this.isWhite()){
+                        return Math.abs(start - end) != 7;  // white side
+                    }
+                    else{
+                        return Math.abs(start - end) == 7;  // black side
+                    }
                 }
                 return true;    // otherwise, return true
             }

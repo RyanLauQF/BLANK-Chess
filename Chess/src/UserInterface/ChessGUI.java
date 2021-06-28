@@ -2,6 +2,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.util.Stack;
 
 public class ChessGUI extends JPanel {
     // all white piece images
@@ -20,10 +21,14 @@ public class ChessGUI extends JPanel {
     public static final ImageIcon blackQueen = new ImageIcon("resources/piece-icons/blackQueen.png");
     public static final ImageIcon blackKing = new ImageIcon("resources/piece-icons/blackKing.png");
 
+    // TILE COLOURS
     private static final Color DARK_SQUARE_COLOUR = new Color(182, 136, 96);
     private static final Color LIGHT_SQUARE_COLOUR = new Color(241, 218, 179);
     private static final Color SELECTED_SQUARE_COLOUR = new Color(187, 203, 61);
-    private static final Color MOVE_SQUARE_COLOUR = new Color(241, 218, 179);
+    private static final Color LIGHT_MOVE_SQUARE_COLOUR = new Color(226, 81, 76);
+    private static final Color DARK_MOVE_SQUARE_COLOUR = new Color(215, 72, 64);
+
+    private final Stack<Integer> highlightedTiles;
 
     private final Board board;    // reference to the current board in chess game
     private boolean hasPieceBeenSelected;   // checks if piece is selected
@@ -37,34 +42,28 @@ public class ChessGUI extends JPanel {
         this.board = board;
         this.hasPieceBeenSelected = false;
         this.pieceSelected = -1;
+        this.highlightedTiles = new Stack<>();
 
         Dimension dimension = new Dimension(64, 64);
         setLayout(new GridLayout(8, 8));
         // create Tile panels
         // initialise colours of the tiles on the board
-        for (int i = 0; i < 8; i++) {
-            for (int j = 0; j < 8; j++) {
-                int index = (i * 8) + j;
-                TilePanel tilePanel = new TilePanel(index, this);
-                tilePanel.setPreferredSize(dimension);
-                tilePanel.setMinimumSize(dimension);
+        for (int index = 0; index < 64; index++) {
+            TilePanel tilePanel = new TilePanel(index, this);
+            tilePanel.setPreferredSize(dimension);
+            tilePanel.setMinimumSize(dimension);
 
-                // set tiles to checkered colour
-                if ((i + j + 1) % 2 == 0) {
-                    tilePanel.setBackground(LIGHT_SQUARE_COLOUR); // light squares
-                } else {
-                    tilePanel.setBackground(DARK_SQUARE_COLOUR); // dark squares
-                }
+            // set tiles to checkered colour
+            tilePanel.setBackground(this.getTileOriginalColor(index));
 
-                // Add piece to a tile if the tile is occupied
-                if(board.getTile(index).isOccupied()){
-                    tilePanel.setPiece(board.getTile(index).getPiece());
-                }
-                else{
-                    tilePanel.setPiece(null);
-                }
-                add(tilePanel);
+            // Add piece to a tile if the tile is occupied
+            if(board.getTile(index).isOccupied()){
+                tilePanel.setPiece(board.getTile(index).getPiece());
             }
+            else{
+                tilePanel.setPiece(null);
+            }
+            add(tilePanel);
         }
     }
 
@@ -95,23 +94,22 @@ public class ChessGUI extends JPanel {
         setSelectedPiece(-1);
     }
 
-    // TODO Show Coloured tiles for legal moves of this piece
     public void showLegalTiles(){
         // Get individual JPanels from ChessGUI JPanel
         Component[] components = this.getComponents();
-
-        // Highlight selected tile
-        components[getSelectedPiece()].setBackground(SELECTED_SQUARE_COLOUR);
-
         // Highlight tiles that piece is able to move to
         if(isPieceSelected()){
             for(int legalMoves : board.getTile(getSelectedPiece()).getPiece().getLegalMoves()){
                 if(components[legalMoves] instanceof TilePanel){
                     // change background colour of legal move tiles
                     TilePanel currPanel = (TilePanel) components[legalMoves];
-//                    if(currPanel.getBackground()){
-//
-//                    }
+                    if(currPanel.getBackground() == LIGHT_SQUARE_COLOUR){
+                        currPanel.setBackground(LIGHT_MOVE_SQUARE_COLOUR);
+                    }
+                    else if(currPanel.getBackground() == DARK_SQUARE_COLOUR){
+                        currPanel.setBackground(DARK_MOVE_SQUARE_COLOUR);
+                    }
+                    highlightedTiles.add(legalMoves);
                 }
             }
         }
@@ -121,15 +119,44 @@ public class ChessGUI extends JPanel {
         setSelectedPiece(tilePosition);
         setHasPieceBeenSelected(true);
         // Get individual JPanels from ChessGUI JPanel
-//        Component[] components = this.getComponents();
-//        // Highlight selected tile
-//        components[tilePosition].setBackground(SELECTED_SQUARE_COLOUR);
+        Component[] components = this.getComponents();
+        // Highlight selected tile
+        components[tilePosition].setBackground(SELECTED_SQUARE_COLOUR);
+        // Show all legal tiles of the selected piece
+        showLegalTiles();
     }
 
     public void deselect(){
+        // reset highlighted tiles
+        resetHighlightedTiles();
+
+        // deselect the previous selected piece
+        Component[] components = this.getComponents();
+        components[getSelectedPiece()].setBackground(getTileOriginalColor(getSelectedPiece()));
+
         setSelectedPiece(-1);
         setHasPieceBeenSelected(false);
+    }
 
+    private void resetHighlightedTiles(){
+        Component[] components = this.getComponents();
+        while(!highlightedTiles.isEmpty()){
+            int tileToBeReset = highlightedTiles.pop();
+            components[tileToBeReset].setBackground(getTileOriginalColor(tileToBeReset));
+        }
+    }
+
+    private Color getTileOriginalColor(int position){
+        // row and column of the tile
+        int row = (position - (position % 8)) / 8;
+        int col = position % 8;
+
+        if((row + col + 1) % 2 == 0){
+            return DARK_SQUARE_COLOUR; // dark squares
+        }
+        else {
+            return LIGHT_SQUARE_COLOUR; // light squares
+        }
     }
 
     public boolean isPieceSelected(){
@@ -177,21 +204,18 @@ public class ChessGUI extends JPanel {
                 public void mouseClicked(MouseEvent e) {
                     // if no piece is selected and tile is not occupied, do nothing
                     if(!isOccupied() && !gui.isPieceSelected()){
-                        gui.deselect();
                         return;
                     }
 
                     // if no piece has been selected but tile is occupied, select the current piece to attack
                     if(isOccupied() && !gui.isPieceSelected()){
                         if(gui.board.getTile(getPosition()).getPiece().isWhite() != gui.board.isWhiteTurn()){
-                            System.out.println(getPosition());
+                            System.out.println("Wrong Side Piece");
                             return;
                         }
                         // select piece only if it is same as current turn (i.e. white turn, select white piece)
                         System.out.println("Selected");
                         gui.select(getPosition());
-                        // show the legal moves of the selected piece
-                        // gui.showLegalTiles();
                     }
                     // else if a piece has been selected check if it is a legal move
                     else{
@@ -211,7 +235,13 @@ public class ChessGUI extends JPanel {
                         // if the move is legal, make the move on the board
                         gui.board.move(gui.getSelectedPiece(), getPosition());
                         // update board tiles
+                        gui.deselect();
                         gui.update();
+                        if(GameStatus.checkGameEnded(gui.board)){
+                            String gameState = GameStatus.getHowGameEnded();
+                            JOptionPane.showMessageDialog(gui, gameState,
+                                    "Game Manager", JOptionPane.INFORMATION_MESSAGE);
+                        }
                     }
                 }
             });
@@ -301,7 +331,8 @@ public class ChessGUI extends JPanel {
      */
     public static void main(String[] args) {
         Board board = new Board();
-        // String FEN = "r3kbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+        // Custom FEN input
+        // String FEN = "1q6/2r5/7k/8/8/8/K7/8 w - - 0 1";
         board.init(FENUtilities.startFEN);
         ChessGUI.initGUI(board);
     }
