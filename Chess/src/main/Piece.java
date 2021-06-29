@@ -44,7 +44,7 @@ public abstract class Piece {
             Move movement = new Move(this.board, this.position, move);
             movement.makeMove();    // make the move on the board without making a copy
             // if king is not under check after making the move, the move is legal.
-            if(!this.board.isKingChecked()) {
+            if(!this.board.isKingChecked(this.isWhite())) {
                 moveList.add(move);
             }
             movement.unMake();  // revert board back to its original state

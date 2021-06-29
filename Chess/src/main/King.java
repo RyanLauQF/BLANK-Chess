@@ -69,7 +69,7 @@ public class King extends Piece {
      * @return true if king side castling if available, else return false
      */
     public boolean checkKingSideCastling(){
-        if(super.board.isKingChecked()){    // cannot castle when king is in check
+        if(super.board.isKingChecked(this.isWhite())){    // cannot castle when king is in check
             return false;
         }
         if(this.isWhite() && !super.board.getWhiteKingSideCastle()){ // check if white has king side castling rights
@@ -98,7 +98,7 @@ public class King extends Piece {
      * @return true if queen side castling if available, else return false
      */
     public boolean checkQueenSideCastling(){
-        if(super.board.isKingChecked()){    // cannot castle when king is in check
+        if(super.board.isKingChecked(this.isWhite())){    // cannot castle when king is in check
             return false;
         }
         if(this.isWhite() && !super.board.getWhiteQueenSideCastle()){ // check if white has king side castling rights

@@ -176,90 +176,12 @@ public class Board {
     }
 
     /**
-     * Move a piece on the board based on move rules and update the board
-     * whilst checking if the game has ended.
-     *
-     * Information to be updated:
-     *      1) Piece location from start to end tile (update location of alive piece when it moves)
-     *      2) Castling rights
-     *      3) Enpassant availability
-     *      4) Pawn promotion if pawn reached last row (Select either Rook, Knight, Bishop or Queen)
-     *      5) 50 move rule
-     *      6) Change to opponent's turn
-     *
-     * @param startPosition refers to the (starting) location of piece being moved
-     * @param endPosition refers to the final location the piece will end up
-     */
-    public void move(int startPosition, int endPosition){
-        // check legality of move from start to end position
-        checkLegalMove(startPosition, endPosition);
-
-        // disables castling rights if either king or rook is moving
-        if(hasCastlingRights()){
-            // disable both king and queen side castling if king is moving
-            if(getTile(startPosition).getPiece().toString().equals("K")){
-                if(isWhiteTurn()){
-                    setWhiteKingSideCastle(false);
-                    setWhiteQueenSideCastle(false);
-                }
-                else{
-                    setBlackKingSideCastle(false);
-                    setBlackQueenSideCastle(false);
-                }
-            }
-            // disable castling rights if a rook is moving
-            else if(getTile(startPosition).getPiece().toString().equals("R")){
-                disableRookSideCastling(isWhiteTurn(), startPosition);
-            }
-        }
-        // makes the move
-        Move move = new Move(this, startPosition, endPosition);
-        // process enpassant
-        int enpassantPosition = -1;
-        if(move.isPawnDoubleMove()){
-            // add enpassant possibility
-            enpassantPosition = (startPosition + endPosition) / 2;
-        }
-        move.makeMove();
-        setEnpassant(enpassantPosition);
-        // process promotion and turn data after making move
-        // change turn to opposite side
-        setTurn(!isWhiteTurn());
-    }
-
-    /**
-     * Checks that move being made is a legal move
-     * @param startPosition refers to the location of piece being moved
-     * @param endPosition refers to the final location the piece will end up
-     */
-    private void checkLegalMove(int startPosition, int endPosition){
-        // Check start position has a piece to be moved
-        if(!getTile(startPosition).isOccupied()){
-            throw new IllegalArgumentException("Piece to be moved cannot be found.");
-        }
-        if(getTile(endPosition).isOccupied() && getTile(endPosition).getPiece().toString().equals("K")){
-            throw new IllegalArgumentException("Illegal to capture enemy King");
-        }
-        // Check that move being made is legal
-        boolean isLegalMove = false;
-        for(int legalMoves : getTile(startPosition).getPiece().getLegalMoves()){
-            if(legalMoves == endPosition){
-                isLegalMove = true;
-                break;
-            }
-        }
-        if(!isLegalMove){
-            throw new IllegalArgumentException("Illegal move");
-        }
-    }
-
-    /**
      * Check if the king of the current side is sitting on one of the squares on opponent's attack map
      * if it is, king is being attacked.
      * @return true if king of current side is in check by opponent, else return false
      */
-    public boolean isKingChecked(){
-        if(isWhiteTurn()){
+    public boolean isKingChecked(boolean isWhiteKing){
+        if(isWhiteKing){
             return blackAttackMap[getWhiteKingPosition()];
         }
         else{
@@ -347,7 +269,7 @@ public class Board {
      * Checks if the current side has any castling rights
      * @return true if either king side or queen side castling is present for the current side
      */
-    private boolean hasCastlingRights(){
+    public boolean hasCastlingRights(){
         if(isWhiteTurn()){
             return getWhiteKingSideCastle() || getWhiteQueenSideCastle();
         }
@@ -361,21 +283,21 @@ public class Board {
      * @param isWhiteRook refers to the side which the rook is on
      * @param rookPosition refers to the position of the rook
      */
-    private void disableRookSideCastling(boolean isWhiteRook, int rookPosition){
+    public void setRookSideCastling(boolean isWhiteRook, int rookPosition, boolean setCastling){
         if(isWhiteRook){
             if(rookPosition == 63){
-                setWhiteKingSideCastle(false);
+                setWhiteKingSideCastle(setCastling);
             }
             else if(rookPosition == 56){
-                setWhiteQueenSideCastle(false);
+                setWhiteQueenSideCastle(setCastling);
             }
         }
         else{
             if(rookPosition == 7){
-                setBlackKingSideCastle(false);
+                setBlackKingSideCastle(setCastling);
             }
             else if(rookPosition == 0){
-                setBlackQueenSideCastle(false);
+                setBlackQueenSideCastle(setCastling);
             }
         }
     }
@@ -560,7 +482,7 @@ public class Board {
     public static void main(String[] args){
         Board b = new Board();
         // Custom FEN input
-        String FEN = "r1bqkbnr/4ppp1/p1n5/2p4p/3pP1P1/5N2/P4P1P/RNBQKB1R b KQkq e3 0 1";
+        String FEN = "rnbqkbnr/ppppp1pp/5p2/1P6/8/8/P1PPPPPP/RNBQKBNR b KQkq - 0 1";
         b.init(FEN);
 
         b.state();
@@ -611,7 +533,8 @@ public class Board {
                 System.out.println("Enter end position of piece: ");
                 end = sc.nextInt();
             }
-            b.move(start, end);
+            Move move = new Move(b, start, end);
+            move.makeMove();
             b.state();
             System.out.println("Enpassant: " + b.getEnpassant());
         }

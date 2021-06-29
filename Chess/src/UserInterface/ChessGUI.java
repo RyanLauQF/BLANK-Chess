@@ -232,8 +232,9 @@ public class ChessGUI extends JPanel {
                             gui.deselect();
                             return;
                         }
+                        Move move = new Move(gui.board, gui.getSelectedPiece(), getPosition());
                         // if the move is legal, make the move on the board
-                        gui.board.move(gui.getSelectedPiece(), getPosition());
+                        move.makeMove();
                         // update board tiles
                         gui.deselect();
                         gui.update();
@@ -332,7 +333,7 @@ public class ChessGUI extends JPanel {
     public static void main(String[] args) {
         Board board = new Board();
         // Custom FEN input
-        // String FEN = "1q6/2r5/7k/8/8/8/K7/8 w - - 0 1";
+        String FEN = "kr6/p7/8/1P6/8/8/8/1K6 b - - 0 1";
         board.init(FENUtilities.startFEN);
         ChessGUI.initGUI(board);
     }
