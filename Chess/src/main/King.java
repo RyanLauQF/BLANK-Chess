@@ -23,6 +23,7 @@ public class King extends Piece {
     public King(boolean isWhite, int position, Board b){
         super(isWhite, position, b);
         b.setKingPosition(position, isWhite);
+        this.type = PieceType.KING;
     }
 
     @Override
@@ -87,7 +88,7 @@ public class King extends Piece {
             rookPosition = this.getPosition() + 3;
         }
         // if king side rook is at position check if path is clear to castle
-        if(super.board.getTile(rookPosition).isOccupied() && super.board.getTile(rookPosition).getPiece().toString().equals("R")){
+        if(super.board.getTile(rookPosition).isOccupied() && super.board.getTile(rookPosition).getPiece().isRook()){
             return isPathClear(this.getPosition(), rookPosition);
         }
         return false;
@@ -116,7 +117,7 @@ public class King extends Piece {
             rookPosition = this.getPosition() - 4;
         }
         // if king side rook is at position check if path is clear to castle
-        if(super.board.getTile(rookPosition).isOccupied() && super.board.getTile(rookPosition).getPiece().toString().equals("R")){
+        if(super.board.getTile(rookPosition).isOccupied() && super.board.getTile(rookPosition).getPiece().isRook()){
             return isPathClear(this.getPosition(), rookPosition);
         }
         return false;

@@ -15,6 +15,7 @@ public class Bishop extends Piece{
 
     public Bishop(boolean isWhite, int position, Board b){
         super(isWhite, position, b);
+        this.type = PieceType.BISHOP;
     }
 
     @Override

@@ -1,9 +1,15 @@
 import java.util.ArrayList;
 
 public abstract class Piece {
+
+    public enum PieceType {
+        PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING
+    }
+
     protected final boolean colour; // White == 1, Black == 0;
     protected int position; // position of piece on board
     protected Board board; // reference to the chess board
+    protected PieceType type;
 
     /**
      * Piece Constructor
@@ -25,8 +31,8 @@ public abstract class Piece {
      * and converting pseudo-legal moves to legal moves via checking if king is placed in check
      * @return A list of moves (end position) available for the piece
      */
-    public ArrayList<Integer> getLegalMoves(){
-        ArrayList<Integer> moveList = new ArrayList<>();
+    public ArrayList<Short> getLegalMoves(){
+        ArrayList<Short> moveList = new ArrayList<>();
         ArrayList<Integer> defendingSquares = getDefendingSquares();
 
         for(int move : defendingSquares){
@@ -45,9 +51,13 @@ public abstract class Piece {
             movement.makeMove();    // make the move on the board without making a copy
             // if king is not under check after making the move, the move is legal.
             if(!this.board.isKingChecked(this.isWhite())) {
-                moveList.add(move);
+                movement.unMake();
+                short encodedMove = MoveGenerator.generateMove(this.position, move, 0);
+                moveList.add(encodedMove);
             }
-            movement.unMake();  // revert board back to its original state
+            else{
+                movement.unMake();  // revert board back to its original state
+            }
         }
         return moveList;
     }
@@ -107,6 +117,60 @@ public abstract class Piece {
         return position % 8;
     }
 
+    /**
+     * @return the piece type of the current piece (PAWN / BISHOP / KNIGHT... )
+     */
+    public PieceType getType(){
+        return this.type;
+    }
+
+    /**
+     * Checks if a piece is a pawn.
+     * @return true if the piece is a pawn else return false
+     */
+    public boolean isPawn(){
+        return this.type == PieceType.PAWN;
+    }
+
+    /**
+     * Checks if a piece is a knight.
+     * @return true if the piece is a knight else return false
+     */
+    public boolean isKnight(){
+        return this.type == PieceType.KNIGHT;
+    }
+
+    /**
+     * Checks if a piece is a bishop.
+     * @return true if the piece is a bishop else return false
+     */
+    public boolean isBishop(){
+        return this.type == PieceType.BISHOP;
+    }
+
+    /**
+     * Checks if a piece is a rook.
+     * @return true if the piece is a rook else return false
+     */
+    public boolean isRook(){
+        return this.type == PieceType.ROOK;
+    }
+
+    /**
+     * Checks if a piece is a queen.
+     * @return true if the piece is a queen else return false
+     */
+    public boolean isQueen(){
+        return this.type == PieceType.QUEEN;
+    }
+
+    /**
+     * Checks if a piece is a king.
+     * @return true if the piece is a king else return false
+     */
+    public boolean isKing(){
+        return this.type == PieceType.KING;
+    }
 
     /* ABSTRACT CLASSES TO BE IMPLEMENTED BY SUB CLASSES */
 

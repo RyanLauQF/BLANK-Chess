@@ -19,6 +19,7 @@ public class Pawn extends Piece {
 
     public Pawn(boolean isWhite, int position, Board b){
         super(isWhite, position, b);  // call super class (parent class is Piece) constructor
+        this.type =  PieceType.PAWN;
     }
 
     @Override

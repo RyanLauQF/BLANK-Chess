@@ -54,7 +54,7 @@ public class FENUtilities { // static class for all FEN related methods
                 else{
                     // White Pieces
                     if(Character.isUpperCase(c)) {
-                        b.getWhitePieces().add(currTile);
+                        b.getWhitePieces().addPiece(currTile);
 
                         if(c == 'P') board[currTile] = new Tile(new Pawn(true, currTile, b), currTile);
                         else if(c == 'N') board[currTile] = new Tile(new Knight(true, currTile, b), currTile);
@@ -65,7 +65,7 @@ public class FENUtilities { // static class for all FEN related methods
                     }
                     // Black pieces
                     if(Character.isLowerCase(c)) {
-                        b.getBlackPieces().add(currTile);
+                        b.getBlackPieces().addPiece(currTile);
 
                         if (c == 'p') board[currTile] = new Tile(new Pawn(false, currTile, b), currTile);
                         else if(c == 'n') board[currTile] = new Tile(new Knight(false, currTile, b), currTile);

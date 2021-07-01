@@ -16,6 +16,7 @@ public class Queen extends Piece{
 
     public Queen(boolean isWhite, int position, Board b){
         super(isWhite, position, b);
+        this.type = PieceType.QUEEN;
     }
 
     @Override

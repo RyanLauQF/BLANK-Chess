@@ -16,6 +16,7 @@ public class Knight extends Piece{
 
     public Knight(boolean isWhite, int position, Board b){
         super(isWhite, position, b);
+        this.type = PieceType.KNIGHT;
     }
 
     @Override

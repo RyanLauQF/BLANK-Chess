@@ -2,7 +2,7 @@ import java.util.ArrayList;
 
 public class Player {
     private final boolean isWhite;
-    private ArrayList<Integer> piecesLeft;
+    private PieceList piecesLeft;
 
     private Board board;
     private int score;
@@ -18,8 +18,8 @@ public class Player {
             this.piecesLeft = board.getBlackPieces();
         }
         // Set the initial score of the player
-        for(int pieces : getPiecesLeft()){
-            this.score += getBoard().getTile(pieces).getPiece().getValue();
+        for(int i = 0; i  < getPiecesLeft().getCount(); i++){
+            this.score += getBoard().getTile(getPiecesLeft().occupiedTiles[i]).getPiece().getValue();
         }
     }
 
@@ -31,7 +31,7 @@ public class Player {
         return board;
     }
 
-    private ArrayList<Integer> getPiecesLeft(){
+    private PieceList getPiecesLeft(){
         return piecesLeft;
     }
 

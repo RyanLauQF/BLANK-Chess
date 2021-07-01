@@ -50,7 +50,7 @@ public class Move {
         Tile startTile = board.getTile(getStart());
         Tile endTile = board.getTile(getEnd());
 
-        // updates piece position in array list in board which tracks individual pieces
+        // updates piece position in piece list in board which tracks individual pieces
         updatePiecePosition(getStart(), getEnd());
 
         // Calculate if there is an enpassant availability if the move is a double pawn move
@@ -60,7 +60,7 @@ public class Move {
         }
 
         // if the move is a king moving
-        if(startTile.getPiece().toString().equals("K")){
+        if(startTile.getPiece().isKing()){
             // update king position on board
             board.setKingPosition(getEnd(), startTile.getPiece().isWhite());
 
@@ -106,7 +106,7 @@ public class Move {
             }
         }
         // if rook is moving, disable the rook side castling
-        else if(startTile.getPiece().toString().equals("R")){
+        else if(startTile.getPiece().isRook()){
             // disable castling rights if a rook is moving
             if(board.hasCastlingRights()){
                 board.setRookSideCastling(board.isWhiteTurn(), getStart(), false);
@@ -148,7 +148,7 @@ public class Move {
         Tile endTile = board.getTile(getEnd());
         updatePiecePosition(getEnd(), getStart());
 
-        if(endTile.getPiece().toString().equals("K")){    // if piece is a King
+        if(endTile.getPiece().isKing()){    // if piece is a King
             // update king position on board
             board.setKingPosition(getStart(), endTile.getPiece().isWhite());
 
@@ -218,20 +218,18 @@ public class Move {
     }
 
     /**
-     * Updates the piece array list that keeps track of the location of pieces for each side of the board
+     * Updates the piece list that keeps track of the location of pieces for each side of the board
      * @param startPosition refers to the initial position the piece occupies
      * @param endPosition refers to the position which the piece has moved to
      */
-    private void updatePiecePosition(Integer startPosition, int endPosition){
+    private void updatePiecePosition(int startPosition, int endPosition){
         if(board.getTile(startPosition).getPiece().isWhite()){
             // if it is a white piece moving, update white pieces list
-            board.getWhitePieces().remove(startPosition);
-            board.getWhitePieces().add(endPosition);
+            board.getWhitePieces().movePiece(startPosition, endPosition);
         }
         else{
             // if it is a black piece moving, update black pieces list
-            board.getBlackPieces().remove(startPosition);
-            board.getBlackPieces().add(endPosition);
+            board.getBlackPieces().movePiece(startPosition, endPosition);
         }
         board.getTile(startPosition).getPiece().setPosition(endPosition);
     }
@@ -256,7 +254,7 @@ public class Move {
      */
     public boolean isPawnDoubleMove(){
         if(board.getTile(getStart()).isOccupied() &&
-                board.getTile(getStart()).getPiece().toString().equals("P")){
+                board.getTile(getStart()).getPiece().isPawn()){
             return Math.abs(getStart() - getEnd()) == 16;
         }
         return false;
@@ -267,7 +265,7 @@ public class Move {
      * @return true for pawn being at last row of either side of the board
      */
     public boolean isPawnPromotion(){
-        if(board.getTile(getStart()).getPiece().toString().equals("P")){
+        if(board.getTile(getStart()).getPiece().isPawn()){
            int row = board.getRow(getEnd());
            return row == 0 || row == 7;
         }
@@ -279,7 +277,7 @@ public class Move {
      * @return true if it is an enpassant move
      */
     public boolean isEnpassantCapture(){
-        return board.getTile(getStart()).getPiece().toString().equals("P") && board.getEnpassant() == getEnd();
+        return (board.getTile(getStart()).getPiece().isPawn()) && (board.getEnpassant() == getEnd());
     }
 
     /**

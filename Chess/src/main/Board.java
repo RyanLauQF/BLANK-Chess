@@ -42,8 +42,8 @@ public class Board {
     private int enpassantPosition;  // if no Enpassant move is available, initiate to -1
 
     // track position of alive pieces on the board for each side
-    private final ArrayList<Integer> whitePieces;
-    private final ArrayList<Integer> blackPieces;
+    private final PieceList whitePieces;
+    private final PieceList blackPieces;
 
     // used for fast checking if king is in check
     private int whiteKingPosition;
@@ -61,8 +61,8 @@ public class Board {
     public Board(){
         board = new Tile[64];
         // initiate array list to keep track of position of all pieces on the board for each side
-        whitePieces = new ArrayList<>();
-        blackPieces = new ArrayList<>();
+        whitePieces = new PieceList();
+        blackPieces = new PieceList();
     }
 
     /**
@@ -96,15 +96,17 @@ public class Board {
      */
     public void calcWhiteAttackMap(){
         // get all squares which white pieces are attacking and set to true
-        for(int each : getWhitePieces()){
-            if(board[each].getPiece().toString().equals("P")){ // if it is a pawn, get its control squares using another method
-                for(int pawnSquares : pawnDefendingSquares(each)){
+        PieceList whitePieces = getWhitePieces();
+        for(int i = 0; i < whitePieces.getCount(); i++){
+            // if it is a pawn, get its control squares using another method
+            if(board[whitePieces.occupiedTiles[i]].getPiece().isPawn()){
+                for(int pawnSquares : pawnDefendingSquares(whitePieces.occupiedTiles[i])){
                     setWhiteAttackMap(pawnSquares, true);
                     trackWhiteMap.push(pawnSquares);
                 }
             }
             else{
-                for(int moves : board[each].getPiece().getDefendingSquares()){
+                for(int moves : board[whitePieces.occupiedTiles[i]].getPiece().getDefendingSquares()){
                     setWhiteAttackMap(moves, true);
                     trackWhiteMap.push(moves);
                 }
@@ -117,15 +119,17 @@ public class Board {
      */
     public void calcBlackAttackMap(){
         // get all squares which black pieces are attacking and set to true
-        for(int each : getBlackPieces()){
-            if(board[each].getPiece().toString().equals("P")){ // if it is a pawn, get its control squares using another method
-                for(int pawnSquares : pawnDefendingSquares(each)){
+        PieceList blackPieces = getBlackPieces();
+        for(int i = 0; i < blackPieces.getCount(); i++){
+            // if it is a pawn, get its control squares using another method
+            if(board[blackPieces.occupiedTiles[i]].getPiece().isPawn()){
+                for(int pawnSquares : pawnDefendingSquares(blackPieces.occupiedTiles[i])){
                     setBlackAttackMap(pawnSquares, true);
                     trackBlackMap.push(pawnSquares);
                 }
             }
             else{
-                for(int moves : board[each].getPiece().getDefendingSquares()){
+                for(int moves : board[blackPieces.occupiedTiles[i]].getPiece().getDefendingSquares()){
                     setBlackAttackMap(moves, true);
                     trackBlackMap.push(moves);
                 }
@@ -155,21 +159,19 @@ public class Board {
      * E.g. if its white's turn, get all white legal moves.
      * @return list of positions of all legal moves on the board
      */
-    public ArrayList<Integer> getAllLegalMoves(){
-        ArrayList <Integer> moveList = new ArrayList<>();
+    public ArrayList<Short> getAllLegalMoves(){
+        ArrayList <Short> moveList = new ArrayList<>();
         // pseudo-legal moves are filtered out when generating moves from individual pieces
         if (isWhiteTurn()){  // get all white legal moves
-            Integer[] whitePieces = new Integer[getWhitePieces().size()];
-            getWhitePieces().toArray(whitePieces);
-            for(int each : whitePieces){ // goes through all white pieces
-                moveList.addAll(board[each].getPiece().getLegalMoves()); // merge list
+            PieceList list = getWhitePieces();
+            for(int i = 0; i < list.getCount(); i++){
+                moveList.addAll(board[list.occupiedTiles[i]].getPiece().getLegalMoves()); // merge list
             }
         }
         else{   // get all black legal moves
-            Integer[] blackPieces = new Integer[getBlackPieces().size()];
-            getBlackPieces().toArray(blackPieces);
-            for(int each : blackPieces){ // goes through all white pieces
-                moveList.addAll(board[each].getPiece().getLegalMoves()); // merge list
+            PieceList list = getBlackPieces();
+            for(int i = 0; i < list.getCount(); i++){ // goes through all white pieces
+                moveList.addAll(board[list.occupiedTiles[i]].getPiece().getLegalMoves()); // merge list
             }
         }
         return moveList;
@@ -209,10 +211,10 @@ public class Board {
      */
     public void removePiece(Integer position){
         if(board[position].getPiece().isWhite()){
-            whitePieces.remove(position);
+            whitePieces.removePiece(position);
         }
         else{
-            blackPieces.remove(position);
+            blackPieces.removePiece(position);
         }
     }
 
@@ -223,10 +225,10 @@ public class Board {
      */
     public void addPiece(Piece piece , int position){
         if(piece.isWhite()){
-            whitePieces.add(position);
+            whitePieces.addPiece(position);
         }
         else{
-            blackPieces.add(position);
+            blackPieces.addPiece(position);
         }
     }
 
@@ -304,11 +306,11 @@ public class Board {
 
 //  /******** GETTER FUNCTIONS ********/
 //  ------------------------------------
-    public ArrayList<Integer> getWhitePieces(){
+    public PieceList getWhitePieces(){
         return whitePieces;
     }
 
-    public ArrayList<Integer> getBlackPieces(){
+    public PieceList getBlackPieces(){
         return blackPieces;
     }
 
