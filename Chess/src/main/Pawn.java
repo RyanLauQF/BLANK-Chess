@@ -19,43 +19,46 @@ public class Pawn extends Piece {
 
     public Pawn(boolean isWhite, int position, Board b){
         super(isWhite, position, b);  // call super class (parent class is Piece) constructor
-        this.type =  PieceType.PAWN;
+        this.type = PieceType.PAWN;
     }
 
     @Override
-    public ArrayList<Integer> getDefendingSquares(){
-        ArrayList<Integer> list = new ArrayList<>();
+    public ArrayList<Short> getDefendingSquares(){
+        ArrayList<Short> list = new ArrayList<>();
+        int endPosition;
         if(this.isWhite()){ // white moves
             if(this.getPosition() >= 48 && this.getPosition() <= 55){   // white pawn at starting position
                 if(isValidMove(this.getPosition(), this.getPosition() - 16)){   // check if move is legal
-                    list.add(this.getPosition() - 16); // pawn moves 2 steps forward
+                    endPosition = this.getPosition() - 16;
+                    list.add(MoveGenerator.generateMove(getPosition(), endPosition, 1)); // pawn moves 2 steps forward
                 }
             }
             // check through moving 1 tile forward and attacking tiles
             for(int i = 0; i < 3; i++){
                 if(isValidMove(this.getPosition(), this.getPosition() + whiteDirection[i])){
-                    list.add(this.getPosition() + whiteDirection[i]);
+                    endPosition = this.getPosition() + whiteDirection[i];
+                    list.add(MoveGenerator.generateMove(getPosition(), endPosition, 0));
                 }
             }
         }
         else{   // black moves
             if(this.getPosition() >= 8 && this.getPosition() <= 15){   // black pawn at starting position
                 if(isValidMove(this.getPosition(), this.getPosition() + 16)){
-                    list.add(this.getPosition() + 16); // pawn moves 2 steps forward
+                    endPosition = this.getPosition() + 16;  // pawn moves 2 steps forward
+                    list.add(MoveGenerator.generateMove(getPosition(), endPosition, 1));
                 }
             }
             // check through moving 1 tile forward and attacking tiles
             for(int i = 0; i < 3; i++){
                 if(isValidMove(this.getPosition(), this.getPosition() + blackDirection[i])){
-                    list.add(this.getPosition() + blackDirection[i]);
+                    endPosition = this.getPosition() + blackDirection[i];
+                    list.add(MoveGenerator.generateMove(getPosition(), endPosition, 0));
                 }
             }
         }
-
         return list;
     }
 
-    @Override
     public boolean isValidMove(int start, int end) {  // check if it is blocked
         if(start < 0 || start > 63 || end < 0 || end > 63){
             return false;   // out of bounds

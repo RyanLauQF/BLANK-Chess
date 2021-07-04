@@ -5,7 +5,7 @@ public class FENUtilities { // static class for all FEN related methods
     /**
      * DO NOT INSTANTIATE A STATIC CLASS
      */
-    public FENUtilities(){
+    private FENUtilities(){
         throw new IllegalArgumentException("Do Not Instantiate");
     }
 

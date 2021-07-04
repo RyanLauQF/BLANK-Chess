@@ -6,6 +6,7 @@ public class Move {
     private boolean isEnpassant;
     private boolean rookLostCastling;
     private boolean kingLostCastling;
+    private boolean pawnPromotion;
 
     private final int previousEnpassantPosition;
     private final boolean whiteKingSideCastling;
@@ -34,6 +35,7 @@ public class Move {
         this.startPosition = startPosition;
         this.endPosition = endPosition;
         this.attackedPiece = null;
+        this.pawnPromotion = false;
 
         // to reset enpassant and castling rights during unMove
         this.previousEnpassantPosition = board.getEnpassant();
@@ -49,9 +51,6 @@ public class Move {
     public void makeMove(){
         Tile startTile = board.getTile(getStart());
         Tile endTile = board.getTile(getEnd());
-
-        // updates piece position in piece list in board which tracks individual pieces
-        updatePiecePosition(getStart(), getEnd());
 
         // Calculate if there is an enpassant availability if the move is a double pawn move
         int enpassantPosition = -1;
@@ -129,15 +128,20 @@ public class Move {
             isEnpassant = true;
         }
 
+        if(isPawnPromotion()){
+            board.promote(Piece.PieceType.QUEEN, startTile);
+            pawnPromotion = true;
+        }
+
+        // updates piece position in piece list in board which tracks individual pieces
+        updatePiecePosition(getStart(), getEnd());
+
         // Shift the piece from end to start tile and set start tile to null
         endTile.setPiece(startTile.getPiece());
         startTile.setPiece(null);
 
         // Update enpassant availability after shifting the pieces
         board.setEnpassant(enpassantPosition);
-
-        // Recalculate the attack data on the map
-        calculateAttackData();
         board.setTurn(!board.isWhiteTurn());
     }
 
@@ -214,7 +218,12 @@ public class Move {
         else{   // remove piece on end tile after it has moved to start tile
             endTile.setPiece(null);
         }
-        calculateAttackData();
+
+        if(pawnPromotion){
+            // reset the piece back to a pawn
+            Piece piece = startTile.getPiece();
+            startTile.setPiece(new Pawn(piece.isWhite(), piece.getPosition(), board));
+        }
     }
 
     /**
@@ -234,19 +243,6 @@ public class Move {
         board.getTile(startPosition).getPiece().setPosition(endPosition);
     }
 
-    /**
-     * Resets and calculates the attack maps for opponents after making a move
-     */
-    private void calculateAttackData(){
-        // if white made a move, recalculate black's attack map
-        board.resetAttackData(!board.isWhiteTurn());
-        if(board.isWhiteTurn()){
-            board.calcBlackAttackMap();
-        }
-        else{
-            board.calcWhiteAttackMap();
-        }
-    }
 
     /**
      * Checks that move is a pawn doing a double jump from start position (To get possible enpassant position)

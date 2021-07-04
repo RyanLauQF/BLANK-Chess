@@ -48,21 +48,20 @@ public class Board {
     // used for fast checking if king is in check
     private int whiteKingPosition;
     private int blackKingPosition;
-    private boolean[] whiteAttackMap;
-    private boolean[] blackAttackMap;
 
-    // used to reset attack data without reinitialising entire boolean array
-    private Stack<Integer> trackWhiteMap;
-    private Stack<Integer> trackBlackMap;
+    // a map to show the location of pinned pieces
+    private int[] pinnedList;
+    private Stack<Integer> resetPinnedList;
 
     /**
      * Board constructor
      */
     public Board(){
-        board = new Tile[64];
+        this.board = new Tile[64];
         // initiate array list to keep track of position of all pieces on the board for each side
-        whitePieces = new PieceList();
-        blackPieces = new PieceList();
+        this.whitePieces = new PieceList();
+        this.blackPieces = new PieceList();
+        this.pinnedList = new int[64];
     }
 
     /**
@@ -73,85 +72,6 @@ public class Board {
     public void init(String FEN){
         // set board to default position / custom FEN position
         FENUtilities.convertFENtoBoard(FEN, this);
-       // initiate attack data for both sides
-        initAttackData();
-    }
-
-    /**
-     * Initiates data for attack maps (track squares which each piece is defending)
-     */
-    public void initAttackData(){
-        // initiate attack maps for white and black side using a boolean array
-        whiteAttackMap = new boolean[64];
-        blackAttackMap = new boolean[64];
-        trackWhiteMap = new Stack<>();
-        trackBlackMap = new Stack<>();
-
-        calcWhiteAttackMap();
-        calcBlackAttackMap();
-    }
-
-    /**
-     * Calculates data to get attack map of white pieces (all squares that white pieces control)
-     */
-    public void calcWhiteAttackMap(){
-        // get all squares which white pieces are attacking and set to true
-        PieceList whitePieces = getWhitePieces();
-        for(int i = 0; i < whitePieces.getCount(); i++){
-            // if it is a pawn, get its control squares using another method
-            if(board[whitePieces.occupiedTiles[i]].getPiece().isPawn()){
-                for(int pawnSquares : pawnDefendingSquares(whitePieces.occupiedTiles[i])){
-                    setWhiteAttackMap(pawnSquares, true);
-                    trackWhiteMap.push(pawnSquares);
-                }
-            }
-            else{
-                for(int moves : board[whitePieces.occupiedTiles[i]].getPiece().getDefendingSquares()){
-                    setWhiteAttackMap(moves, true);
-                    trackWhiteMap.push(moves);
-                }
-            }
-        }
-    }
-
-    /**
-     * Calculates data to get attack map of black pieces (all squares that black pieces control)
-     */
-    public void calcBlackAttackMap(){
-        // get all squares which black pieces are attacking and set to true
-        PieceList blackPieces = getBlackPieces();
-        for(int i = 0; i < blackPieces.getCount(); i++){
-            // if it is a pawn, get its control squares using another method
-            if(board[blackPieces.occupiedTiles[i]].getPiece().isPawn()){
-                for(int pawnSquares : pawnDefendingSquares(blackPieces.occupiedTiles[i])){
-                    setBlackAttackMap(pawnSquares, true);
-                    trackBlackMap.push(pawnSquares);
-                }
-            }
-            else{
-                for(int moves : board[blackPieces.occupiedTiles[i]].getPiece().getDefendingSquares()){
-                    setBlackAttackMap(moves, true);
-                    trackBlackMap.push(moves);
-                }
-            }
-        }
-    }
-
-    /**
-     * Resets attack map to be used again
-     * @param resetWhiteMap refers to the side which attack map is to be updated
-     */
-    public void resetAttackData(boolean resetWhiteMap){
-        if(resetWhiteMap){  // reset white attack map
-            while (!trackWhiteMap.isEmpty()) {
-                setWhiteAttackMap(trackWhiteMap.pop(), false);
-            }
-        }
-        else{   // reset black attack map
-            while (!trackBlackMap.isEmpty()) {
-                setBlackAttackMap(trackBlackMap.pop(), false);
-            }
-        }
     }
 
     /**
@@ -178,30 +98,273 @@ public class Board {
     }
 
     /**
-     * Check if the king of the current side is sitting on one of the squares on opponent's attack map
-     * if it is, king is being attacked.
+     * Check if the king of the current side is being attacked by searching all possible squares
      * @return true if king of current side is in check by opponent, else return false
      */
-    public boolean isKingChecked(boolean isWhiteKing){
+    public int kingCheckedCount(boolean isWhiteKing){
+        int kingPosition;
+        int checkCount = 0;
+
         if(isWhiteKing){
-            return blackAttackMap[getWhiteKingPosition()];
+            kingPosition = getWhiteKingPosition();
         }
         else{
-            return whiteAttackMap[getBlackKingPosition()];
+            kingPosition = getBlackKingPosition();
+        }
+
+        // at the king position, search in all directions.
+        int end, offSet;
+        boolean alliedPieceFound = false;
+        int alliedPieceLocation = 0;
+        int[] directions = MoveDirections.getDirections(kingPosition);
+
+        for(int index = 0; index < 8; index++){
+            offSet = MoveDirections.directionOffSets[index];
+            for(int i = 0; i < directions[index]; i++){
+                end = kingPosition + (offSet * (i + 1));
+                if(getTile(end).isOccupied()){
+                    Piece piece = getTile(end).getPiece();
+                    // if it is an enemy piece
+                    if(piece.isWhite() != isWhiteKing){
+                        if(i == 0){
+                            // check for enemy king 1 tile away from current king
+                            if(piece.isKing()){
+                                checkCount++;
+                                return checkCount;  // do not bother to continue finding for double check
+                            }
+                        }
+                        if(piece.isPawn() || piece.isKnight() || piece.isKing()){
+                            break;
+                        }
+                        if(index < 4){  // for straight directions, check if it is a rook / queen
+                            if(piece.isRook() || piece.isQueen()){
+                                if(alliedPieceFound){
+                                    setPinned(end, offSet);
+                                }
+                                else{
+                                    checkCount++;
+                                }
+                                // break out of current direction loop to go to next offset direction
+                                break;
+                            }
+                        }
+                        else{   // diagonal directions
+                            if(piece.isBishop() || piece.isQueen()){
+                                if(alliedPieceFound){
+                                    setPinned(alliedPieceLocation, offSet);
+                                }
+                                else{
+                                    checkCount++;
+                                }
+                                // break out of current direction loop to go to next offset direction
+                                break;
+                            }
+                        }
+                    }
+                    // if it is an allied piece, check for pinned in the direction
+                    else{
+                        // if there was already an allied piece found in the same direction beforehand,
+                        // break out of loop as there will confirm be no pinned piece
+                        if(alliedPieceFound){
+                            break;
+                        }
+                        alliedPieceFound = true;
+                        alliedPieceLocation = end;
+                    }
+                }
+            }
+            alliedPieceFound = false;
+            // can stop looking further as it is a double check and only king moves are allowed
+            if(checkCount > 1) return checkCount;
+        }
+
+        // search for enemy pawn attacking
+        checkCount = checkPawnAttacking(isWhiteKing, kingPosition, checkCount);
+        if(checkCount > 1) return checkCount;
+
+        int[] knightSquares = MoveDirections.knightOffSets;
+        // search knight attacking squares
+        for(int i = 0; i < 8; i++){
+            end = kingPosition + knightSquares[i];
+            // if it is a valid knight move
+            if(Math.abs(getRow(kingPosition) - getRow(end)) + Math.abs(getCol(kingPosition) - getCol(end)) == 3
+                && end > 0 && end < 64){
+                if(getTile(end).isOccupied()){
+                    Piece piece = getTile(end).getPiece();
+                    if(piece.isKnight() && (piece.isWhite() != isWhiteKing)){
+                        checkCount++;
+                        if(checkCount > 1) return checkCount;
+                    }
+                }
+            }
+        }
+        return checkCount;
+    }
+
+    private int checkPawnAttacking(boolean isWhiteKing, int kingPosition, int checkCounter){
+        int rightPawnIndex;
+        int leftPawnIndex;
+
+        if(isWhiteKing){
+            // set black pawn locations relative to white king
+            leftPawnIndex = kingPosition -9;
+            rightPawnIndex = kingPosition -7;
+        }
+        else{
+            // set white pawn location relative to black king
+            leftPawnIndex = kingPosition + 7;
+            rightPawnIndex = kingPosition + 9;
+        }
+
+        boolean rightEdgeKing = false;
+        boolean leftEdgeKing = false;
+
+        if(kingPosition % 8 == 0){ // king on left edge
+            leftEdgeKing = true;
+        }
+        else if (kingPosition % 8 == 7){  // king on right edge
+            rightEdgeKing = true;
+        }
+
+        if(!rightEdgeKing && checkBound(rightPawnIndex) && getTile(rightPawnIndex).isOccupied()){
+            Piece piece = getTile(rightPawnIndex).getPiece();
+            if(piece.isPawn() && piece.isWhite() != isWhiteKing){
+                checkCounter++;
+            }
+        }
+        if(!leftEdgeKing && checkBound(leftPawnIndex) && getTile(leftPawnIndex).isOccupied()){
+            Piece piece = getTile(leftPawnIndex).getPiece();
+            if(piece.isPawn() && piece.isWhite() != isWhiteKing){
+                checkCounter++;
+            }
+        }
+        return checkCounter;
+    }
+
+    private boolean checkBound(int index){
+        return index >= 0 && index <= 63;
+    }
+
+    public void setPinned(int position, int pinType){
+        pinnedList[position] = pinType;
+    }
+
+    public boolean isPinned(int position){
+        return pinnedList[position] != 0;
+    }
+
+    public int getPinType(int position){
+        return pinnedList[position];
+    }
+
+    public void resetPinnedList(){
+        while(!resetPinnedList.isEmpty()){
+            int resetPosition = resetPinnedList.pop();
+            pinnedList[resetPosition] = 0;
         }
     }
 
     /**
-     * Checks if a tile is being attacked by the opposing team
+     * Checks if a tile is being attacked by the opposing team by searching outwards
      * @param tilePosition refers to the index of tile on the chess board
      * @return true if the tile is attacked else return false
      */
     public boolean isTileAttacked(int tilePosition, boolean isWhiteTurn){
+        int leftPawnPosition;
+        int rightPawnPosition;
+
         if(isWhiteTurn){
-            return blackAttackMap[tilePosition];
+            // set black pawn locations relative to white king
+            leftPawnPosition = - 9;
+            rightPawnPosition = -7;
         }
         else{
-            return whiteAttackMap[tilePosition];
+            // set white pawn location relative to black king
+            leftPawnPosition = 7;
+            rightPawnPosition = 9;
+        }
+
+        // at the tile position, search in all directions.
+        int[] directions = MoveDirections.getDirections(tilePosition);
+        int[] knightSquares = MoveDirections.knightOffSets;
+        int attackCount = 0;
+        int end, offSet;
+
+        // search enemy pawn attacking squares to check if enemy pawn is checking king
+        if(getTile(tilePosition + leftPawnPosition).isOccupied()){
+            Piece piece = getTile(tilePosition + leftPawnPosition).getPiece();
+            if(piece.isPawn() && (piece.isWhite() != isWhiteTurn)){
+                attackCount++;
+            }
+        }
+        if(getTile(tilePosition + rightPawnPosition).isOccupied()){
+            Piece piece = getTile(tilePosition + rightPawnPosition).getPiece();
+            if(piece.isPawn() && (piece.isWhite() != isWhiteTurn)){
+                attackCount++;
+            }
+        }
+
+        // Search in directions of all offsets first
+        for(int index = 0; index < 8; index++){
+            offSet = MoveDirections.directionOffSets[index];
+            for(int i = 0; i < directions[index]; i++){
+                end = tilePosition + (offSet * (i + 1));
+                if(getTile(end).isOccupied()){
+                    Piece piece = getTile(end).getPiece();
+                    // if it is an enemy piece
+                    if(piece.isWhite() != isWhiteTurn){
+                        if(index < 4){  // for straight directions, check if it is a rook / queen
+                            if(piece.isRook() || piece.isQueen()){
+                                attackCount++;
+                                // break out of current direction loop to go to next offset direction
+                                break;
+                            }
+                        }
+                        else{   // diagonal directions
+                            if(piece.isBishop() || piece.isQueen()){
+                                attackCount++;
+                                // break out of current direction loop to go to next offset direction
+                                break;
+                            }
+                        }
+                    }
+                    // if it is an allied piece blocking, do not need to continue search in the direction
+                    break;
+                }
+            }
+            // can stop looking further as it is a double check and only king moves are allowed
+            if(attackCount > 0) return true;
+        }
+
+        // search knight attacking squares
+        for(int i = 0; i < 8; i++){
+            end = tilePosition + knightSquares[i];
+            // if it is a valid knight move
+            if(end < 0 || end > 63){
+                continue;
+            }
+            if(Math.abs(getRow(tilePosition) - getRow(end)) + Math.abs(getCol(tilePosition) - getCol(end)) == 3
+                && getTile(end).isOccupied()){
+                Piece piece = getTile(end).getPiece();
+                if(piece.isKnight() && (piece.isWhite() != isWhiteTurn)){
+                    attackCount++;
+                    if(attackCount > 0) return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * If a pawn has reached the end of the board, promote the pawn to either a Rook, Bishop, Knight or Queen
+     * @param pieceType refers to the choice of piece to promote the pawn to
+     * @param pieceTile refers to the tile on the board containing the pawn that has to be updated
+     */
+    public void promote(Piece.PieceType pieceType, Tile pieceTile){
+        Piece piece = pieceTile.getPiece();
+        if(pieceType == Piece.PieceType.QUEEN){
+            // Promote the pawn to a queen
+            pieceTile.setPiece(new Queen(piece.isWhite(), piece.getPosition(), this));
         }
     }
 
@@ -230,41 +393,6 @@ public class Board {
         else{
             blackPieces.addPiece(position);
         }
-    }
-
-    /**
-     * Gets the squares that a pawn controls for attack map
-     * as pawn has a different logic for defending squares due to specific attacking conditions
-     * @param pawnPosition refers to the position of a pawn piece
-     * @return a list of squares which the pawn controls based on its attack moves
-     */
-    private ArrayList<Integer> pawnDefendingSquares(int pawnPosition){
-        ArrayList<Integer> list = new ArrayList<>();
-        if(board[pawnPosition].getPiece().isWhite()){
-            if(getCol(pawnPosition) == 0){  // on the left edge of board, can only control diagonal right square
-                list.add(pawnPosition - 7);
-            }
-            else if(getCol(pawnPosition) == 7){  // on the right edge of board, can only control diagonal left square
-                list.add(pawnPosition - 9);
-            }
-            else{
-                list.add(pawnPosition - 7);
-                list.add(pawnPosition - 9);
-            }
-        }
-        else{
-            if(getCol(pawnPosition) == 0){  // on the left edge of board, can only control diagonal right square
-                list.add(pawnPosition + 9);
-            }
-            else if(getCol(pawnPosition) == 7){  // on the right edge of board, can only control diagonal left square
-                list.add(pawnPosition + 7);
-            }
-            else{
-                list.add(pawnPosition + 7);
-                list.add(pawnPosition + 9);
-            }
-        }
-        return list;
     }
 
     /**
@@ -432,14 +560,6 @@ public class Board {
         this.enpassantPosition = position;
     }
 
-    public void setWhiteAttackMap(int index, boolean isTrue){
-        whiteAttackMap[index] = isTrue;
-    }
-
-    public void setBlackAttackMap(int index, boolean isTrue){
-        blackAttackMap[index] = isTrue;
-    }
-
     public void setHalfMoveClock(int halfMoveClock){
         this.halfMoveClock = halfMoveClock;
     }
@@ -484,7 +604,7 @@ public class Board {
     public static void main(String[] args){
         Board b = new Board();
         // Custom FEN input
-        String FEN = "rnbqkbnr/ppppp1pp/5p2/1P6/8/8/P1PPPPPP/RNBQKBNR b KQkq - 0 1";
+        String FEN = "r3kbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK2R b KQkq - 0 1";
         b.init(FEN);
 
         b.state();
@@ -512,12 +632,13 @@ public class Board {
 //        -----------------------------------------------
 
         // Used to play CLI chess
+        int start, end;
         while(b.getAllLegalMoves().size() != 0){
             if (b.isWhiteTurn()) System.out.println("(White)");
             else System.out.println("(Black)");
             Scanner sc = new Scanner(System.in);
             System.out.println("Enter start position of piece to move: ");
-            int start = sc.nextInt();
+            start = sc.nextInt();
             while(start < 0 || start > 63 || !b.getTile(start).isOccupied()
                     || b.getTile(start).getPiece().isWhite() != b.isWhiteTurn()
                     || b.getTile(start).getPiece().getLegalMoves().size() == 0){
@@ -525,16 +646,16 @@ public class Board {
                 start = sc.nextInt();
             }
             System.out.println("Legal Moves: ");
-            for(int move : b.getTile(start).getPiece().getLegalMoves()){
-                System.out.print(move + " ");
+            for(short move : b.getTile(start).getPiece().getLegalMoves()){
+                System.out.print(MoveGenerator.getEnd(move) + " ");
             }
             System.out.println();
             System.out.println("Enter end position of piece: ");
-            int end = sc.nextInt();
-            while(end < 0 || end > 63 || !b.getTile(start).getPiece().isLegalMove(end)){
-                System.out.println("Enter end position of piece: ");
-                end = sc.nextInt();
-            }
+            end = sc.nextInt();
+//            while(end < 0 || end > 63 || !b.getTile(start).getPiece().isLegalMove(end)){
+//                System.out.println("Enter end position of piece: ");
+//                end = sc.nextInt();
+//            }
             Move move = new Move(b, start, end);
             move.makeMove();
             b.state();

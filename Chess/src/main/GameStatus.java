@@ -2,6 +2,7 @@ public class GameStatus {
     private static boolean whiteTurn = false;
     private static boolean isStaleMate = false;
     private static boolean isCheckMate = false;
+    private static boolean isDraw = false;
 
     public static boolean checkGameEnded(Board board){
         if(board.getAllLegalMoves().size() == 0){
@@ -22,6 +23,10 @@ public class GameStatus {
             isCheckMate = true;
             return true;
         }
+        if(board.getWhitePieces().getCount() == 1 && board.getBlackPieces().getCount() == 1){
+            isDraw = true;
+            return true;
+        }
         return false;
     }
 
@@ -37,6 +42,9 @@ public class GameStatus {
             else{
                 state = "White has Won!";
             }
+        }
+        else if(isDraw){
+            state = "Game has ended in a Draw!";
         }
         return state;
     }

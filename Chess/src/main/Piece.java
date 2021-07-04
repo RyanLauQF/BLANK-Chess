@@ -33,12 +33,13 @@ public abstract class Piece {
      */
     public ArrayList<Short> getLegalMoves(){
         ArrayList<Short> moveList = new ArrayList<>();
-        ArrayList<Integer> defendingSquares = getDefendingSquares();
+        ArrayList<Short> defendingSquares = getDefendingSquares();
 
-        for(int move : defendingSquares){
-            if(board.getTile(move).isOccupied()){   // check if piece is attacking / defending another piece
+        for(short moves : defendingSquares){
+            int endPosition = MoveGenerator.getEnd(moves);
+            if(board.getTile(endPosition).isOccupied()){   // check if piece is attacking / defending another piece
                 // filter out allied pieces as it cannot move to tiles occupied by allied pieces
-                if(board.getTile(move).getPiece().isWhite() == this.isWhite()) {
+                if(board.getTile(endPosition).getPiece().isWhite() == this.isWhite()) {
                     continue;
                 }
             }
@@ -47,12 +48,13 @@ public abstract class Piece {
              *  test the pseudo-legal move to check if king is under check after moving any piece
              */
 
-            Move movement = new Move(this.board, this.position, move);
+            Move movement = new Move(this.board, getPosition(), endPosition);
             movement.makeMove();    // make the move on the board without making a copy
+
             // if king is not under check after making the move, the move is legal.
-            if(!this.board.isKingChecked(this.isWhite())) {
+            if(board.kingCheckedCount(this.isWhite()) == 0) {
                 movement.unMake();
-                short encodedMove = MoveGenerator.generateMove(this.position, move, 0);
+                short encodedMove = MoveGenerator.generateMove(getPosition(), endPosition, 0);
                 moveList.add(encodedMove);
             }
             else{
@@ -60,20 +62,6 @@ public abstract class Piece {
             }
         }
         return moveList;
-    }
-
-    /**
-     * Checks that a move (from this.position to end)being made is a legal move
-     * @param endPosition refers to the position piece is moving to
-     * @return true if the move is generated in getLegalMoves() method, else return false
-     */
-    public boolean isLegalMove(int endPosition){
-        for(int legalMoves : getLegalMoves()){
-            if(legalMoves == endPosition){
-                return true;
-            }
-        }
-        return false;
     }
 
     /**
@@ -118,10 +106,10 @@ public abstract class Piece {
     }
 
     /**
-     * @return the piece type of the current piece (PAWN / BISHOP / KNIGHT... )
+     * @return the type of the piece
      */
     public PieceType getType(){
-        return this.type;
+        return type;
     }
 
     /**
@@ -180,15 +168,7 @@ public abstract class Piece {
      * or attacking opposing pieces
      * @return a list of all defending squares of a piece (squares which piece controls)
      */
-    public abstract ArrayList<Integer> getDefendingSquares();
-
-    /**
-     * Checks if a move is within boundaries and possible (regardless if there is a piece at end position)
-     * @param start refers to the starting position of the piece
-     * @param end refers to the end position of the piece after moving
-     * @return true if the move is possible, else return false
-     */
-    public abstract boolean isValidMove(int start, int end);
+    public abstract ArrayList<Short> getDefendingSquares();
 
     /**
      * Gets abbreviation of piece name

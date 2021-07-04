@@ -99,17 +99,18 @@ public class ChessGUI extends JPanel {
         Component[] components = this.getComponents();
         // Highlight tiles that piece is able to move to
         if(isPieceSelected()){
-            for(int legalMoves : board.getTile(getSelectedPiece()).getPiece().getLegalMoves()){
-                if(components[legalMoves] instanceof TilePanel){
+            for(short legalMoves : board.getTile(getSelectedPiece()).getPiece().getLegalMoves()){
+                int endPosition = MoveGenerator.getEnd(legalMoves);
+                if(components[endPosition] instanceof TilePanel){
                     // change background colour of legal move tiles
-                    TilePanel currPanel = (TilePanel) components[legalMoves];
+                    TilePanel currPanel = (TilePanel) components[endPosition];
                     if(currPanel.getBackground() == LIGHT_SQUARE_COLOUR){
                         currPanel.setBackground(LIGHT_MOVE_SQUARE_COLOUR);
                     }
                     else if(currPanel.getBackground() == DARK_SQUARE_COLOUR){
                         currPanel.setBackground(DARK_MOVE_SQUARE_COLOUR);
                     }
-                    highlightedTiles.add(legalMoves);
+                    highlightedTiles.add(endPosition);
                 }
             }
         }
@@ -178,13 +179,11 @@ public class ChessGUI extends JPanel {
     /**
      * Creates a JFrame to store the ChessGUI JPanel and add the JPanel into the JFrame
      * ChessGUI JPanel stores 64 TilePanels (to represent the chess board)
-     * @param board refers to the chess board at a specific state being used
      */
-    public static void initGUI(Board board){
-        ChessGUI chessBoard = new ChessGUI(board);
+    public void initGUI(){
         JFrame frame = new JFrame("Chess Interface");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.add(chessBoard);
+        frame.add(this);
         frame.pack();
         frame.setLocationRelativeTo(null);
         frame.setVisible(true);
@@ -222,8 +221,9 @@ public class ChessGUI extends JPanel {
                         // check if the move being made is a legal move
                         boolean isLegal = false;
                         int selectedPiece = gui.getSelectedPiece();
-                        for(int moves : gui.board.getTile(selectedPiece).getPiece().getLegalMoves()){
-                            if(moves == getPosition()){
+                        for(short moves : gui.board.getTile(selectedPiece).getPiece().getLegalMoves()){
+                            int end = MoveGenerator.getEnd(moves);
+                            if(end == getPosition()){
                                 isLegal = true;
                                 break;
                             }
@@ -333,8 +333,44 @@ public class ChessGUI extends JPanel {
     public static void main(String[] args) {
         Board board = new Board();
         // Custom FEN input
-        String FEN = "kr6/p7/8/1P6/8/8/8/1K6 b - - 0 1";
+        String FEN = "8/P5k1/8/8/8/8/8/K7 w - - 0 1";
         board.init(FENUtilities.startFEN);
-        ChessGUI.initGUI(board);
+
+        ChessGUI chessGUI = new ChessGUI(board);
+        chessGUI.initGUI();
+
+        //*** random movement AI playing each other ***//
+
+//        AI player1 = new AI(true, board);
+//        AI player2 = new AI(false, board);
+//        boolean playerToMove;
+//        int start, end;
+//        while(board.getAllLegalMoves().size() != 0){
+//            playerToMove = board.isWhiteTurn();
+//            if(player1.getTurn() == playerToMove){
+//                short move = player1.getMove();
+//                start = MoveGenerator.getStart(move);
+//                end = MoveGenerator.getEnd(move);
+//                Move movement = new Move(board, start, end);
+//                movement.makeMove();
+//                chessGUI.update();
+//            }
+//            else{
+//                short move = player2.getMove();
+//                start = MoveGenerator.getStart(move);
+//                end = MoveGenerator.getEnd(move);
+//                Move movement = new Move(board, start, end);
+//                movement.makeMove();
+//                chessGUI.update();
+//            }
+//            if(board.getBlackPieces().getCount() == 1 && board.getWhitePieces().getCount() == 1){
+//                break;
+//            }
+//        }
+//        if(GameStatus.checkGameEnded(board)){
+//            String gameState = GameStatus.getHowGameEnded();
+//            JOptionPane.showMessageDialog(chessGUI, gameState,
+//                    "Game Manager", JOptionPane.INFORMATION_MESSAGE);
+//        }
     }
 }
