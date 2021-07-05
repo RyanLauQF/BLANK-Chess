@@ -50,8 +50,8 @@ public class Board {
     private int blackKingPosition;
 
     // a map to show the location of pinned pieces
-    private int[] pinnedList;
-    private Stack<Integer> resetPinnedList;
+    private final int[] pinnedList;
+    private final Stack<Integer> resetPinnedList;
 
     /**
      * Board constructor
@@ -62,6 +62,7 @@ public class Board {
         this.whitePieces = new PieceList();
         this.blackPieces = new PieceList();
         this.pinnedList = new int[64];
+        this.resetPinnedList = new Stack<>();
     }
 
     /**
@@ -81,18 +82,40 @@ public class Board {
      */
     public ArrayList<Short> getAllLegalMoves(){
         ArrayList <Short> moveList = new ArrayList<>();
-        // pseudo-legal moves are filtered out when generating moves from individual pieces
-        if (isWhiteTurn()){  // get all white legal moves
-            PieceList list = getWhitePieces();
-            for(int i = 0; i < list.getCount(); i++){
-                moveList.addAll(board[list.occupiedTiles[i]].getPiece().getLegalMoves()); // merge list
-            }
+        // double check so only make king moves
+//        int checkCount = kingCheckedCount(isWhiteTurn());
+//
+//        if(checkCount == 2){
+//            int kingPosition;
+//            if(isWhiteTurn()){
+//                kingPosition = getWhiteKingPosition();
+//            }
+//            else{
+//                kingPosition = getBlackKingPosition();
+//            }
+//            moveList.addAll(board[kingPosition].getPiece().getLegalMoves());
+//        }
+//        else {
+//            PieceList list;
+//            if (isWhiteTurn()) {  // get position of all white pieces
+//                list = getWhitePieces();
+//            } else {   // get position of all black pieces
+//                list = getBlackPieces();
+//            }
+//            // pseudo-legal moves are filtered out when generating moves from individual pieces
+//            for (int i = 0; i < list.getCount(); i++) {
+//                moveList.addAll(board[list.occupiedTiles[i]].getPiece().getLegalMoves()); // merge list
+//            }
+//        }
+        PieceList list;
+        if (isWhiteTurn()) {  // get position of all white pieces
+            list = getWhitePieces();
+        } else {   // get position of all black pieces
+            list = getBlackPieces();
         }
-        else{   // get all black legal moves
-            PieceList list = getBlackPieces();
-            for(int i = 0; i < list.getCount(); i++){ // goes through all white pieces
-                moveList.addAll(board[list.occupiedTiles[i]].getPiece().getLegalMoves()); // merge list
-            }
+        // pseudo-legal moves are filtered out when generating moves from individual pieces
+        for (int i = 0; i < list.getCount(); i++) {
+            moveList.addAll(board[list.occupiedTiles[i]].getPiece().getLegalMoves()); // merge list
         }
         return moveList;
     }
@@ -247,6 +270,7 @@ public class Board {
 
     public void setPinned(int position, int pinType){
         pinnedList[position] = pinType;
+        resetPinnedList.add(position);
     }
 
     public boolean isPinned(int position){
@@ -270,39 +294,9 @@ public class Board {
      * @return true if the tile is attacked else return false
      */
     public boolean isTileAttacked(int tilePosition, boolean isWhiteTurn){
-        int leftPawnPosition;
-        int rightPawnPosition;
-
-        if(isWhiteTurn){
-            // set black pawn locations relative to white king
-            leftPawnPosition = - 9;
-            rightPawnPosition = -7;
-        }
-        else{
-            // set white pawn location relative to black king
-            leftPawnPosition = 7;
-            rightPawnPosition = 9;
-        }
-
         // at the tile position, search in all directions.
         int[] directions = MoveDirections.getDirections(tilePosition);
-        int[] knightSquares = MoveDirections.knightOffSets;
-        int attackCount = 0;
         int end, offSet;
-
-        // search enemy pawn attacking squares to check if enemy pawn is checking king
-        if(getTile(tilePosition + leftPawnPosition).isOccupied()){
-            Piece piece = getTile(tilePosition + leftPawnPosition).getPiece();
-            if(piece.isPawn() && (piece.isWhite() != isWhiteTurn)){
-                attackCount++;
-            }
-        }
-        if(getTile(tilePosition + rightPawnPosition).isOccupied()){
-            Piece piece = getTile(tilePosition + rightPawnPosition).getPiece();
-            if(piece.isPawn() && (piece.isWhite() != isWhiteTurn)){
-                attackCount++;
-            }
-        }
 
         // Search in directions of all offsets first
         for(int index = 0; index < 8; index++){
@@ -313,46 +307,53 @@ public class Board {
                     Piece piece = getTile(end).getPiece();
                     // if it is an enemy piece
                     if(piece.isWhite() != isWhiteTurn){
+                        if(i == 0){
+                            // check for enemy king 1 tile away from current king
+                            if(piece.isKing()){
+                                return true;
+                            }
+                        }
+                        if(piece.isPawn() || piece.isKnight() || piece.isKing()){
+                            break;
+                        }
                         if(index < 4){  // for straight directions, check if it is a rook / queen
                             if(piece.isRook() || piece.isQueen()){
-                                attackCount++;
-                                // break out of current direction loop to go to next offset direction
-                                break;
+                                return true;
                             }
                         }
                         else{   // diagonal directions
                             if(piece.isBishop() || piece.isQueen()){
-                                attackCount++;
-                                // break out of current direction loop to go to next offset direction
-                                break;
+                                return true;
                             }
                         }
                     }
-                    // if it is an allied piece blocking, do not need to continue search in the direction
-                    break;
+                    else{
+                        // break if it is an allied piece
+                        break;
+                    }
                 }
             }
-            // can stop looking further as it is a double check and only king moves are allowed
-            if(attackCount > 0) return true;
         }
 
+        int[] knightSquares = MoveDirections.knightOffSets;
         // search knight attacking squares
         for(int i = 0; i < 8; i++){
             end = tilePosition + knightSquares[i];
             // if it is a valid knight move
-            if(end < 0 || end > 63){
-                continue;
-            }
             if(Math.abs(getRow(tilePosition) - getRow(end)) + Math.abs(getCol(tilePosition) - getCol(end)) == 3
-                && getTile(end).isOccupied()){
-                Piece piece = getTile(end).getPiece();
-                if(piece.isKnight() && (piece.isWhite() != isWhiteTurn)){
-                    attackCount++;
-                    if(attackCount > 0) return true;
+                    && end > 0 && end < 64){
+                if(getTile(end).isOccupied()){
+                    Piece piece = getTile(end).getPiece();
+                    if(piece.isKnight() && (piece.isWhite() != isWhiteTurn)){
+                        return true;
+                    }
                 }
             }
         }
-        return false;
+        int checkCount = 0;
+        // search for enemy pawn attacking
+        checkCount = checkPawnAttacking(isWhiteTurn, tilePosition, checkCount);
+        return checkCount > 0;
     }
 
     /**
@@ -408,6 +409,23 @@ public class Board {
         }
     }
 
+    public boolean hasKingSideCastling(boolean isWhite){
+        if(isWhite){
+            return getWhiteKingSideCastle();
+        }
+        else{
+            return getBlackKingSideCastle();
+        }
+    }
+
+    public boolean hasQueenSideCastling(boolean isWhite){
+        if(isWhite){
+            return getWhiteQueenSideCastle();
+        }
+        else{
+            return getBlackQueenSideCastle();
+        }
+    }
     /**
      * If a rook of either side has moved from its starting position, disable castling for that side
      * @param isWhiteRook refers to the side which the rook is on

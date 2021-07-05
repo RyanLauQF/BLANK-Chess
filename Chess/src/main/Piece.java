@@ -34,9 +34,10 @@ public abstract class Piece {
     public ArrayList<Short> getLegalMoves(){
         ArrayList<Short> moveList = new ArrayList<>();
         ArrayList<Short> defendingSquares = getDefendingSquares();
+        int kingPosition, endPosition;
 
         for(short moves : defendingSquares){
-            int endPosition = MoveGenerator.getEnd(moves);
+            endPosition = MoveGenerator.getEnd(moves);
             if(board.getTile(endPosition).isOccupied()){   // check if piece is attacking / defending another piece
                 // filter out allied pieces as it cannot move to tiles occupied by allied pieces
                 if(board.getTile(endPosition).getPiece().isWhite() == this.isWhite()) {
@@ -50,9 +51,14 @@ public abstract class Piece {
 
             Move movement = new Move(this.board, getPosition(), endPosition);
             movement.makeMove();    // make the move on the board without making a copy
-
+            if(this.isWhite()){
+                kingPosition = board.getWhiteKingPosition();
+            }
+            else{
+                kingPosition = board.getBlackKingPosition();
+            }
             // if king is not under check after making the move, the move is legal.
-            if(board.kingCheckedCount(this.isWhite()) == 0) {
+            if(!board.isTileAttacked(kingPosition, this.isWhite())) {
                 movement.unMake();
                 short encodedMove = MoveGenerator.generateMove(getPosition(), endPosition, 0);
                 moveList.add(encodedMove);

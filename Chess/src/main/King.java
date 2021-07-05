@@ -39,16 +39,23 @@ public class King extends Piece {
             }
         }
 
-        // check castling squares
-        if(checkKingSideCastling()){
-            // king jumps 2 squares to the right for king side castling
-            endPosition = this.getPosition() + 2;
-            list.add(MoveGenerator.generateMove(getPosition(), endPosition, 0));
-        }
-        else if(checkQueenSideCastling()){
-            // king jumps 2 squares to the left for queen side castling
-            endPosition = this.getPosition() - 2;
-            list.add(MoveGenerator.generateMove(getPosition(), endPosition, 0));
+        // check castling squares if the king is not under attack
+        if(!super.board.isTileAttacked(getPosition(), this.isWhite())){
+            if(board.hasKingSideCastling(this.isWhite())){
+                if(checkKingSideCastling()){
+                    // king jumps 2 squares to the right for king side castling
+                    endPosition = this.getPosition() + 2;
+                    list.add(MoveGenerator.generateMove(getPosition(), endPosition, 0));
+
+                }
+            }
+            if(board.hasQueenSideCastling(this.isWhite())){
+                if(checkQueenSideCastling()){
+                    // king jumps 2 squares to the left for queen side castling
+                    endPosition = this.getPosition() - 2;
+                    list.add(MoveGenerator.generateMove(getPosition(), endPosition, 0));
+                }
+            }
         }
         return list;
     }
@@ -58,18 +65,8 @@ public class King extends Piece {
      * @return true if king side castling if available, else return false
      */
     public boolean checkKingSideCastling(){
-        if(super.board.kingCheckedCount(this.isWhite()) != 0){    // cannot castle when king is in check
-            return false;
-        }
-        if(this.isWhite() && !super.board.getWhiteKingSideCastle()){ // check if white has king side castling rights
-            return false;
-        }
-        else if(!this.isWhite() && !super.board.getBlackKingSideCastle()){  // check if black has king side castling rights
-            return false;
-        }
         // check if the path between king and king side rook is blocked by any piece
-        int rookPosition;   // king side rook position
-        rookPosition = this.getPosition() + 3;
+        int rookPosition = this.getPosition() + 3;  // king side rook position
         // if king side rook is at position check if path is clear to castle
         if(super.board.getTile(rookPosition).isOccupied() && super.board.getTile(rookPosition).getPiece().isRook()){
             return isPathClear(this.getPosition(), rookPosition);
@@ -82,18 +79,8 @@ public class King extends Piece {
      * @return true if queen side castling if available, else return false
      */
     public boolean checkQueenSideCastling(){
-        if(super.board.kingCheckedCount(this.isWhite()) != 0){    // cannot castle when king is in check
-            return false;
-        }
-        if(this.isWhite() && !super.board.getWhiteQueenSideCastle()){ // check if white has king side castling rights
-            return false;
-        }
-        else if(!this.isWhite() && !super.board.getBlackQueenSideCastle()){  // check if black has king side castling rights
-            return false;
-        }
         // check if the path between king and queen side rook is blocked by any piece
-        // queen side rook position
-        int rookPosition = this.getPosition() - 4;
+        int rookPosition = this.getPosition() - 4;  // queen side rook position
         // if king side rook is at position check if path is clear to castle
         if(super.board.getTile(rookPosition).isOccupied() && super.board.getTile(rookPosition).getPiece().isRook()){
             return isPathClear(this.getPosition(), rookPosition);

@@ -3,6 +3,7 @@ import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.Stack;
+import java.util.concurrent.TimeUnit;
 
 public class ChessGUI extends JPanel {
     // all white piece images
@@ -330,7 +331,7 @@ public class ChessGUI extends JPanel {
     /**
      * main method to run chess GUI
      */
-    public static void main(String[] args) {
+    public static void main(String[] args) throws InterruptedException {
         Board board = new Board();
         // Custom FEN input
         String FEN = "8/P5k1/8/8/8/8/8/K7 w - - 0 1";
@@ -347,22 +348,22 @@ public class ChessGUI extends JPanel {
 //        int start, end;
 //        while(board.getAllLegalMoves().size() != 0){
 //            playerToMove = board.isWhiteTurn();
+//            short move;
 //            if(player1.getTurn() == playerToMove){
-//                short move = player1.getMove();
+//                move = player1.getMove();
 //                start = MoveGenerator.getStart(move);
 //                end = MoveGenerator.getEnd(move);
 //                Move movement = new Move(board, start, end);
 //                movement.makeMove();
-//                chessGUI.update();
 //            }
 //            else{
-//                short move = player2.getMove();
+//                move = player2.getMove();
 //                start = MoveGenerator.getStart(move);
 //                end = MoveGenerator.getEnd(move);
 //                Move movement = new Move(board, start, end);
 //                movement.makeMove();
-//                chessGUI.update();
 //            }
+//            chessGUI.update();
 //            if(board.getBlackPieces().getCount() == 1 && board.getWhitePieces().getCount() == 1){
 //                break;
 //            }
