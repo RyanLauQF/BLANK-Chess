@@ -133,6 +133,23 @@ public class FENUtilities { // static class for all FEN related methods
         // to get column, take (char - ASCII_OF_a)
         return (Math.abs(rank - BOARD_LENGTH) * 8) + (file - ASCII_OF_a);
     }
+
+    public static String convertIndexToRankAndFile(int index){
+        int row = getRow(index);
+        int col = getCol(index);
+
+        char file = (char) ('a' + col);
+        int rank = 8 - row;
+        return String.valueOf(file) + rank;
+    }
+
+    private static int getRow(int position){
+        return (position - (position % 8)) / 8;
+    }
+
+    private static int getCol(int position){
+        return position % 8;
+    }
 }
 
 

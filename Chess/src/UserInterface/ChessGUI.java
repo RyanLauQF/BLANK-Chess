@@ -34,6 +34,7 @@ public class ChessGUI extends JPanel {
     private final Board board;    // reference to the current board in chess game
     private boolean hasPieceBeenSelected;   // checks if piece is selected
     private int pieceSelected;  // index of selected piece, if not selected, set to -1
+    private Object TilePanel;
 
     /**
      * Constructor creates a overall JPanel to represent the chess board user interface
@@ -72,23 +73,37 @@ public class ChessGUI extends JPanel {
      * Updates the tile panels once a move is made on the board by copying entire board state
      * into the ChessGUI JPanel and updating the individual components
      */
-    public void update(){
-        Component[] components = this.getComponents();
-        // iterate through all JPanels in ChessGUI overall panel
-        for(int index = 0 ; index < components.length; index++){
-            if(components[index] instanceof TilePanel){
-                TilePanel currPanel = (TilePanel) components[index];
+    public void update() {
+        int index = 0;
+        for(Component component : this.getComponents()){
+            if(component instanceof TilePanel){
+                TilePanel currPanel = (TilePanel) component;
                 Color backgroundColor = currPanel.getBackground();
                 currPanel.removeAll();
                 currPanel.setBackground(backgroundColor);
-                if(board.getTile(index).isOccupied()){
+                if (board.getTile(index).isOccupied()) {
                     currPanel.setPiece(board.getTile(index).getPiece());
-                }
-                else{
+                } else {
                     currPanel.setPiece(null);
                 }
+                index++;
             }
         }
+//        Component[] components = this.getComponents();
+//        // iterate through all JPanels in ChessGUI overall panel
+//        for (int index = 0; index < components.length; index++) {
+//            if (components[index] instanceof TilePanel) {
+//                TilePanel currPanel = (TilePanel) components[index];
+//                Color backgroundColor = currPanel.getBackground();
+//                currPanel.removeAll();
+//                currPanel.setBackground(backgroundColor);
+//                if (board.getTile(index).isOccupied()) {
+//                    currPanel.setPiece(board.getTile(index).getPiece());
+//                } else {
+//                    currPanel.setPiece(null);
+//                }
+//            }
+//        }
         this.revalidate();
         this.repaint();
         setHasPieceBeenSelected(false);
@@ -334,14 +349,14 @@ public class ChessGUI extends JPanel {
     public static void main(String[] args) throws InterruptedException {
         Board board = new Board();
         // Custom FEN input
-        String FEN = "8/P5k1/8/8/8/8/8/K7 w - - 0 1";
-        board.init(FENUtilities.startFEN);
+        String FEN = "rn1qkbnr/pppbpppp/8/8/2p5/3P4/PP1KPPPP/RNBQ1BNR w kq - 0 1";
+        board.init(FEN);
 
         ChessGUI chessGUI = new ChessGUI(board);
         chessGUI.initGUI();
 
         //*** random movement AI playing each other ***//
-
+//
 //        AI player1 = new AI(true, board);
 //        AI player2 = new AI(false, board);
 //        boolean playerToMove;
@@ -367,6 +382,7 @@ public class ChessGUI extends JPanel {
 //            if(board.getBlackPieces().getCount() == 1 && board.getWhitePieces().getCount() == 1){
 //                break;
 //            }
+//            // TimeUnit.MILLISECONDS.sleep(50);
 //        }
 //        if(GameStatus.checkGameEnded(board)){
 //            String gameState = GameStatus.getHowGameEnded();

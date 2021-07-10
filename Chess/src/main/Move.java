@@ -52,6 +52,9 @@ public class Move {
         Tile startTile = board.getTile(getStart());
         Tile endTile = board.getTile(getEnd());
 
+        Piece startPiece = startTile.getPiece();
+        boolean isWhitePiece = startPiece.isWhite();
+
         // Calculate if there is an enpassant availability if the move is a double pawn move
         int enpassantPosition = -1;
         if(isPawnDoubleMove()){
@@ -59,14 +62,14 @@ public class Move {
         }
 
         // if the move is a king moving
-        if(startTile.getPiece().isKing()){
+        if(startPiece.isKing()){
             // update king position on board
-            board.setKingPosition(getEnd(), startTile.getPiece().isWhite());
+            board.setKingPosition(getEnd(), isWhitePiece);
 
             // check if it is a castling move and move the rook (update rook position)
             if(board.hasCastlingRights()) {
                 // white castling
-                if (startTile.getPiece().isWhite()) {
+                if (isWhitePiece) {
                     if (isKingSideCastling()) {
                         // shift white king side rook (from position 63 to 61) and remove castling rights
                         updatePiecePosition(63, 61);
@@ -105,17 +108,27 @@ public class Move {
             }
         }
         // if rook is moving, disable the rook side castling
-        else if(startTile.getPiece().isRook()){
+        else if(startPiece.isRook()){
             // disable castling rights if a rook is moving
-            if(board.hasCastlingRights()){
-                board.setRookSideCastling(board.isWhiteTurn(), getStart(), false);
-                rookLostCastling = true;
+            if(board.hasCastlingRights()) {
+                if (board.hasKingSideCastling(isWhitePiece) && isKingSideRook(isWhitePiece, getStart())) {
+                    board.setRookSideCastling(isWhitePiece, getStart(), false);
+                    rookLostCastling = true;
+                }
+                else if (board.hasQueenSideCastling(isWhitePiece) && isQueenSideRook(isWhitePiece, getStart())) {
+                    board.setRookSideCastling(isWhitePiece, getStart(), false);
+                    rookLostCastling = true;
+                }
             }
         }
 
         // check move is a normal capture
         if(endTile.isOccupied()){   // attacking an enemy piece
             attackedPiece = endTile.getPiece(); // store a copy of attacked piece to undo move afterwards
+            if(attackedPiece.isRook() && (isKingSideRook(attackedPiece.isWhite(), attackedPiece.getPosition()) || isQueenSideRook(attackedPiece.isWhite(), attackedPiece.getPosition()))){
+                board.setRookSideCastling(attackedPiece.isWhite(), getEnd(), false);
+                rookLostCastling = true;
+            }
             board.removePiece(getEnd());
         }
         // check move is an enpassant capture
@@ -136,7 +149,7 @@ public class Move {
         // updates piece position in piece list in board which tracks individual pieces
         updatePiecePosition(getStart(), getEnd());
 
-        // Shift the piece from end to start tile and set start tile to null
+        // Shift the piece from start to end tile and set start tile to null
         endTile.setPiece(startTile.getPiece());
         startTile.setPiece(null);
 
@@ -150,15 +163,19 @@ public class Move {
         board.setTurn(!board.isWhiteTurn());
         Tile startTile = board.getTile(getStart());
         Tile endTile = board.getTile(getEnd());
+
         updatePiecePosition(getEnd(), getStart());
 
-        if(endTile.getPiece().isKing()){    // if piece is a King
+        Piece endPiece = endTile.getPiece();
+        boolean isWhitePiece = endPiece.isWhite();
+
+        if(endPiece.isKing()){    // if piece is a King
             // update king position on board
-            board.setKingPosition(getStart(), endTile.getPiece().isWhite());
+            board.setKingPosition(getStart(), isWhitePiece);
 
             if(kingLostCastling) {
                 // undo castling move
-                if (endTile.getPiece().isWhite()) {
+                if (isWhitePiece) {
                     if (isKingSideCastling()) {
                         // shift back white king side rook (from position 61 to 63) and remove castling rights
                         updatePiecePosition(61, 63);
@@ -193,9 +210,8 @@ public class Move {
                 board.setBlackQueenSideCastle(blackQueenSideCastling);
             }
         }
-
-        if(rookLostCastling){
-            board.setRookSideCastling(board.isWhiteTurn(), getStart(), true);
+        else if(endPiece.isRook()){
+            board.setRookSideCastling(isWhitePiece, getStart(), rookLostCastling);
         }
 
         // undo enpassant pawn
@@ -209,9 +225,15 @@ public class Move {
         board.setEnpassant(previousEnpassantPosition);
 
         // move the piece back from end to start tile
-        startTile.setPiece(endTile.getPiece());
+        startTile.setPiece(endPiece);
 
         if(attackedPiece != null){  // undo the attacking move
+            if(attackedPiece.isRook()){
+                board.setWhiteKingSideCastle(whiteKingSideCastling);
+                board.setWhiteQueenSideCastle(whiteQueenSideCastling);
+                board.setBlackKingSideCastle(blackKingSideCastling);
+                board.setBlackQueenSideCastle(blackQueenSideCastling);
+            }
             board.getTile(attackedPiece.getPosition()).setPiece(attackedPiece);
             board.addPiece(attackedPiece, attackedPiece.getPosition());
         }
@@ -299,6 +321,24 @@ public class Move {
         }
         else{
             return getStart() == 4 && getEnd() == 2;
+        }
+    }
+
+    private boolean isKingSideRook(boolean isWhiteRook, int position){
+        if(isWhiteRook){
+            return position == 63;
+        }
+        else{
+            return position == 7;
+        }
+    }
+
+    private boolean isQueenSideRook(boolean isWhiteRook, int position){
+        if(isWhiteRook){
+            return position == 56;
+        }
+        else{
+            return position == 0;
         }
     }
 

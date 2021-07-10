@@ -46,7 +46,6 @@ public class King extends Piece {
                     // king jumps 2 squares to the right for king side castling
                     endPosition = this.getPosition() + 2;
                     list.add(MoveGenerator.generateMove(getPosition(), endPosition, 0));
-
                 }
             }
             if(board.hasQueenSideCastling(this.isWhite())){
@@ -67,9 +66,9 @@ public class King extends Piece {
     public boolean checkKingSideCastling(){
         // check if the path between king and king side rook is blocked by any piece
         int rookPosition = this.getPosition() + 3;  // king side rook position
-        // if king side rook is at position check if path is clear to castle
+        // if king side rook is at position, check if path king is taking is clear to castle
         if(super.board.getTile(rookPosition).isOccupied() && super.board.getTile(rookPosition).getPiece().isRook()){
-            return isPathClear(this.getPosition(), rookPosition);
+            return isPathClear(this.getPosition(), rookPosition, false);
         }
         return false;
     }
@@ -81,35 +80,43 @@ public class King extends Piece {
     public boolean checkQueenSideCastling(){
         // check if the path between king and queen side rook is blocked by any piece
         int rookPosition = this.getPosition() - 4;  // queen side rook position
-        // if king side rook is at position check if path is clear to castle
+        // if king side rook is at position, check if path king is taking is clear to castle
         if(super.board.getTile(rookPosition).isOccupied() && super.board.getTile(rookPosition).getPiece().isRook()){
-            return isPathClear(this.getPosition(), rookPosition);
+            return isPathClear(this.getPosition(), rookPosition, true);
         }
         return false;
     }
 
     /**
-     * Checks if the tiles between start and end are clear tiles
-     * Clear tiles refer to tiles that are not being occupied or attacked
+     * Checks path between rook and king is occupied
+     * Checks if path king is taking is being attacked
      *
-     * E.g.     0 | 1 | 2 | 3
-     *   ->  King | 1 | 2 | Rook
+     * E.g.      0 | 1 | 2 | 3
+     *   ->  Start | 1 | 2 | End
      * if king is on tile 0 and rook is on tile 3, check if tile 1 and 2 are clear
      *
-     * @param kingPosition refers to the king position on the board
-     * @param rookPosition refers to the rook position on the board
+     * @param startPosition refers to the start position on the board
+     * @param endPosition refers to the end position on the board
      * @return true if path between king and rook is cleared for castling, else return false
      */
-    private boolean isPathClear(int kingPosition, int rookPosition){
-        int diff = Math.abs(kingPosition - rookPosition);
+    private boolean isPathClear(int startPosition, int endPosition, boolean isQueenSideCastling){
+        // If queen side castling, check the tile directly beside rook if it is occupied as even if the tile
+        // is under attack king can still castle
+        if(isQueenSideCastling){
+            endPosition++;
+            if(super.board.getTile(endPosition).isOccupied()){
+                return false;
+            }
+        }
+        int diff = Math.abs(startPosition - endPosition);
         for(int i = 1; i < diff; i++){
-            if(kingPosition < rookPosition){
-                if(super.board.getTile(kingPosition + i).isOccupied()) return false;
-                if(super.board.isTileAttacked(kingPosition + i, isWhite())) return false;
+            if(startPosition < endPosition){
+                if(super.board.getTile(startPosition + i).isOccupied()) return false;
+                if(super.board.isTileAttacked(startPosition + i, isWhite())) return false;
             }
             else{
-                if(super.board.getTile(kingPosition - i).isOccupied()) return false;
-                if(super.board.isTileAttacked(kingPosition - i, isWhite())) return false;
+                if(super.board.getTile(startPosition - i).isOccupied()) return false;
+                if(super.board.isTileAttacked(startPosition - i, isWhite())) return false;
             }
         }
         return true;

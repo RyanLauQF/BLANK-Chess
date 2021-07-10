@@ -211,7 +211,7 @@ public class Board {
             end = kingPosition + knightSquares[i];
             // if it is a valid knight move
             if(Math.abs(getRow(kingPosition) - getRow(end)) + Math.abs(getCol(kingPosition) - getCol(end)) == 3
-                && end > 0 && end < 64){
+                && end >= 0 && end < 64){
                 if(getTile(end).isOccupied()){
                     Piece piece = getTile(end).getPiece();
                     if(piece.isKnight() && (piece.isWhite() != isWhiteKing)){
@@ -327,10 +327,8 @@ public class Board {
                             }
                         }
                     }
-                    else{
-                        // break if it is an allied piece
-                        break;
-                    }
+                    // since piece has been found, break from direction
+                    break;
                 }
             }
         }
@@ -341,7 +339,7 @@ public class Board {
             end = tilePosition + knightSquares[i];
             // if it is a valid knight move
             if(Math.abs(getRow(tilePosition) - getRow(end)) + Math.abs(getCol(tilePosition) - getCol(end)) == 3
-                    && end > 0 && end < 64){
+                    && end >= 0 && end < 64){
                 if(getTile(end).isOccupied()){
                     Piece piece = getTile(end).getPiece();
                     if(piece.isKnight() && (piece.isWhite() != isWhiteTurn)){
