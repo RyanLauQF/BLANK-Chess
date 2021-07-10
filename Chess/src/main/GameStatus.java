@@ -9,7 +9,7 @@ public class GameStatus {
             // no legal moves left, means check mated
             boolean isWhiteTurn = board.isWhiteTurn();
             whiteTurn = board.isWhiteTurn();
-            if(checkDraw(board)){
+            if(checkStaleMate(board)){
                 System.out.println("Game has ended in a Stalemate!");
                 isStaleMate = true;
                 return true;
@@ -49,10 +49,16 @@ public class GameStatus {
         return state;
     }
 
-    private static boolean checkDraw(Board board){
+    private static boolean checkStaleMate(Board board){
         // set move to opponents turn to check if they have any moves left
-        board.setTurn(!board.isWhiteTurn());
-        return board.getAllLegalMoves().size() == 0;
+        int kingPosition;
+        if(board.isWhiteTurn()){
+            kingPosition = board.getWhiteKingPosition();
+        }
+        else{
+            kingPosition = board.getBlackKingPosition();
+        }
+        return !board.isTileAttacked(kingPosition, board.isWhiteTurn());
     }
 }
 

@@ -14,102 +14,96 @@ public class Pawn extends Piece {
      */
 
     private static final int PAWN_VALUE = 1;
-    private static final int[] whiteDirection = {-7, -8, -9};
-    private static final int[] blackDirection = {7, 8, 9};
+    private final int START_POSITION;
+
 
     public Pawn(boolean isWhite, int position, Board b){
         super(isWhite, position, b);  // call super class (parent class is Piece) constructor
         this.type = PieceType.PAWN;
+        this.START_POSITION = position;
     }
 
     @Override
     public ArrayList<Short> getDefendingSquares(){
         ArrayList<Short> list = new ArrayList<>();
         int endPosition;
-        if(this.isWhite()){ // white moves
-            if(this.getPosition() >= 48 && this.getPosition() <= 55){   // white pawn at starting position
-                if(isValidMove(this.getPosition(), this.getPosition() - 16)){   // check if move is legal
-                    endPosition = this.getPosition() - 16;
-                    list.add(MoveGenerator.generateMove(getPosition(), endPosition, 1)); // pawn moves 2 steps forward
-                }
-            }
-            // check through moving 1 tile forward and attacking tiles
-            for(int i = 0; i < 3; i++){
-                if(isValidMove(this.getPosition(), this.getPosition() + whiteDirection[i])){
-                    endPosition = this.getPosition() + whiteDirection[i];
+        if(this.isWhite()){
+            int[] whitePawnDirections = MoveDirections.getWhitePawnDirections(getPosition());
+            for (int moves = 0; moves < whitePawnDirections.length; moves++) {
+                endPosition = whitePawnDirections[moves];
+                if(moves == 0 && isValidSinglePawnPush(getPosition(), endPosition)){
+                    // index 0 is always single pawn push move
                     list.add(MoveGenerator.generateMove(getPosition(), endPosition, 0));
                 }
+                else if(isValidAttackingMove(getPosition(), endPosition)){
+                    int moveType = 4;   // capture move type
+                    if(endPosition == board.getEnpassant()){
+                        moveType = 5;   // enpassant move type
+                    }
+                    list.add(MoveGenerator.generateMove(getPosition(), endPosition, moveType));
+                }
+            }
+            endPosition = getPosition() - 16;
+            if(canDoublePush() && isValidDoublePawnPush(getPosition(), endPosition)){
+                list.add(MoveGenerator.generateMove(getPosition(), endPosition, 1));
             }
         }
-        else{   // black moves
-            if(this.getPosition() >= 8 && this.getPosition() <= 15){   // black pawn at starting position
-                if(isValidMove(this.getPosition(), this.getPosition() + 16)){
-                    endPosition = this.getPosition() + 16;  // pawn moves 2 steps forward
-                    list.add(MoveGenerator.generateMove(getPosition(), endPosition, 1));
-                }
-            }
-            // check through moving 1 tile forward and attacking tiles
-            for(int i = 0; i < 3; i++){
-                if(isValidMove(this.getPosition(), this.getPosition() + blackDirection[i])){
-                    endPosition = this.getPosition() + blackDirection[i];
+        else{
+            int[] blackPawnDirections = MoveDirections.getBlackPawnDirections(getPosition());
+            for (int moves = 0; moves < blackPawnDirections.length; moves++) {
+                endPosition = blackPawnDirections[moves];
+                if(moves == 0 && isValidSinglePawnPush(getPosition(), endPosition)){
+                    // index 0 is always single pawn push move
                     list.add(MoveGenerator.generateMove(getPosition(), endPosition, 0));
                 }
+                else if(isValidAttackingMove(getPosition(), endPosition)){
+                    int moveType = 4;   // capture move type
+                    if(endPosition == board.getEnpassant()){
+                        moveType = 5;   // enpassant move type
+                    }
+                    list.add(MoveGenerator.generateMove(getPosition(), endPosition, moveType));
+                }
+            }
+            endPosition = getPosition() + 16;
+            if(canDoublePush() && isValidDoublePawnPush(getPosition(), endPosition)){
+                list.add(MoveGenerator.generateMove(getPosition(), endPosition, 1));
             }
         }
         return list;
     }
 
-    public boolean isValidMove(int start, int end) {  // check if it is blocked
-        if(start < 0 || start > 63 || end < 0 || end > 63){
-            return false;   // out of bounds
-        }
-        // check if any piece is blocking the movement (for both 1 and 2 tile movements)
-        if(Math.abs(end - start) ==  8){ // move 1 tile
-            return !super.board.getTile(end).isOccupied();  // if tile in front is occupied by anything
-        }
-        else if(Math.abs(end - start) ==  16){  // check both tile not occupied
-            return !super.board.getTile((start + end)/2).isOccupied() && !super.board.getTile(end).isOccupied();
-        }
-        // check diagonal attack moves
-        // special cases: pawns on edge of board
-        else if((Math.abs(start - end) == 7 || Math.abs(start - end) == 9)){
-            if(super.board.getTile(end).isOccupied()){
-                if(start % 8 == 0){ // pawn on left edge
-                    // return false if it tries to attack left square
-                    if(this.isWhite()){
-                        return Math.abs(start - end) != 9;  // white side
-                    }
-                    else{
-                        return Math.abs(start - end) == 9;  // black side
-                    }
-                }
-                else if(start % 8 == 7 ){   // pawn on right edge
-                    // return false if it tries to attack right square
-                    if(this.isWhite()){
-                        return Math.abs(start - end) != 7;  // white side
-                    }
-                    else{
-                        return Math.abs(start - end) == 7;  // black side
-                    }
-                }
-                return true;    // otherwise, return true
-            }
 
-            if(super.board.canEnpassant()){
-                int enpassantPosition = super.board.getEnpassant();
-                int positionDiff = enpassantPosition - this.getPosition();
-                // Enpassant can only occur at row 3 (rank 5) for white and row 4 (rank 4) for black
-                // due to board being indexed at zero starting from top left
-                // chess board rank == (8 - row);
-                if(this.isWhite() && getRow(this.getPosition()) == 3){
-                    return positionDiff == (end - start);
-                }
-                else if(!this.isWhite() && getRow(this.getPosition()) == 4){
-                    return positionDiff == (end - start);
-                }
-            }
+    private boolean isValidAttackingMove(int start, int end) {  // check if it is blocked
+        if(Math.abs(start - end) % 2 == 1){ // is an attacking move (as attacking moves index by 7 or 9 which is odd)
+            // check if end position has an enemy piece
+            // attacking move is also valid if it is on an enpassant square
+            Tile tile = super.board.getTile(end);
+            return (tile.isOccupied() && (tile.getPiece().isWhite() != this.isWhite()))
+                    || (!tile.isOccupied() && super.board.getEnpassant() == end);
         }
         return false;
+    }
+
+    private boolean isValidSinglePawnPush(int start, int end){
+        if(Math.abs(start - end) == 8){
+            return !super.board.getTile(end).isOccupied();
+        }
+        return false;
+    }
+
+    private boolean isValidDoublePawnPush(int start, int end){
+        if(end < 0 || end > 63){
+            return false;
+        }
+        if(Math.abs(start - end) == 16){
+            int middle = (start + end) / 2;
+            return !super.board.getTile(end).isOccupied() && !super.board.getTile(middle).isOccupied();
+        }
+        return false;
+    }
+
+    private boolean canDoublePush(){
+        return this.getPosition() == START_POSITION;
     }
 
     @Override

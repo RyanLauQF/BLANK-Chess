@@ -668,10 +668,10 @@ public class Board {
             System.out.println();
             System.out.println("Enter end position of piece: ");
             end = sc.nextInt();
-//            while(end < 0 || end > 63 || !b.getTile(start).getPiece().isLegalMove(end)){
-//                System.out.println("Enter end position of piece: ");
-//                end = sc.nextInt();
-//            }
+            while(end < 0 || end > 63){
+                System.out.println("Enter end position of piece: ");
+                end = sc.nextInt();
+            }
             Move move = new Move(b, start, end);
             move.makeMove();
             b.state();

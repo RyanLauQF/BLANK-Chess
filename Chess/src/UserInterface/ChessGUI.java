@@ -89,21 +89,6 @@ public class ChessGUI extends JPanel {
                 index++;
             }
         }
-//        Component[] components = this.getComponents();
-//        // iterate through all JPanels in ChessGUI overall panel
-//        for (int index = 0; index < components.length; index++) {
-//            if (components[index] instanceof TilePanel) {
-//                TilePanel currPanel = (TilePanel) components[index];
-//                Color backgroundColor = currPanel.getBackground();
-//                currPanel.removeAll();
-//                currPanel.setBackground(backgroundColor);
-//                if (board.getTile(index).isOccupied()) {
-//                    currPanel.setPiece(board.getTile(index).getPiece());
-//                } else {
-//                    currPanel.setPiece(null);
-//                }
-//            }
-//        }
         this.revalidate();
         this.repaint();
         setHasPieceBeenSelected(false);
@@ -350,44 +335,45 @@ public class ChessGUI extends JPanel {
         Board board = new Board();
         // Custom FEN input
         String FEN = "rn1qkbnr/pppbpppp/8/8/2p5/3P4/PP1KPPPP/RNBQ1BNR w kq - 0 1";
-        board.init(FEN);
+        board.init(FENUtilities.startFEN);
 
         ChessGUI chessGUI = new ChessGUI(board);
         chessGUI.initGUI();
 
         //*** random movement AI playing each other ***//
-//
-//        AI player1 = new AI(true, board);
-//        AI player2 = new AI(false, board);
-//        boolean playerToMove;
-//        int start, end;
-//        while(board.getAllLegalMoves().size() != 0){
-//            playerToMove = board.isWhiteTurn();
-//            short move;
-//            if(player1.getTurn() == playerToMove){
-//                move = player1.getMove();
-//                start = MoveGenerator.getStart(move);
-//                end = MoveGenerator.getEnd(move);
-//                Move movement = new Move(board, start, end);
-//                movement.makeMove();
-//            }
-//            else{
-//                move = player2.getMove();
-//                start = MoveGenerator.getStart(move);
-//                end = MoveGenerator.getEnd(move);
-//                Move movement = new Move(board, start, end);
-//                movement.makeMove();
-//            }
-//            chessGUI.update();
-//            if(board.getBlackPieces().getCount() == 1 && board.getWhitePieces().getCount() == 1){
-//                break;
-//            }
-//            // TimeUnit.MILLISECONDS.sleep(50);
-//        }
-//        if(GameStatus.checkGameEnded(board)){
-//            String gameState = GameStatus.getHowGameEnded();
-//            JOptionPane.showMessageDialog(chessGUI, gameState,
-//                    "Game Manager", JOptionPane.INFORMATION_MESSAGE);
-//        }
+
+        AI player1 = new AI(true, board);
+        AI player2 = new AI(false, board);
+        boolean playerToMove;
+        int start, end;
+        TimeUnit.MILLISECONDS.sleep(1500);
+        while(board.getAllLegalMoves().size() != 0){
+            playerToMove = board.isWhiteTurn();
+            short move;
+            if(player1.getTurn() == playerToMove){
+                move = player1.getMove();
+                start = MoveGenerator.getStart(move);
+                end = MoveGenerator.getEnd(move);
+                Move movement = new Move(board, start, end);
+                movement.makeMove();
+            }
+            else{
+                move = player2.getMove();
+                start = MoveGenerator.getStart(move);
+                end = MoveGenerator.getEnd(move);
+                Move movement = new Move(board, start, end);
+                movement.makeMove();
+            }
+            chessGUI.update();
+            if(board.getBlackPieces().getCount() == 1 && board.getWhitePieces().getCount() == 1){
+                break;
+            }
+            // TimeUnit.MICROSECONDS.sleep(500);
+        }
+        if(GameStatus.checkGameEnded(board)){
+            String gameState = GameStatus.getHowGameEnded();
+            JOptionPane.showMessageDialog(chessGUI, gameState,
+                    "Game Manager", JOptionPane.INFORMATION_MESSAGE);
+        }
     }
 }
