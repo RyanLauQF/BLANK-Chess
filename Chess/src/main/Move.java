@@ -2,11 +2,12 @@ public class Move {
     private final Board board;
     private final int startPosition;
     private final int endPosition;
+    private final int moveType;
     private Piece attackedPiece;
     private boolean isEnpassant;
     private boolean rookLostCastling;
     private boolean kingLostCastling;
-    private boolean pawnPromotion;
+    private final boolean pawnPromotion;
 
     private final int previousEnpassantPosition;
     private final boolean whiteKingSideCastling;
@@ -27,15 +28,15 @@ public class Move {
      *      6) Change to opponent's turn
      *
      * @param board refers to a reference to the current state of the chess board
-     * @param startPosition refers to the (starting) location of piece being moved
-     * @param endPosition refers to the final location the piece will end up
+     * @param encodedMove refers to the encoded move information containing start, end positions and movetype
      */
-    public Move(Board board, int startPosition, int endPosition){
+    public Move(Board board, short encodedMove){
         this.board = board;
-        this.startPosition = startPosition;
-        this.endPosition = endPosition;
+        this.startPosition = MoveGenerator.getStart(encodedMove);
+        this.endPosition = MoveGenerator.getEnd(encodedMove);
+        this.moveType = MoveGenerator.getMoveType(encodedMove);
+        this.pawnPromotion = MoveGenerator.isPromotion(encodedMove);
         this.attackedPiece = null;
-        this.pawnPromotion = false;
 
         // to reset enpassant and castling rights during unMove
         this.previousEnpassantPosition = board.getEnpassant();
@@ -142,8 +143,7 @@ public class Move {
         }
 
         if(isPawnPromotion()){
-            board.promote(Piece.PieceType.QUEEN, startTile);
-            pawnPromotion = true;
+            board.promote(getPromotionPieceType(moveType), startTile);
         }
 
         // updates piece position in piece list in board which tracks individual pieces
@@ -241,7 +241,7 @@ public class Move {
             endTile.setPiece(null);
         }
 
-        if(pawnPromotion){
+        if(isPawnPromotion()){
             // reset the piece back to a pawn
             Piece piece = startTile.getPiece();
             startTile.setPiece(new Pawn(piece.isWhite(), piece.getPosition(), board));
@@ -278,16 +278,8 @@ public class Move {
         return false;
     }
 
-    /**
-     * Check pawn piece has reached end of the board allowing it to promote
-     * @return true for pawn being at last row of either side of the board
-     */
-    public boolean isPawnPromotion(){
-        if(board.getTile(getStart()).getPiece().isPawn()){
-           int row = board.getRow(getEnd());
-           return row == 0 || row == 7;
-        }
-        return false;
+    private boolean isPawnPromotion(){
+        return this.pawnPromotion;
     }
 
     /**
@@ -340,6 +332,22 @@ public class Move {
         else{
             return position == 0;
         }
+    }
+
+    private Piece.PieceType getPromotionPieceType(int moveType){
+        if(moveType == 8 || moveType == 12){
+            return Piece.PieceType.KNIGHT;
+        }
+        else if(moveType == 9 || moveType == 13){
+            return Piece.PieceType.BISHOP;
+        }
+        else if(moveType == 10 || moveType == 14){
+            return Piece.PieceType.ROOK;
+        }
+        else if(moveType == 11 || moveType == 15){
+            return Piece.PieceType.QUEEN;
+        }
+        return null;
     }
 
     private int getStart(){

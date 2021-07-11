@@ -34,7 +34,6 @@ public class ChessGUI extends JPanel {
     private final Board board;    // reference to the current board in chess game
     private boolean hasPieceBeenSelected;   // checks if piece is selected
     private int pieceSelected;  // index of selected piece, if not selected, set to -1
-    private Object TilePanel;
 
     /**
      * Constructor creates a overall JPanel to represent the chess board user interface
@@ -221,11 +220,13 @@ public class ChessGUI extends JPanel {
                     else{
                         // check if the move being made is a legal move
                         boolean isLegal = false;
+                        short currentMove = 0;
                         int selectedPiece = gui.getSelectedPiece();
                         for(short moves : gui.board.getTile(selectedPiece).getPiece().getLegalMoves()){
                             int end = MoveGenerator.getEnd(moves);
                             if(end == getPosition()){
                                 isLegal = true;
+                                currentMove = moves;
                                 break;
                             }
                         }
@@ -233,9 +234,43 @@ public class ChessGUI extends JPanel {
                             gui.deselect();
                             return;
                         }
-                        Move move = new Move(gui.board, gui.getSelectedPiece(), getPosition());
+                        int moveType = MoveGenerator.getMoveType(currentMove);
+                        Move move = new Move(gui.board, MoveGenerator.generateMove(gui.getSelectedPiece(), getPosition(), moveType));
                         // if the move is legal, make the move on the board
                         move.makeMove();
+                        if(MoveGenerator.isPromotion(currentMove)){
+                            JPanel panel = new JPanel();
+                            panel.add(new JLabel("Select Promotion:"));
+                            DefaultComboBoxModel<String> model = new DefaultComboBoxModel<>();
+                            model.addElement("Queen");
+                            model.addElement("Knight");
+                            model.addElement("Rook");
+                            model.addElement("Bishop");
+                            JComboBox<String> comboBox = new JComboBox<>(model);
+                            panel.add(comboBox);
+
+                            int result = JOptionPane.showConfirmDialog(null, panel, "Promotion", JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE);
+                            String promotePiece = "Queen"; // default promotion set to queen if user closes option pane
+                            if (result == JOptionPane.OK_OPTION) {
+                                promotePiece = (String) comboBox.getSelectedItem();
+                            }
+                            assert promotePiece != null;
+                            switch (promotePiece) {
+                                case "Knight":
+                                    gui.board.promote(Piece.PieceType.KNIGHT, gui.board.getTile(getPosition()));
+                                    break;
+                                case "Rook":
+                                    gui.board.promote(Piece.PieceType.ROOK, gui.board.getTile(getPosition()));
+                                    break;
+                                case "Bishop":
+                                    gui.board.promote(Piece.PieceType.BISHOP, gui.board.getTile(getPosition()));
+                                    break;
+                                default:
+                                    gui.board.promote(Piece.PieceType.QUEEN, gui.board.getTile(getPosition()));
+                                    break;
+                            }
+                            System.out.println("Promoted to a " + promotePiece + "!");
+                        }
                         // update board tiles
                         gui.deselect();
                         gui.update();
@@ -334,7 +369,7 @@ public class ChessGUI extends JPanel {
     public static void main(String[] args) throws InterruptedException {
         Board board = new Board();
         // Custom FEN input
-        String FEN = "rn1qkbnr/pppbpppp/8/8/2p5/3P4/PP1KPPPP/RNBQ1BNR w kq - 0 1";
+        // String FEN = "2k4r/pbr2p2/1N3npp/3p4/1p1PP3/6P1/P4PBP/2R1K2R b K - 0 1";
         board.init(FENUtilities.startFEN);
 
         ChessGUI chessGUI = new ChessGUI(board);
@@ -345,23 +380,18 @@ public class ChessGUI extends JPanel {
         AI player1 = new AI(true, board);
         AI player2 = new AI(false, board);
         boolean playerToMove;
-        int start, end;
         TimeUnit.MILLISECONDS.sleep(1500);
         while(board.getAllLegalMoves().size() != 0){
             playerToMove = board.isWhiteTurn();
             short move;
             if(player1.getTurn() == playerToMove){
                 move = player1.getMove();
-                start = MoveGenerator.getStart(move);
-                end = MoveGenerator.getEnd(move);
-                Move movement = new Move(board, start, end);
+                Move movement = new Move(board, move);
                 movement.makeMove();
             }
             else{
                 move = player2.getMove();
-                start = MoveGenerator.getStart(move);
-                end = MoveGenerator.getEnd(move);
-                Move movement = new Move(board, start, end);
+                Move movement = new Move(board, move);
                 movement.makeMove();
             }
             chessGUI.update();

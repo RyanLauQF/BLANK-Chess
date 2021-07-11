@@ -27,10 +27,10 @@ public class MoveGenerator {
      *  1001 (9) - bishop promotion
      *  1010 (10) - rook promotion
      *  1011 (11) - queen promotion
-     *  1100 (12) - knight promotion
-     *  1101 (13) - bishop promotion
-     *  1110 (14) - rook promotion
-     *  1111 (15) - queen promotion
+     *  1100 (12) - knight capture promotion
+     *  1101 (13) - bishop capture promotion
+     *  1110 (14) - rook capture promotion
+     *  1111 (15) - queen capture promotion
      *
      *  E.g. a "double pawn push" from starting tile 48 to ending tile 32
      *        moveType == 0001
@@ -44,6 +44,8 @@ public class MoveGenerator {
     private static final int START_MASK = 0b0000111111000000;
     private static final int END_MASK = 0b0000000000111111;
     private static final int MOVE_TYPE_MASK = 0b1111000000000000;
+    private static final int PROMOTION_MASK = 0b1000;
+    private static final int CAPTURE_MASK = 0b0100;
 
     /**
      * Creates the move based off above-mentioned documentation
@@ -86,8 +88,25 @@ public class MoveGenerator {
         return (move & MOVE_TYPE_MASK) >>> 12;
     }
 
-    // TODO checks if the move is a castling move
+    /**
+     * Checks if the move is a promotion by using bitwise AND with PROMOTION_MASK
+     * @param move refers to the 16 bit encoded move
+     * @return true if the 4th bit is set (equals to 8)
+     */
+    public static boolean isPromotion(short move){
+        int moveType = getMoveType(move);
+        return (moveType & PROMOTION_MASK) == 8;
+    }
 
+    /**
+     * Checks if the move is a capture by using bitwise AND with CAPTURE_MASK
+     * @param move refers to the 16 bit encoded move
+     * @return true if the 3rd bit is set (equals to 4)
+     */
+    public static boolean isCapture(short move){
+        int moveType = getMoveType(move);
+        return (moveType & CAPTURE_MASK) == 4;
+    }
 
 //    /**
 //     * unit testing
@@ -96,13 +115,14 @@ public class MoveGenerator {
 //        // make the move and get output
 //        int start = 48;
 //        int end = 32;
-//        int moveType = 1;
+//        int moveType = 12;
 //        short move = generateMove(start, end, moveType);
 //
 //        System.out.println("Binary: " + Integer.toBinaryString(move));
 //        System.out.println("Start position: " + getStart(move));
 //        System.out.println("End position: " + getEnd(move));
 //        System.out.println("Move Type: " + getMoveType(move));
+//        System.out.println(isCapture(move));
 //    }
 }
 

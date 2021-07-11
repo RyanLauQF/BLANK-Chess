@@ -18,18 +18,27 @@ public class Bishop extends Piece{
     }
 
     @Override
-    public ArrayList<Short> getDefendingSquares(){
+    public ArrayList<Short> getPossibleMoves(){
         ArrayList<Short> list = new ArrayList<>();
         // check each diagonal path until it reaches edge of board or get blocked by another piece
         int end, offSet;
+        Tile endTile;
         int[] directions = MoveDirections.getDirections(getPosition());
         for(int index = 4; index < 8; index++){ // diagonals offsets start at index 4 to 7
             offSet = MoveDirections.directionOffSets[index];
             for(int i = 0; i < directions[index]; i++){
                 end = getPosition() + (offSet * (i + 1));
-                list.add(MoveGenerator.generateMove(getPosition(), end, 0));
-                if(super.board.getTile(end).isOccupied()){
-                    break;  // if piece is blocked, break from loop
+                endTile = super.board.getTile(end);
+                if(endTile.isOccupied()){
+                    if(endTile.getPiece().isWhite() != this.isWhite()){
+                        // enemy piece capture
+                        list.add(MoveGenerator.generateMove(getPosition(), end, 4));
+                    }
+                    break;
+                }
+                else{
+                    // standard movement with no capture
+                    list.add(MoveGenerator.generateMove(getPosition(), end, 0));
                 }
             }
         }

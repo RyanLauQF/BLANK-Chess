@@ -27,7 +27,7 @@ public class King extends Piece {
 
     @Override
     // get all squares which piece is defending
-    public ArrayList<Short> getDefendingSquares(){
+    public ArrayList<Short> getPossibleMoves(){
         ArrayList<Short> list = new ArrayList<>();
         int endPosition, offSet;
         int[] directions = MoveDirections.getDirections(getPosition());
@@ -35,6 +35,14 @@ public class King extends Piece {
             offSet = MoveDirections.directionOffSets[index];
             for(int i = 0; i < directions[index] && i < 1; i++){
                 endPosition = getPosition() + offSet;
+                if(super.board.getTile(endPosition).isOccupied()){
+                    if(super.board.getTile(endPosition).getPiece().isWhite() != this.isWhite()){
+                        // capture
+                        list.add(MoveGenerator.generateMove(getPosition(), endPosition, 4));
+                    }
+                    continue;
+                }
+                // Standard move with no capture
                 list.add(MoveGenerator.generateMove(getPosition(), endPosition, 0));
             }
         }
@@ -45,14 +53,14 @@ public class King extends Piece {
                 if(checkKingSideCastling()){
                     // king jumps 2 squares to the right for king side castling
                     endPosition = this.getPosition() + 2;
-                    list.add(MoveGenerator.generateMove(getPosition(), endPosition, 0));
+                    list.add(MoveGenerator.generateMove(getPosition(), endPosition, 2));
                 }
             }
             if(board.hasQueenSideCastling(this.isWhite())){
                 if(checkQueenSideCastling()){
                     // king jumps 2 squares to the left for queen side castling
                     endPosition = this.getPosition() - 2;
-                    list.add(MoveGenerator.generateMove(getPosition(), endPosition, 0));
+                    list.add(MoveGenerator.generateMove(getPosition(), endPosition, 3));
                 }
             }
         }

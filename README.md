@@ -4,13 +4,12 @@ A Chess engine in the making.
 
 This engine is based off Object-Oriented design using Java.
 
-Main move generator has been implemented for all pieces and pawn to queen is available.
+Main movement logic for generating all legal moves have been implemented, including promotion to all types.
 
-_Chess is now playable with a User Interface in ChessGUI. Only queen promotion for pawns is currently available._
+_Chess is playable with a User Interface by running ChessGUI._
 
 ## Main logic TODO List:
-1) Complete pawn Promotion implementation for promotion to Knight / Bishop / Rook.
-2) Implement turn data on board
+1) Implement 50 move rule, and repetition for AI
 
 **After building a working chess game, build board evaluation methods to make a working engine**
 

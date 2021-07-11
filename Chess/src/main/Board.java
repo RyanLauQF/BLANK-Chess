@@ -53,6 +53,9 @@ public class Board {
     private final int[] pinnedList;
     private final Stack<Integer> resetPinnedList;
 
+    // keep track of the number of checks the king for either side is under
+    private int checkCount;
+
     /**
      * Board constructor
      */
@@ -63,6 +66,7 @@ public class Board {
         this.blackPieces = new PieceList();
         this.pinnedList = new int[64];
         this.resetPinnedList = new Stack<>();
+        this.checkCount = 0;
     }
 
     /**
@@ -83,40 +87,24 @@ public class Board {
     public ArrayList<Short> getAllLegalMoves(){
         ArrayList <Short> moveList = new ArrayList<>();
         // double check so only make king moves
-//        int checkCount = kingCheckedCount(isWhiteTurn());
-//
-//        if(checkCount == 2){
-//            int kingPosition;
-//            if(isWhiteTurn()){
-//                kingPosition = getWhiteKingPosition();
-//            }
-//            else{
-//                kingPosition = getBlackKingPosition();
-//            }
-//            moveList.addAll(board[kingPosition].getPiece().getLegalMoves());
-//        }
-//        else {
-//            PieceList list;
-//            if (isWhiteTurn()) {  // get position of all white pieces
-//                list = getWhitePieces();
-//            } else {   // get position of all black pieces
-//                list = getBlackPieces();
-//            }
-//            // pseudo-legal moves are filtered out when generating moves from individual pieces
-//            for (int i = 0; i < list.getCount(); i++) {
-//                moveList.addAll(board[list.occupiedTiles[i]].getPiece().getLegalMoves()); // merge list
-//            }
-//        }
-        PieceList list;
-        if (isWhiteTurn()) {  // get position of all white pieces
-            list = getWhitePieces();
-        } else {   // get position of all black pieces
-            list = getBlackPieces();
+        checkCount = kingCheckedCount(isWhiteTurn());
+        if(checkCount >= 2){
+            int kingPosition = getKingPosition(isWhiteTurn());
+            moveList.addAll(board[kingPosition].getPiece().getLegalMoves());
         }
-        // pseudo-legal moves are filtered out when generating moves from individual pieces
-        for (int i = 0; i < list.getCount(); i++) {
-            moveList.addAll(board[list.occupiedTiles[i]].getPiece().getLegalMoves()); // merge list
+        else {
+            PieceList list;
+            if (isWhiteTurn()) {  // get position of all white pieces
+                list = getWhitePieces();
+            } else {   // get position of all black pieces
+                list = getBlackPieces();
+            }
+            // pseudo-legal moves are filtered out when generating moves from individual pieces
+            for (int i = 0; i < list.getCount(); i++) {
+                moveList.addAll(board[list.occupiedTiles[i]].getPiece().getLegalMoves()); // merge list
+            }
         }
+        resetPinnedList();
         return moveList;
     }
 
@@ -125,15 +113,8 @@ public class Board {
      * @return true if king of current side is in check by opponent, else return false
      */
     public int kingCheckedCount(boolean isWhiteKing){
-        int kingPosition;
+        int kingPosition = getKingPosition(isWhiteKing);
         int checkCount = 0;
-
-        if(isWhiteKing){
-            kingPosition = getWhiteKingPosition();
-        }
-        else{
-            kingPosition = getBlackKingPosition();
-        }
 
         // at the king position, search in all directions.
         int end, offSet;
@@ -149,26 +130,17 @@ public class Board {
                     Piece piece = getTile(end).getPiece();
                     // if it is an enemy piece
                     if(piece.isWhite() != isWhiteKing){
-                        if(i == 0){
-                            // check for enemy king 1 tile away from current king
-                            if(piece.isKing()){
-                                checkCount++;
-                                return checkCount;  // do not bother to continue finding for double check
-                            }
-                        }
                         if(piece.isPawn() || piece.isKnight() || piece.isKing()){
                             break;
                         }
                         if(index < 4){  // for straight directions, check if it is a rook / queen
                             if(piece.isRook() || piece.isQueen()){
                                 if(alliedPieceFound){
-                                    setPinned(end, offSet);
+                                    setPinned(alliedPieceLocation, offSet);
                                 }
                                 else{
                                     checkCount++;
                                 }
-                                // break out of current direction loop to go to next offset direction
-                                break;
                             }
                         }
                         else{   // diagonal directions
@@ -179,10 +151,11 @@ public class Board {
                                 else{
                                     checkCount++;
                                 }
-                                // break out of current direction loop to go to next offset direction
-                                break;
                             }
+
                         }
+                        // break out of current direction loop to go to next offset direction
+                        break;
                     }
                     // if it is an allied piece, check for pinned in the direction
                     else{
@@ -286,6 +259,7 @@ public class Board {
             int resetPosition = resetPinnedList.pop();
             pinnedList[resetPosition] = 0;
         }
+        checkCount = 0;
     }
 
     /**
@@ -364,6 +338,15 @@ public class Board {
         if(pieceType == Piece.PieceType.QUEEN){
             // Promote the pawn to a queen
             pieceTile.setPiece(new Queen(piece.isWhite(), piece.getPosition(), this));
+        }
+        else if(pieceType == Piece.PieceType.KNIGHT){
+            pieceTile.setPiece(new Knight(piece.isWhite(), piece.getPosition(), this));
+        }
+        else if(pieceType == Piece.PieceType.ROOK){
+            pieceTile.setPiece(new Rook(piece.isWhite(), piece.getPosition(), this));
+        }
+        else if(pieceType == Piece.PieceType.BISHOP){
+            pieceTile.setPiece(new Bishop(piece.isWhite(), piece.getPosition(), this));
         }
     }
 
@@ -486,6 +469,15 @@ public class Board {
         return blackQueenSideCastle;
     }
 
+    public int getKingPosition(boolean isWhiteKing){
+        if(isWhiteKing){
+            return getWhiteKingPosition();
+        }
+        else{
+            return getBlackKingPosition();
+        }
+    }
+
     public int getEnpassant(){
         return enpassantPosition;
     }
@@ -520,6 +512,10 @@ public class Board {
 
     public int getFullMoveNum(){
         return fullMoveNum;
+    }
+
+    public int getCheckCount(){
+        return checkCount;
     }
 
     /**
@@ -672,7 +668,7 @@ public class Board {
                 System.out.println("Enter end position of piece: ");
                 end = sc.nextInt();
             }
-            Move move = new Move(b, start, end);
+            Move move = new Move(b, MoveGenerator.generateMove(start, end, 0));
             move.makeMove();
             b.state();
             System.out.println("Enpassant: " + b.getEnpassant());

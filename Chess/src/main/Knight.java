@@ -18,10 +18,18 @@ public class Knight extends Piece{
     }
 
     @Override
-    public ArrayList<Short> getDefendingSquares(){
+    public ArrayList<Short> getPossibleMoves(){
         ArrayList<Short> list = new ArrayList<>();
         int[] knightDirections = MoveDirections.getKnightDirections(getPosition());
         for (int knightDirection : knightDirections) {
+            if(super.board.getTile(knightDirection).isOccupied()){
+                if(super.board.getTile(knightDirection).getPiece().isWhite() != this.isWhite()){
+                    // capture
+                    list.add(MoveGenerator.generateMove(getPosition(), knightDirection, 4));
+                }
+                continue;
+            }
+            // Standard move with no capture
             list.add(MoveGenerator.generateMove(getPosition(), knightDirection, 0));
         }
 

@@ -14,61 +14,50 @@ public class Pawn extends Piece {
      */
 
     private static final int PAWN_VALUE = 1;
-    private final int START_POSITION;
 
 
     public Pawn(boolean isWhite, int position, Board b){
         super(isWhite, position, b);  // call super class (parent class is Piece) constructor
         this.type = PieceType.PAWN;
-        this.START_POSITION = position;
     }
 
     @Override
-    public ArrayList<Short> getDefendingSquares(){
+    public ArrayList<Short> getPossibleMoves(){
         ArrayList<Short> list = new ArrayList<>();
+        int[] pawnMoveDirections;
         int endPosition;
         if(this.isWhite()){
-            int[] whitePawnDirections = MoveDirections.getWhitePawnDirections(getPosition());
-            for (int moves = 0; moves < whitePawnDirections.length; moves++) {
-                endPosition = whitePawnDirections[moves];
-                if(moves == 0 && isValidSinglePawnPush(getPosition(), endPosition)){
-                    // index 0 is always single pawn push move
-                    list.add(MoveGenerator.generateMove(getPosition(), endPosition, 0));
-                }
-                else if(isValidAttackingMove(getPosition(), endPosition)){
-                    int moveType = 4;   // capture move type
-                    if(endPosition == board.getEnpassant()){
-                        moveType = 5;   // enpassant move type
-                    }
-                    list.add(MoveGenerator.generateMove(getPosition(), endPosition, moveType));
-                }
-            }
-            endPosition = getPosition() - 16;
-            if(canDoublePush() && isValidDoublePawnPush(getPosition(), endPosition)){
-                list.add(MoveGenerator.generateMove(getPosition(), endPosition, 1));
-            }
+            pawnMoveDirections = MoveDirections.getWhitePawnDirections(getPosition());
         }
         else{
-            int[] blackPawnDirections = MoveDirections.getBlackPawnDirections(getPosition());
-            for (int moves = 0; moves < blackPawnDirections.length; moves++) {
-                endPosition = blackPawnDirections[moves];
-                if(moves == 0 && isValidSinglePawnPush(getPosition(), endPosition)){
-                    // index 0 is always single pawn push move
-                    list.add(MoveGenerator.generateMove(getPosition(), endPosition, 0));
-                }
-                else if(isValidAttackingMove(getPosition(), endPosition)){
-                    int moveType = 4;   // capture move type
-                    if(endPosition == board.getEnpassant()){
-                        moveType = 5;   // enpassant move type
-                    }
-                    list.add(MoveGenerator.generateMove(getPosition(), endPosition, moveType));
-                }
+            pawnMoveDirections = MoveDirections.getBlackPawnDirections(getPosition());
+        }
+        for (int moves = 0; moves < pawnMoveDirections.length; moves++) {
+            endPosition = pawnMoveDirections[moves];
+            if(moves == 0 && isValidSinglePawnPush(getPosition(), endPosition)){
+                // index 0 is always single pawn push move
+                list.add(MoveGenerator.generateMove(getPosition(), endPosition, 0));
             }
-            endPosition = getPosition() + 16;
-            if(canDoublePush() && isValidDoublePawnPush(getPosition(), endPosition)){
+            else if(isValidAttackingMove(getPosition(), endPosition)){
+                int moveType = 4;   // standard capture move type
+                if(endPosition == board.getEnpassant()){
+                    moveType = 5;   // enpassant move type
+                }
+                list.add(MoveGenerator.generateMove(getPosition(), endPosition, moveType));
+            }
+        }
+        if(canDoublePush()){
+            if(this.isWhite()){
+                endPosition = getPosition() - 16;
+            }
+            else{
+                endPosition = getPosition() + 16;
+            }
+            if(isValidDoublePawnPush(getPosition(), endPosition)){
                 list.add(MoveGenerator.generateMove(getPosition(), endPosition, 1));
             }
         }
+
         return list;
     }
 
@@ -102,8 +91,30 @@ public class Pawn extends Piece {
         return false;
     }
 
+    /**
+     * Checks pawn is at starting position, if a pawn is at starting position, it is able to double push
+     * @return true if pawn is at start
+     */
     private boolean canDoublePush(){
-        return this.getPosition() == START_POSITION;
+        if(isWhite()){
+            return getRow(getPosition()) == 6;
+        }
+        else{
+            return getRow(getPosition()) == 1;
+        }
+    }
+
+    /**
+     * Checks if a pawn is able to promote after making a move
+     * @return true if a pawn of either side reaches the opposite side of the board
+     */
+    public static boolean canPromote(boolean isWhitePawn, int endPosition){
+        if(isWhitePawn){
+            return getRow(endPosition) == 0;
+        }
+        else{
+            return getRow(endPosition) == 7;
+        }
     }
 
     @Override

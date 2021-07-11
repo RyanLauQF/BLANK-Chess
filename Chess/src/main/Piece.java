@@ -33,43 +33,86 @@ public abstract class Piece {
      */
     public ArrayList<Short> getLegalMoves(){
         ArrayList<Short> moveList = new ArrayList<>();
-        ArrayList<Short> defendingSquares = getDefendingSquares();
-        int kingPosition, endPosition;
-
-        for(short moves : defendingSquares){
-            endPosition = MoveGenerator.getEnd(moves);
-            if(board.getTile(endPosition).isOccupied()){   // check if piece is attacking / defending another piece
-                // filter out allied pieces as it cannot move to tiles occupied by allied pieces
-                if(board.getTile(endPosition).getPiece().isWhite() == this.isWhite()) {
-                    continue;
+        // if piece is pinned, only generate the moves along pin axis
+        if(board.isPinned(this.getPosition()) && !isPawn() && board.getCheckCount() == 0){
+            if(this.isKnight()){
+                return moveList;    // knight does not have any legal moves if it is pinned
+            }
+            int pinOffSet = board.getPinType(this.getPosition());
+            if(Math.abs(pinOffSet) == 7 || Math.abs(pinOffSet) == 9){
+                // diagonal pin
+                if(isRook()){
+                    return moveList;
+                }
+                else if(isBishop() || isQueen()){
+                    return generatePinnedMoves(moveList, pinOffSet);
                 }
             }
-            /*
-             *  At this point, the move will become a pseudo-legal move.
-             *  test the pseudo-legal move to check if king is under check after moving any piece
-             */
-
-            Move movement = new Move(this.board, getPosition(), endPosition);
-            movement.makeMove();    // make the move on the board without making a copy
-            if(this.isWhite()){
-                kingPosition = board.getWhiteKingPosition();
+            else if(Math.abs(pinOffSet) == 1 || Math.abs(pinOffSet) == 8){
+                // horizontal / vertical pin
+                if(isBishop()){
+                    return moveList;
+                }
+                else if(isRook() || isQueen()){
+                    return generatePinnedMoves(moveList, pinOffSet);
+                }
             }
-            else{
-                kingPosition = board.getBlackKingPosition();
-            }
-            // if king is not under check after making the move, the move is legal.
-            if(!board.isTileAttacked(kingPosition, this.isWhite())) {
-                movement.unMake();
-                short encodedMove = MoveGenerator.generateMove(getPosition(), endPosition, 0);
-                moveList.add(encodedMove);
-            }
-            else{
-                movement.unMake();  // revert board back to its original state
+        }
+        else{
+            ArrayList<Short> moveSquares = getPossibleMoves();
+            int kingPosition, startPosition, endPosition;
+            for(short moves : moveSquares){
+                // The moves are currently pseudo-legal, test if king is in check to get legal moves
+                Move movement = new Move(this.board, moves);
+                movement.makeMove();    // make the move on the board without making a copy
+                kingPosition = board.getKingPosition(this.isWhite());
+                // if king is not under check after making the move, the move is legal.
+                if(!board.isTileAttacked(kingPosition, this.isWhite())) {
+                    movement.unMake();
+                    if(this.isPawn() && Pawn.canPromote(this.isWhite(), MoveGenerator.getEnd(moves))){
+                        // if the piece is a pawn and can be promoted, add promotion moves instead of normal move
+                        startPosition = MoveGenerator.getStart(moves);
+                        endPosition = MoveGenerator.getEnd(moves);
+                        if(MoveGenerator.isCapture(moves)){     // generate capture-promotion moves
+                            for(int promotionIndex = 12; promotionIndex < 16; promotionIndex++){
+                                moveList.add(MoveGenerator.generateMove(startPosition, endPosition, promotionIndex));
+                            }
+                        }
+                        else{   // generate standard promotion moves
+                            for(int promotionIndex = 8; promotionIndex < 12; promotionIndex++){
+                                moveList.add(MoveGenerator.generateMove(startPosition, endPosition, promotionIndex));
+                            }
+                        }
+                    }
+                    else{
+                        moveList.add(moves);
+                    }
+                }
+                else{
+                    movement.unMake();  // revert board back to its original state
+                }
             }
         }
         return moveList;
     }
 
+    private ArrayList<Short> generatePinnedMoves(ArrayList<Short> moveList, int pinOffSet){
+        // generate moves towards the enemy piece by following pinned offset
+        int endPosition = getPosition() + pinOffSet;
+        while(!board.getTile(endPosition).isOccupied()){
+            moveList.add(MoveGenerator.generateMove(getPosition(), endPosition, 0));
+            endPosition += pinOffSet;
+        }
+        moveList.add(MoveGenerator.generateMove(getPosition(), endPosition, 4));    // capture the enemy piece
+
+        // reverse pinned offset to get offset towards king and generate moves towards the king
+        endPosition = getPosition() - pinOffSet;
+        while(!board.getTile(endPosition).isOccupied()){
+            moveList.add(MoveGenerator.generateMove(getPosition(), endPosition, 0));
+            endPosition -= pinOffSet;
+        }
+        return moveList;
+    }
     /**
      * Gets the side which the piece is on (White / Black)
      * @return true if piece is white, else return false if piece is black
@@ -98,7 +141,7 @@ public abstract class Piece {
      * @param position refers to the index of a tile on the board
      * @return the row which the index is on (i.e. index 8 lies on row 1)
      */
-    public int getRow(int position){
+    public static int getRow(int position){
         return (position - (position % 8)) / 8;
     }
 
@@ -107,7 +150,7 @@ public abstract class Piece {
      * @param position refers to the index of a tile on the board
      * @return the column which the index is on (i.e. index 8 lies on column 0)
      */
-    public int getCol(int position){
+    public static int getCol(int position){
         return position % 8;
     }
 
@@ -170,11 +213,10 @@ public abstract class Piece {
 
 
     /**
-     * Obtain the squares which a piece has control regardless if it is defending allied pieces
-     * or attacking opposing pieces
-     * @return a list of all defending squares of a piece (squares which piece controls)
+     * Obtain the pseudo-legal moves of a piece
+     * @return a list of all pseudo-legal moves of the piece
      */
-    public abstract ArrayList<Short> getDefendingSquares();
+    public abstract ArrayList<Short> getPossibleMoves();
 
     /**
      * Gets abbreviation of piece name

@@ -13,7 +13,6 @@ public class Test {
         }
 
         long count = 0;
-        int start, end;
         ArrayList<Short> encodedMoves = board.getAllLegalMoves();
 
         if(depth == 1){
@@ -21,9 +20,7 @@ public class Test {
         }
 
         for (Short encodedMove : encodedMoves) {
-            start = MoveGenerator.getStart(encodedMove);
-            end = MoveGenerator.getEnd(encodedMove);
-            Move move = new Move(board, start, end);
+            Move move = new Move(board, encodedMove);
             move.makeMove();
             count += MoveGeneratorTest(depth - 1);
             move.unMake();
@@ -41,7 +38,7 @@ public class Test {
             start = MoveGenerator.getStart(encodedMove);
             end = MoveGenerator.getEnd(encodedMove);
             System.out.print(FENUtilities.convertIndexToRankAndFile(start) + FENUtilities.convertIndexToRankAndFile(end) + " ");
-            Move move = new Move(board, start, end);
+            Move move = new Move(board, encodedMove);
             move.makeMove();
             currCount = MoveGeneratorTest(depth - 1);
             System.out.print(currCount + " \n");
@@ -58,8 +55,7 @@ public class Test {
 //***** STANDARD DEBUGGING WITH PERFT SPEED *****//
 //-------------------------------------------------
         Board board = new Board();
-        String FEN = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1";
-        //String FEN = "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1";
+        // String FEN = "8/5p2/8/2k3P1/p3K3/8/1P6/8 b - - 0 1";
         board.init(FENUtilities.startFEN);
         Test test = new Test(board);
         int depth = 7;
