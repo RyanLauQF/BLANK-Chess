@@ -17,7 +17,7 @@ public class King extends Piece {
      * Similar implementation to a knight
      */
 
-    private static final int KING_VALUE = 100;
+    private static final int KING_VALUE = 20000;
 
     public King(boolean isWhite, int position, Board b){
         super(isWhite, position, b);
@@ -48,19 +48,21 @@ public class King extends Piece {
         }
 
         // check castling squares if the king is not under attack
-        if(!super.board.isTileAttacked(getPosition(), this.isWhite())){
-            if(board.hasKingSideCastling(this.isWhite())){
-                if(checkKingSideCastling()){
-                    // king jumps 2 squares to the right for king side castling
-                    endPosition = this.getPosition() + 2;
-                    list.add(MoveGenerator.generateMove(getPosition(), endPosition, 2));
+        if(board.hasCastlingRights()){
+            if(!super.board.isTileAttacked(getPosition(), this.isWhite())){
+                if(board.hasKingSideCastling(this.isWhite())){
+                    if(checkKingSideCastling()){
+                        // king jumps 2 squares to the right for king side castling
+                        endPosition = this.getPosition() + 2;
+                        list.add(MoveGenerator.generateMove(getPosition(), endPosition, 2));
+                    }
                 }
-            }
-            if(board.hasQueenSideCastling(this.isWhite())){
-                if(checkQueenSideCastling()){
-                    // king jumps 2 squares to the left for queen side castling
-                    endPosition = this.getPosition() - 2;
-                    list.add(MoveGenerator.generateMove(getPosition(), endPosition, 3));
+                if(board.hasQueenSideCastling(this.isWhite())){
+                    if(checkQueenSideCastling()){
+                        // king jumps 2 squares to the left for queen side castling
+                        endPosition = this.getPosition() - 2;
+                        list.add(MoveGenerator.generateMove(getPosition(), endPosition, 3));
+                    }
                 }
             }
         }

@@ -1,4 +1,5 @@
 import java.util.ArrayList;
+import java.util.HashSet;
 
 public abstract class Piece {
 
@@ -33,34 +34,64 @@ public abstract class Piece {
      */
     public ArrayList<Short> getLegalMoves(){
         ArrayList<Short> moveList = new ArrayList<>();
-        // if piece is pinned, only generate the moves along pin axis
-        if(board.isPinned(this.getPosition()) && !isPawn() && board.getCheckCount() == 0){
-            if(this.isKnight()){
-                return moveList;    // knight does not have any legal moves if it is pinned
+        ArrayList<Short> moveSquares;
+
+        if(board.getCheckCount() == 1 && !this.isKing()){
+             /*
+                Possible moves if king is in single check:
+                    1) Move the king out of check (check all king valid moves)
+                    2) Capture checking piece
+                    3) Block the checking piece (if the attacking piece is a sliding piece)
+            */
+            if(this.isPinned()){    // if piece is pinned, only generate the moves along pin axis
+                moveSquares = generatePinnedMoves(new ArrayList<>());
             }
-            int pinOffSet = board.getPinType(this.getPosition());
-            if(Math.abs(pinOffSet) == 7 || Math.abs(pinOffSet) == 9){
-                // diagonal pin
-                if(isRook()){
-                    return moveList;
-                }
-                else if(isBishop() || isQueen()){
-                    return generatePinnedMoves(moveList, pinOffSet);
+            else{
+                moveSquares = getPossibleMoves();
+            }
+            int end;
+            if(board.getAttackingPiece().isSliderPiece()){
+                HashSet<Integer> possibleMoves = board.getCounterCheckSquares();
+                for (Short moves : moveSquares) {
+                    end = MoveGenerator.getEnd(moves);
+                    if (possibleMoves.contains(end)) {
+                        if(this.isPawn() && Pawn.canPromote(this.isWhite(), MoveGenerator.getEnd(moves))){
+                            generatePawnPromotionMoves(moves, moveList);
+                        }
+                        else{
+                            moveList.add(moves);
+                        }
+                    }
                 }
             }
-            else if(Math.abs(pinOffSet) == 1 || Math.abs(pinOffSet) == 8){
-                // horizontal / vertical pin
-                if(isBishop()){
-                    return moveList;
-                }
-                else if(isRook() || isQueen()){
-                    return generatePinnedMoves(moveList, pinOffSet);
+            else{   // only need to capture the piece
+                for (Short moves : moveSquares) {
+                    end = MoveGenerator.getEnd(moves);
+                    if(this.isPawn()){  // if this piece is a pawn, check if can capture enpassant
+                        if (end == board.getAttackingPieceLocation() || end == board.getEnpassant()) {
+                            if(this.isPawn() && Pawn.canPromote(this.isWhite(), MoveGenerator.getEnd(moves))){
+                                generatePawnPromotionMoves(moves, moveList);
+                            }
+                            else{
+                                moveList.add(moves);
+                            }
+                        }
+                    }
+                    else{
+                        if (end == board.getAttackingPieceLocation()) {
+                            moveList.add(moves);
+                        }
+                    }
                 }
             }
+            return moveList;
+        }
+        else if(this.isPinned()){
+            return generatePinnedMoves(moveList);
         }
         else{
-            ArrayList<Short> moveSquares = getPossibleMoves();
-            int kingPosition, startPosition, endPosition;
+            moveSquares = getPossibleMoves();
+            int kingPosition;
             for(short moves : moveSquares){
                 // The moves are currently pseudo-legal, test if king is in check to get legal moves
                 Move movement = new Move(this.board, moves);
@@ -70,19 +101,7 @@ public abstract class Piece {
                 if(!board.isTileAttacked(kingPosition, this.isWhite())) {
                     movement.unMake();
                     if(this.isPawn() && Pawn.canPromote(this.isWhite(), MoveGenerator.getEnd(moves))){
-                        // if the piece is a pawn and can be promoted, add promotion moves instead of normal move
-                        startPosition = MoveGenerator.getStart(moves);
-                        endPosition = MoveGenerator.getEnd(moves);
-                        if(MoveGenerator.isCapture(moves)){     // generate capture-promotion moves
-                            for(int promotionIndex = 12; promotionIndex < 16; promotionIndex++){
-                                moveList.add(MoveGenerator.generateMove(startPosition, endPosition, promotionIndex));
-                            }
-                        }
-                        else{   // generate standard promotion moves
-                            for(int promotionIndex = 8; promotionIndex < 12; promotionIndex++){
-                                moveList.add(MoveGenerator.generateMove(startPosition, endPosition, promotionIndex));
-                            }
-                        }
+                        generatePawnPromotionMoves(moves, moveList);
                     }
                     else{
                         moveList.add(moves);
@@ -96,7 +115,55 @@ public abstract class Piece {
         return moveList;
     }
 
-    private ArrayList<Short> generatePinnedMoves(ArrayList<Short> moveList, int pinOffSet){
+    public ArrayList<Short> generatePinnedMoves(ArrayList<Short> moveList){
+        // if a knight is pinned it cannot move
+        if(this.isKnight()){
+            return moveList;
+        }
+        int pinOffSet = board.getPinType(getPosition());
+        int absMath = Math.abs(pinOffSet);
+        if(absMath == 7 || absMath == 9){
+            // diagonal pin
+            if(isRook()){   // rook cannot move along diagonal pin
+                return moveList;
+            }
+            // pawn can only attack along offset
+            else if(isPawn()){
+                if((isWhite() && pinOffSet > 0) || (!isWhite() && pinOffSet < 0)) return moveList;
+                ArrayList<Short> legalMoves = new ArrayList<>();
+                Pawn.generatePawnAttackMoves(Pawn.getPawnDirections(this.isWhite(), getPosition()), this, moveList);
+                int diff;
+                for(Short moves: moveList){
+                    diff = Math.abs(getPosition() - MoveGenerator.getEnd(moves));
+                    if(diff == absMath){
+                        legalMoves.add(moves);
+                    }
+                }
+                return legalMoves;
+            }
+        }
+        else if(absMath == 1 || absMath == 8){
+            // horizontal / vertical pin
+            if(isBishop()){ // bishop cannot move along a straight pin
+                return moveList;
+            }
+            // pawn can only push
+            else if(isPawn()){
+                if(absMath == 1) return moveList;
+                // generate pawn push moves
+                ArrayList<Short> legalMoves = new ArrayList<>();
+                Pawn.generatePawnPushMoves(Pawn.getPawnDirections(this.isWhite(), getPosition())[0], this, moveList);
+                int diff;
+                for(Short moves: moveList){
+                    diff = Math.abs(getPosition() - MoveGenerator.getEnd(moves));
+                    if(diff % 8 == 0){
+                        legalMoves.add(moves);
+                    }
+                }
+                return legalMoves;
+            }
+        }
+
         // generate moves towards the enemy piece by following pinned offset
         int endPosition = getPosition() + pinOffSet;
         while(!board.getTile(endPosition).isOccupied()){
@@ -113,6 +180,31 @@ public abstract class Piece {
         }
         return moveList;
     }
+
+    public final void generatePawnPromotionMoves(short move, ArrayList<Short> moveList){
+        // if the piece is a pawn and can be promoted, add promotion moves instead of normal move
+        int startPosition = MoveGenerator.getStart(move);
+        int endPosition = MoveGenerator.getEnd(move);
+        if(MoveGenerator.isCapture(move)){     // generate capture-promotion moves
+            for(int promotionIndex = 12; promotionIndex < 16; promotionIndex++){
+                moveList.add(MoveGenerator.generateMove(startPosition, endPosition, promotionIndex));
+            }
+        }
+        else{   // generate standard promotion moves
+            for(int promotionIndex = 8; promotionIndex < 12; promotionIndex++){
+                moveList.add(MoveGenerator.generateMove(startPosition, endPosition, promotionIndex));
+            }
+        }
+    }
+
+    public final boolean isPinned(){
+        return board.isPinned(getPosition());
+    }
+
+    public final boolean isSliderPiece(){
+        return isQueen() || isRook() || isBishop();
+    }
+
     /**
      * Gets the side which the piece is on (White / Black)
      * @return true if piece is white, else return false if piece is black
@@ -209,7 +301,10 @@ public abstract class Piece {
         return this.type == PieceType.KING;
     }
 
+
+    //---------------------------------------------------//
     /* ABSTRACT CLASSES TO BE IMPLEMENTED BY SUB CLASSES */
+    //---------------------------------------------------//
 
 
     /**

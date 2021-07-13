@@ -55,10 +55,10 @@ public class Test {
 //***** STANDARD DEBUGGING WITH PERFT SPEED *****//
 //-------------------------------------------------
         Board board = new Board();
-        // String FEN = "8/5p2/8/2k3P1/p3K3/8/1P6/8 b - - 0 1";
+        String FEN = "r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1";
         board.init(FENUtilities.startFEN);
         Test test = new Test(board);
-        int depth = 7;
+        int depth = 6;
 
         long start = System.currentTimeMillis();
         long ans = test.divide(depth);

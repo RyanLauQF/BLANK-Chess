@@ -2,26 +2,11 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.net.URL;
 import java.util.Stack;
 import java.util.concurrent.TimeUnit;
 
 public class ChessGUI extends JPanel {
-    // all white piece images
-    public static final ImageIcon whitePawn = new ImageIcon("resources/piece-icons/whitePawn.png");
-    public static final ImageIcon whiteKnight = new ImageIcon("resources/piece-icons/whiteKnight.png");
-    public static final ImageIcon whiteBishop = new ImageIcon("resources/piece-icons/whiteBishop.png");
-    public static final ImageIcon whiteRook = new ImageIcon("resources/piece-icons/whiteRook.png");
-    public static final ImageIcon whiteQueen = new ImageIcon("resources/piece-icons/whiteQueen.png");
-    public static final ImageIcon whiteKing = new ImageIcon("resources/piece-icons/whiteKing.png");
-
-    // all black piece images
-    public static final ImageIcon blackPawn = new ImageIcon("resources/piece-icons/blackPawn.png");
-    public static final ImageIcon blackKnight = new ImageIcon("resources/piece-icons/blackKnight.png");
-    public static final ImageIcon blackBishop = new ImageIcon("resources/piece-icons/blackBishop.png");
-    public static final ImageIcon blackRook = new ImageIcon("resources/piece-icons/blackRook.png");
-    public static final ImageIcon blackQueen = new ImageIcon("resources/piece-icons/blackQueen.png");
-    public static final ImageIcon blackKing = new ImageIcon("resources/piece-icons/blackKing.png");
-
     // TILE COLOURS
     private static final Color DARK_SQUARE_COLOUR = new Color(182, 136, 96);
     private static final Color LIGHT_SQUARE_COLOUR = new Color(241, 218, 179);
@@ -29,6 +14,7 @@ public class ChessGUI extends JPanel {
     private static final Color LIGHT_MOVE_SQUARE_COLOUR = new Color(226, 81, 76);
     private static final Color DARK_MOVE_SQUARE_COLOUR = new Color(215, 72, 64);
 
+    // keeps track of highlighted tiles to be reset
     private final Stack<Integer> highlightedTiles;
 
     private final Board board;    // reference to the current board in chess game
@@ -94,6 +80,9 @@ public class ChessGUI extends JPanel {
         setSelectedPiece(-1);
     }
 
+    /**
+     * Highlights legal tiles that a piece is able to move to when a piece is selected
+     */
     public void showLegalTiles(){
         // Get individual JPanels from ChessGUI JPanel
         Component[] components = this.getComponents();
@@ -116,6 +105,10 @@ public class ChessGUI extends JPanel {
         }
     }
 
+    /**
+     * Selects a piece if user clicks on it and highlights the legal moves of the piece
+     * @param tilePosition refers to the position of the selected piece
+     */
     public void select(int tilePosition){
         setSelectedPiece(tilePosition);
         setHasPieceBeenSelected(true);
@@ -127,6 +120,9 @@ public class ChessGUI extends JPanel {
         showLegalTiles();
     }
 
+    /**
+     * Deselects the piece user has previously selected and resets the background colours
+     */
     public void deselect(){
         // reset highlighted tiles
         resetHighlightedTiles();
@@ -139,6 +135,9 @@ public class ChessGUI extends JPanel {
         setHasPieceBeenSelected(false);
     }
 
+    /**
+     * Reset all highlighted tiles to default colour
+     */
     private void resetHighlightedTiles(){
         Component[] components = this.getComponents();
         while(!highlightedTiles.isEmpty()){
@@ -147,6 +146,11 @@ public class ChessGUI extends JPanel {
         }
     }
 
+    /**
+     * Gets the original dark / light square colours of a tile based on the tiles position
+     * @param position refers to the tiles position
+     * @return the Color of the dark / light squares
+     */
     private Color getTileOriginalColor(int position){
         // row and column of the tile
         int row = (position - (position % 8)) / 8;
@@ -160,6 +164,9 @@ public class ChessGUI extends JPanel {
         }
     }
 
+    /**
+     * @return true if a user has selected a piece, else return false
+     */
     public boolean isPieceSelected(){
         return hasPieceBeenSelected;
     }
@@ -190,13 +197,40 @@ public class ChessGUI extends JPanel {
         frame.setResizable(false);
     }
 
+    /**
+     * TilePanel is a JPanel nested within the overall ChessGUI JPanel.
+     * It processes the pieces to show and the user inputs
+     */
     public static class TilePanel extends JPanel {
         private final int position;
         private Piece piece;
 
+        // Image icons of all white pieces
+        private final ImageIcon whitePawn = getImage("/whitePawn.png");
+        private final ImageIcon whiteBishop = getImage("/whiteBishop.png");
+        private final ImageIcon whiteKnight = getImage("/whiteKnight.png");
+        private final ImageIcon whiteRook = getImage("/whiteRook.png");
+        private final ImageIcon whiteQueen = getImage("/whiteQueen.png");
+        private final ImageIcon whiteKing = getImage("/whiteKing.png");
+
+        // Image icons of all black pieces
+        private final ImageIcon blackPawn = getImage("/blackPawn.png");
+        private final ImageIcon blackBishop = getImage("/blackBishop.png");
+        private final ImageIcon blackKnight = getImage("/blackKnight.png");
+        private final ImageIcon blackRook = getImage("/blackRook.png");
+        private final ImageIcon blackQueen = getImage("/blackQueen.png");
+        private final ImageIcon blackKing = getImage("/blackKing.png");
+
+        /**
+         * Constructor to initialize all TilePanels. Each tile panel will have a mouse listener to get user input
+         * on click to move the pieces
+         * @param position refers to a position of a tilePanel which is final
+         * @param gui refers to a reference to the overall ChessGUI JPanel
+         */
         TilePanel(final int position, ChessGUI gui){
             super();
             this.position = position;
+
             // Add mouse listener to tile
             this.addMouseListener(new MouseAdapter() {
                 @Override
@@ -290,6 +324,14 @@ public class ChessGUI extends JPanel {
             this.add(pieceIcon);
         }
 
+        private ImageIcon getImage(String path)
+        {
+            URL url = getClass().getResource(path);
+            if (url != null)
+                return (new ImageIcon(url));
+            return null;
+        }
+
         private ImageIcon getPieceIcon(){
             if(!this.isOccupied()){
                 return null;
@@ -299,44 +341,45 @@ public class ChessGUI extends JPanel {
             if(getPiece().isWhite()){
                 switch (pieceToString) {
                     case "P":
-                        pieceIcon = ChessGUI.whitePawn;
+                        // pieceIcon = ChessGUI.whitePawn;
+                        pieceIcon = whitePawn;
                         break;
                     case "B":
-                        pieceIcon = ChessGUI.whiteBishop;
+                        pieceIcon = whiteBishop;
                         break;
                     case "N":
-                        pieceIcon = ChessGUI.whiteKnight;
+                        pieceIcon = whiteKnight;
                         break;
                     case "R":
-                        pieceIcon = ChessGUI.whiteRook;
+                        pieceIcon = whiteRook;
                         break;
                     case "Q":
-                        pieceIcon = ChessGUI.whiteQueen;
+                        pieceIcon = whiteQueen;
                         break;
                     case "K":
-                        pieceIcon = ChessGUI.whiteKing;
+                        pieceIcon = whiteKing;
                         break;
                 }
             }
             else{
                 switch (pieceToString) {
                     case "P":
-                        pieceIcon = ChessGUI.blackPawn;
+                        pieceIcon = blackPawn;
                         break;
                     case "B":
-                        pieceIcon = ChessGUI.blackBishop;
+                        pieceIcon = blackBishop;
                         break;
                     case "N":
-                        pieceIcon = ChessGUI.blackKnight;
+                        pieceIcon = blackKnight;
                         break;
                     case "R":
-                        pieceIcon = ChessGUI.blackRook;
+                        pieceIcon = blackRook;
                         break;
                     case "Q":
-                        pieceIcon = ChessGUI.blackQueen;
+                        pieceIcon = blackQueen;
                         break;
                     case "K":
-                        pieceIcon = ChessGUI.blackKing;
+                        pieceIcon = blackKing;
                         break;
                 }
             }
@@ -369,7 +412,7 @@ public class ChessGUI extends JPanel {
     public static void main(String[] args) throws InterruptedException {
         Board board = new Board();
         // Custom FEN input
-        // String FEN = "2k4r/pbr2p2/1N3npp/3p4/1p1PP3/6P1/P4PBP/2R1K2R b K - 0 1";
+        String FEN = "8/8/8/8/k2Pp2Q/8/8/3K4 b - d3 0 1";
         board.init(FENUtilities.startFEN);
 
         ChessGUI chessGUI = new ChessGUI(board);

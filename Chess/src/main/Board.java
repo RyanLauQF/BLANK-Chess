@@ -1,4 +1,5 @@
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Scanner;
 import java.util.Stack;
 
@@ -55,6 +56,8 @@ public class Board {
 
     // keep track of the number of checks the king for either side is under
     private int checkCount;
+    private int attackingPieceLocation;
+    private int attackingOffSet;
 
     /**
      * Board constructor
@@ -86,19 +89,15 @@ public class Board {
      */
     public ArrayList<Short> getAllLegalMoves(){
         ArrayList <Short> moveList = new ArrayList<>();
-        // double check so only make king moves
+        // calculate the number of enemies attacking the king
         checkCount = kingCheckedCount(isWhiteTurn());
+        // if it is in double check, only king can move
         if(checkCount >= 2){
             int kingPosition = getKingPosition(isWhiteTurn());
             moveList.addAll(board[kingPosition].getPiece().getLegalMoves());
         }
         else {
-            PieceList list;
-            if (isWhiteTurn()) {  // get position of all white pieces
-                list = getWhitePieces();
-            } else {   // get position of all black pieces
-                list = getBlackPieces();
-            }
+            PieceList list = getPieceList(isWhiteTurn());
             // pseudo-legal moves are filtered out when generating moves from individual pieces
             for (int i = 0; i < list.getCount(); i++) {
                 moveList.addAll(board[list.occupiedTiles[i]].getPiece().getLegalMoves()); // merge list
@@ -115,13 +114,33 @@ public class Board {
     public int kingCheckedCount(boolean isWhiteKing){
         int kingPosition = getKingPosition(isWhiteKing);
         int checkCount = 0;
+        attackingPieceLocation = -1;
+        attackingOffSet = 0;
 
         // at the king position, search in all directions.
         int end, offSet;
         boolean alliedPieceFound = false;
         int alliedPieceLocation = 0;
-        int[] directions = MoveDirections.getDirections(kingPosition);
 
+        int[] knightSquares = MoveDirections.knightOffSets;
+        // search knight attacking squares
+        for(int i = 0; i < 8; i++){
+            end = kingPosition + knightSquares[i];
+            // if it is a valid knight move
+            if(Math.abs(getRow(kingPosition) - getRow(end)) + Math.abs(getCol(kingPosition) - getCol(end)) == 3
+                    && end >= 0 && end < 64){
+                if(getTile(end).isOccupied()){
+                    Piece piece = getTile(end).getPiece();
+                    if(piece.isKnight() && (piece.isWhite() != isWhiteKing)){
+                        if(checkCount == 0) attackingPieceLocation = end;
+                        checkCount++;
+                        if(checkCount > 1) return checkCount;
+                    }
+                }
+            }
+        }
+
+        int[] directions = MoveDirections.getDirections(kingPosition);
         for(int index = 0; index < 8; index++){
             offSet = MoveDirections.directionOffSets[index];
             for(int i = 0; i < directions[index]; i++){
@@ -139,6 +158,10 @@ public class Board {
                                     setPinned(alliedPieceLocation, offSet);
                                 }
                                 else{
+                                    if(checkCount == 0){
+                                        attackingPieceLocation = end;
+                                        attackingOffSet = offSet;
+                                    }
                                     checkCount++;
                                 }
                             }
@@ -149,6 +172,10 @@ public class Board {
                                     setPinned(alliedPieceLocation, offSet);
                                 }
                                 else{
+                                    if(checkCount == 0) {
+                                        attackingPieceLocation = end;
+                                        attackingOffSet = offSet;
+                                    }
                                     checkCount++;
                                 }
                             }
@@ -169,31 +196,13 @@ public class Board {
                     }
                 }
             }
-            alliedPieceFound = false;
             // can stop looking further as it is a double check and only king moves are allowed
             if(checkCount > 1) return checkCount;
+            alliedPieceFound = false;
         }
 
         // search for enemy pawn attacking
         checkCount = checkPawnAttacking(isWhiteKing, kingPosition, checkCount);
-        if(checkCount > 1) return checkCount;
-
-        int[] knightSquares = MoveDirections.knightOffSets;
-        // search knight attacking squares
-        for(int i = 0; i < 8; i++){
-            end = kingPosition + knightSquares[i];
-            // if it is a valid knight move
-            if(Math.abs(getRow(kingPosition) - getRow(end)) + Math.abs(getCol(kingPosition) - getCol(end)) == 3
-                && end >= 0 && end < 64){
-                if(getTile(end).isOccupied()){
-                    Piece piece = getTile(end).getPiece();
-                    if(piece.isKnight() && (piece.isWhite() != isWhiteKing)){
-                        checkCount++;
-                        if(checkCount > 1) return checkCount;
-                    }
-                }
-            }
-        }
         return checkCount;
     }
 
@@ -225,12 +234,14 @@ public class Board {
         if(!rightEdgeKing && checkBound(rightPawnIndex) && getTile(rightPawnIndex).isOccupied()){
             Piece piece = getTile(rightPawnIndex).getPiece();
             if(piece.isPawn() && piece.isWhite() != isWhiteKing){
+                if(checkCount == 0) attackingPieceLocation = rightPawnIndex;
                 checkCounter++;
             }
         }
         if(!leftEdgeKing && checkBound(leftPawnIndex) && getTile(leftPawnIndex).isOccupied()){
             Piece piece = getTile(leftPawnIndex).getPiece();
             if(piece.isPawn() && piece.isWhite() != isWhiteKing){
+                if(checkCount == 0) attackingPieceLocation = leftPawnIndex;
                 checkCounter++;
             }
         }
@@ -269,9 +280,24 @@ public class Board {
      */
     public boolean isTileAttacked(int tilePosition, boolean isWhiteTurn){
         // at the tile position, search in all directions.
-        int[] directions = MoveDirections.getDirections(tilePosition);
         int end, offSet;
+        int[] knightSquares = MoveDirections.knightOffSets;
+        // search knight attacking squares
+        for(int i = 0; i < 8; i++){
+            end = tilePosition + knightSquares[i];
+            // if it is a valid knight move
+            if(Math.abs(getRow(tilePosition) - getRow(end)) + Math.abs(getCol(tilePosition) - getCol(end)) == 3
+                    && end >= 0 && end < 64){
+                if(getTile(end).isOccupied()){
+                    Piece piece = getTile(end).getPiece();
+                    if(piece.isKnight() && (piece.isWhite() != isWhiteTurn)){
+                        return true;
+                    }
+                }
+            }
+        }
 
+        int[] directions = MoveDirections.getDirections(tilePosition);
         // Search in directions of all offsets first
         for(int index = 0; index < 8; index++){
             offSet = MoveDirections.directionOffSets[index];
@@ -306,26 +332,27 @@ public class Board {
                 }
             }
         }
-
-        int[] knightSquares = MoveDirections.knightOffSets;
-        // search knight attacking squares
-        for(int i = 0; i < 8; i++){
-            end = tilePosition + knightSquares[i];
-            // if it is a valid knight move
-            if(Math.abs(getRow(tilePosition) - getRow(end)) + Math.abs(getCol(tilePosition) - getCol(end)) == 3
-                    && end >= 0 && end < 64){
-                if(getTile(end).isOccupied()){
-                    Piece piece = getTile(end).getPiece();
-                    if(piece.isKnight() && (piece.isWhite() != isWhiteTurn)){
-                        return true;
-                    }
-                }
-            }
-        }
-        int checkCount = 0;
         // search for enemy pawn attacking
-        checkCount = checkPawnAttacking(isWhiteTurn, tilePosition, checkCount);
-        return checkCount > 0;
+        return checkPawnAttacking(isWhiteTurn, tilePosition, 0) != 0;
+    }
+
+    public HashSet<Integer> getCounterCheckSquares(){
+        // only if being checked by a rook / bishop / queen there is a need to generate counter check squares
+        // keeps track of the squares that pieces can move to when king is under check (blocking / capture attacking piece)
+        HashSet<Integer> counterCheckSquares = new HashSet<>();
+        counterCheckSquares.add(getAttackingPieceLocation());
+        // take the opposite of the attacking offset to get offset towards the checked king
+        int endPosition = getAttackingPieceLocation() - attackingOffSet;
+        // get all the squares which are under attack and add them to the hashSet
+        while(!getTile(endPosition).isOccupied()){
+            counterCheckSquares.add(endPosition);
+            endPosition -= attackingOffSet;
+        }
+        return counterCheckSquares;
+    }
+
+    public Piece getAttackingPiece(){
+        return getTile(attackingPieceLocation).getPiece();
     }
 
     /**
@@ -433,12 +460,22 @@ public class Board {
 
 //  /******** GETTER FUNCTIONS ********/
 //  ------------------------------------
+
     public PieceList getWhitePieces(){
         return whitePieces;
     }
 
     public PieceList getBlackPieces(){
         return blackPieces;
+    }
+
+    public PieceList getPieceList(boolean isWhite){
+        if(isWhite){
+            return whitePieces;
+        }
+        else{
+            return blackPieces;
+        }
     }
 
     public boolean isWhiteTurn(){
@@ -516,6 +553,10 @@ public class Board {
 
     public int getCheckCount(){
         return checkCount;
+    }
+
+    public int getAttackingPieceLocation(){
+        return attackingPieceLocation;
     }
 
     /**
