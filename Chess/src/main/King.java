@@ -134,7 +134,15 @@ public class King extends Piece {
 
     @Override
     public int getValue(){  // value of a king
-        return KING_VALUE;
+        int positionBonus;
+        if(board.getPieceList(isWhite()).getCount() < 7){
+            // has reached endgame
+            positionBonus = (isWhite()) ? EvalUtilities.kingEndGamePST[getPosition()] : EvalUtilities.kingEndGamePST[EvalUtilities.blackFlippedPosition[getPosition()]];
+        }
+        else {
+            positionBonus = (isWhite()) ? EvalUtilities.kingMidGamePST[getPosition()] : EvalUtilities.kingMidGamePST[EvalUtilities.blackFlippedPosition[getPosition()]];
+        }
+        return KING_VALUE + positionBonus;
     }
 
     @Override

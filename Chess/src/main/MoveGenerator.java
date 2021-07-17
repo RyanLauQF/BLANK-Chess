@@ -108,6 +108,11 @@ public class MoveGenerator {
         return (moveType & CAPTURE_MASK) == 4;
     }
 
+    public static boolean isCastling(short move){
+        int moveType = getMoveType(move);
+        return moveType == 2 || moveType == 3;
+    }
+
 //    /**
 //     * unit testing
 //     */

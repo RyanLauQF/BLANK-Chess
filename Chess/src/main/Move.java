@@ -126,7 +126,7 @@ public class Move {
         // check move is a normal capture
         if(endTile.isOccupied()){   // attacking an enemy piece
             attackedPiece = endTile.getPiece(); // store a copy of attacked piece to undo move afterwards
-            if(attackedPiece.isRook() && (isKingSideRook(attackedPiece.isWhite(), attackedPiece.getPosition()) || isQueenSideRook(attackedPiece.isWhite(), attackedPiece.getPosition()))){
+            if(attackedPiece.isRook() && (isKingSideRook(attackedPiece.isWhite(), getEnd()) || isQueenSideRook(attackedPiece.isWhite(), getEnd()))){
                 board.setRookSideCastling(attackedPiece.isWhite(), getEnd(), false);
                 rookLostCastling = true;
             }
@@ -234,8 +234,8 @@ public class Move {
                 board.setBlackKingSideCastle(blackKingSideCastling);
                 board.setBlackQueenSideCastle(blackQueenSideCastling);
             }
-            board.getTile(attackedPiece.getPosition()).setPiece(attackedPiece);
-            board.addPiece(attackedPiece, attackedPiece.getPosition());
+            board.getTile(getEnd()).setPiece(attackedPiece);
+            board.addPiece(attackedPiece, getEnd());
         }
         else{   // remove piece on end tile after it has moved to start tile
             endTile.setPiece(null);

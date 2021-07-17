@@ -47,7 +47,8 @@ public class Rook extends Piece{
 
     @Override
     public int getValue(){  // value of a rook
-        return ROOK_VALUE;
+        int positionBonus = (isWhite()) ? EvalUtilities.rookPST[getPosition()] : EvalUtilities.rookPST[EvalUtilities.blackFlippedPosition[getPosition()]];
+        return ROOK_VALUE + positionBonus;
     }
 
     @Override

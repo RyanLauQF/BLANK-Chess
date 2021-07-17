@@ -45,7 +45,7 @@ public class FENUtilities { // static class for all FEN related methods
                 if (Character.isDigit(c)){ // a digit in FEN refers to number of empty tiles
                     for(int k = 0; k < Character.getNumericValue(c); k++){  // number of empty tiles
                         // create empty tiles on board
-                        board[currTile] = new Tile(null, currTile);
+                        board[currTile] = new Tile(null);
                         currTile++;
                     }
                 }
@@ -56,23 +56,23 @@ public class FENUtilities { // static class for all FEN related methods
                     if(Character.isUpperCase(c)) {
                         b.getWhitePieces().addPiece(currTile);
 
-                        if(c == 'P') board[currTile] = new Tile(new Pawn(true, currTile, b), currTile);
-                        else if(c == 'N') board[currTile] = new Tile(new Knight(true, currTile, b), currTile);
-                        else if(c == 'B') board[currTile] = new Tile(new Bishop(true, currTile, b), currTile);
-                        else if(c == 'R') board[currTile] = new Tile(new Rook(true, currTile, b), currTile);
-                        else if(c == 'Q') board[currTile] = new Tile(new Queen(true, currTile, b), currTile);
-                        else if(c == 'K') board[currTile] = new Tile(new King(true, currTile, b), currTile);
+                        if(c == 'P') board[currTile] = new Tile(new Pawn(true, currTile, b));
+                        else if(c == 'N') board[currTile] = new Tile(new Knight(true, currTile, b));
+                        else if(c == 'B') board[currTile] = new Tile(new Bishop(true, currTile, b));
+                        else if(c == 'R') board[currTile] = new Tile(new Rook(true, currTile, b));
+                        else if(c == 'Q') board[currTile] = new Tile(new Queen(true, currTile, b));
+                        else if(c == 'K') board[currTile] = new Tile(new King(true, currTile, b));
                     }
                     // Black pieces
                     if(Character.isLowerCase(c)) {
                         b.getBlackPieces().addPiece(currTile);
 
-                        if (c == 'p') board[currTile] = new Tile(new Pawn(false, currTile, b), currTile);
-                        else if(c == 'n') board[currTile] = new Tile(new Knight(false, currTile, b), currTile);
-                        else if(c == 'b') board[currTile] = new Tile(new Bishop(false, currTile, b), currTile);
-                        else if(c == 'r') board[currTile] = new Tile(new Rook(false, currTile, b), currTile);
-                        else if(c == 'q') board[currTile] = new Tile(new Queen(false, currTile, b), currTile);
-                        else if(c == 'k') board[currTile] = new Tile(new King(false, currTile, b), currTile);
+                        if (c == 'p') board[currTile] = new Tile(new Pawn(false, currTile, b));
+                        else if(c == 'n') board[currTile] = new Tile(new Knight(false, currTile, b));
+                        else if(c == 'b') board[currTile] = new Tile(new Bishop(false, currTile, b));
+                        else if(c == 'r') board[currTile] = new Tile(new Rook(false, currTile, b));
+                        else if(c == 'q') board[currTile] = new Tile(new Queen(false, currTile, b));
+                        else if(c == 'k') board[currTile] = new Tile(new King(false, currTile, b));
                     }
                     currTile++;
                 }

@@ -38,7 +38,8 @@ public class Knight extends Piece{
 
     @Override
     public int getValue(){  // value of a knight
-        return KNIGHT_VALUE;
+        int positionBonus = (isWhite()) ? EvalUtilities.knightPST[getPosition()] : EvalUtilities.knightPST[EvalUtilities.blackFlippedPosition[getPosition()]];
+        return KNIGHT_VALUE + positionBonus;
     }
 
     @Override

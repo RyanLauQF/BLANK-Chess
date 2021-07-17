@@ -47,7 +47,8 @@ public class Bishop extends Piece{
 
     @Override
     public int getValue(){  // value of a bishop
-        return BISHOP_VALUE;
+        int positionBonus = (isWhite()) ? EvalUtilities.bishopPST[getPosition()] : EvalUtilities.bishopPST[EvalUtilities.blackFlippedPosition[getPosition()]];
+        return BISHOP_VALUE + positionBonus;
     }
 
     @Override

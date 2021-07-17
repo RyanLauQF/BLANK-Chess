@@ -206,41 +206,41 @@ public class Board {
         return checkCount;
     }
 
-    private int checkPawnAttacking(boolean isWhiteKing, int kingPosition, int checkCounter){
+    public int checkPawnAttacking(boolean isWhitePiece, int piecePosition, int checkCounter){
         int rightPawnIndex;
         int leftPawnIndex;
 
-        if(isWhiteKing){
-            // set black pawn locations relative to white king
-            leftPawnIndex = kingPosition -9;
-            rightPawnIndex = kingPosition -7;
+        if(isWhitePiece){
+            // set black pawn locations relative to white piece
+            leftPawnIndex = piecePosition -9;
+            rightPawnIndex = piecePosition -7;
         }
         else{
-            // set white pawn location relative to black king
-            leftPawnIndex = kingPosition + 7;
-            rightPawnIndex = kingPosition + 9;
+            // set white pawn location relative to black piece
+            leftPawnIndex = piecePosition + 7;
+            rightPawnIndex = piecePosition + 9;
         }
 
-        boolean rightEdgeKing = false;
-        boolean leftEdgeKing = false;
+        boolean rightEdgePiece = false;
+        boolean leftEdgePiece = false;
 
-        if(kingPosition % 8 == 0){ // king on left edge
-            leftEdgeKing = true;
+        if(piecePosition % 8 == 0){ // piece on left edge
+            leftEdgePiece = true;
         }
-        else if (kingPosition % 8 == 7){  // king on right edge
-            rightEdgeKing = true;
+        else if (piecePosition % 8 == 7){  // piece on right edge
+            rightEdgePiece = true;
         }
 
-        if(!rightEdgeKing && checkBound(rightPawnIndex) && getTile(rightPawnIndex).isOccupied()){
+        if(!rightEdgePiece && checkBound(rightPawnIndex) && getTile(rightPawnIndex).isOccupied()){
             Piece piece = getTile(rightPawnIndex).getPiece();
-            if(piece.isPawn() && piece.isWhite() != isWhiteKing){
+            if(piece.isPawn() && piece.isWhite() != isWhitePiece){
                 if(checkCount == 0) attackingPieceLocation = rightPawnIndex;
                 checkCounter++;
             }
         }
-        if(!leftEdgeKing && checkBound(leftPawnIndex) && getTile(leftPawnIndex).isOccupied()){
+        if(!leftEdgePiece && checkBound(leftPawnIndex) && getTile(leftPawnIndex).isOccupied()){
             Piece piece = getTile(leftPawnIndex).getPiece();
-            if(piece.isPawn() && piece.isWhite() != isWhiteKing){
+            if(piece.isPawn() && piece.isWhite() != isWhitePiece){
                 if(checkCount == 0) attackingPieceLocation = leftPawnIndex;
                 checkCounter++;
             }
@@ -271,6 +271,10 @@ public class Board {
             pinnedList[resetPosition] = 0;
         }
         checkCount = 0;
+    }
+
+    public boolean isKingChecked(){
+        return isTileAttacked(getKingPosition(isWhiteTurn()), isWhiteTurn());
     }
 
     /**
@@ -349,10 +353,6 @@ public class Board {
             endPosition -= attackingOffSet;
         }
         return counterCheckSquares;
-    }
-
-    public Piece getAttackingPiece(){
-        return getTile(attackingPieceLocation).getPiece();
     }
 
     /**
@@ -513,6 +513,10 @@ public class Board {
         else{
             return getBlackKingPosition();
         }
+    }
+
+    public Piece getAttackingPiece(){
+        return getTile(attackingPieceLocation).getPiece();
     }
 
     public int getEnpassant(){

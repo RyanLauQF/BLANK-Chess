@@ -131,7 +131,8 @@ public class Pawn extends Piece {
 
     @Override
     public int getValue(){  // value of a pawn
-        return PAWN_VALUE;
+        int positionBonus = (isWhite()) ? EvalUtilities.pawnPST[getPosition()] : EvalUtilities.pawnPST[EvalUtilities.blackFlippedPosition[getPosition()]];
+        return PAWN_VALUE + positionBonus;
     }
 
     @Override

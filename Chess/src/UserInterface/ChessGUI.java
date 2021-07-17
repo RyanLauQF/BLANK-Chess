@@ -1,7 +1,6 @@
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
+import java.awt.event.*;
 import java.net.URL;
 import java.util.Stack;
 import java.util.concurrent.TimeUnit;
@@ -308,11 +307,11 @@ public class ChessGUI extends JPanel {
                         // update board tiles
                         gui.deselect();
                         gui.update();
-                        if(GameStatus.checkGameEnded(gui.board)){
-                            String gameState = GameStatus.getHowGameEnded();
-                            JOptionPane.showMessageDialog(gui, gameState,
-                                    "Game Manager", JOptionPane.INFORMATION_MESSAGE);
-                        }
+//                        if(GameStatus.checkGameEnded(gui.board)){
+//                            String gameState = GameStatus.getHowGameEnded();
+//                            JOptionPane.showMessageDialog(gui, gameState,
+//                                    "Game Manager", JOptionPane.INFORMATION_MESSAGE);
+//                        }
                     }
                 }
             });
@@ -412,37 +411,70 @@ public class ChessGUI extends JPanel {
     public static void main(String[] args) throws InterruptedException {
         Board board = new Board();
         // Custom FEN input
-        String FEN = "8/8/8/8/k2Pp2Q/8/8/3K4 b - d3 0 1";
-        board.init(FENUtilities.startFEN);
+        String FEN = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1";
+        board.init(FEN);
 
         ChessGUI chessGUI = new ChessGUI(board);
         chessGUI.initGUI();
 
         //*** random movement AI playing each other ***//
+//
+//        AI player1 = new AI(true, board);
+//        AI player2 = new AI(false, board);
+//        boolean playerToMove;
+//        TimeUnit.MILLISECONDS.sleep(1500);
+//        while(board.getAllLegalMoves().size() != 0){
+//            playerToMove = board.isWhiteTurn();
+//            short move;
+//            if(player1.getTurn() == playerToMove){
+//                move = player1.getBestMove(5);
+//                Move movement = new Move(board, move);
+//                movement.makeMove();
+//            }
+//            else{
+//                move = player2.getMove();
+//                Move movement = new Move(board, move);
+//                movement.makeMove();
+//            }
+//            chessGUI.update();
+//            if(board.getBlackPieces().getCount() == 1 && board.getWhitePieces().getCount() == 1){
+//                break;
+//            }
+//        }
+//        if(GameStatus.checkGameEnded(board)){
+//            String gameState = GameStatus.getHowGameEnded();
+//            JOptionPane.showMessageDialog(chessGUI, gameState,
+//                    "Game Manager", JOptionPane.INFORMATION_MESSAGE);
+//        }
 
-        AI player1 = new AI(true, board);
-        AI player2 = new AI(false, board);
-        boolean playerToMove;
-        TimeUnit.MILLISECONDS.sleep(1500);
-        while(board.getAllLegalMoves().size() != 0){
-            playerToMove = board.isWhiteTurn();
-            short move;
-            if(player1.getTurn() == playerToMove){
-                move = player1.getMove();
+//                *** Player vs AI playing each other ***//
+
+        AI computerPlayer = new AI(false, board);   // computer plays as black
+        boolean playerPrompted = false;
+        do {
+            if (computerPlayer.getTurn() == board.isWhiteTurn()) {
+                // computer makes move
+                System.out.println("Engine is thinking...");
+                short move = computerPlayer.getBestMove(5);
                 Move movement = new Move(board, move);
                 movement.makeMove();
+                chessGUI.update();
+                playerPrompted = false;
+            } else {
+                if(!playerPrompted){
+                    System.out.println("Waiting for Player move...");
+                    playerPrompted = true;
+                }
+                while (true) {
+                    if (board.isWhiteTurn() != computerPlayer.getTurn()) {
+                        TimeUnit.MILLISECONDS.sleep(1000);
+                        break;
+                    }
+                }
             }
-            else{
-                move = player2.getMove();
-                Move movement = new Move(board, move);
-                movement.makeMove();
-            }
-            chessGUI.update();
-            if(board.getBlackPieces().getCount() == 1 && board.getWhitePieces().getCount() == 1){
-                break;
-            }
-            // TimeUnit.MICROSECONDS.sleep(500);
-        }
+        } while ((board.getBlackPieces().getCount() != 1 || board.getWhitePieces().getCount() != 1) &&
+                board.getAllLegalMoves().size() != 0);
+
         if(GameStatus.checkGameEnded(board)){
             String gameState = GameStatus.getHowGameEnded();
             JOptionPane.showMessageDialog(chessGUI, gameState,
