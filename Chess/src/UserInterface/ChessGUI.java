@@ -2,6 +2,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.net.URL;
+import java.sql.Time;
 import java.util.Stack;
 import java.util.concurrent.TimeUnit;
 
@@ -22,7 +23,7 @@ public class ChessGUI extends JPanel {
     private int pieceSelected;  // index of selected piece, if not selected, set to -1
     private int prevHighlightedStart;   // index of highlighted previous start move tiles
     private int prevHighlightedEnd;     // index of highlighted previous end move tile
-
+    private boolean playerIsPromoting;
 
     /**
      * Constructor creates a overall JPanel to represent the chess board user interface
@@ -35,6 +36,7 @@ public class ChessGUI extends JPanel {
         this.highlightedTiles = new Stack<>();
         this.prevHighlightedStart = -1;
         this.prevHighlightedEnd = -1;
+        this.playerIsPromoting = false;
 
         Dimension dimension = new Dimension(64, 64);
         setLayout(new GridLayout(8, 8));
@@ -329,7 +331,9 @@ public class ChessGUI extends JPanel {
                         int moveType = MoveGenerator.getMoveType(currentMove);
                         int moveStart = gui.getSelectedPiece();
                         int moveEnd = getPosition();
-
+                        if(MoveGenerator.isPromotion(currentMove)){
+                            gui.playerIsPromoting = true;
+                        }
                         Move move = new Move(gui.board, MoveGenerator.generateMove(moveStart, moveEnd, moveType));
                         // if the move is legal, make the move on the board
                         move.makeMove();
@@ -350,22 +354,24 @@ public class ChessGUI extends JPanel {
                             if (result == JOptionPane.OK_OPTION) {
                                 promotePiece = (String) comboBox.getSelectedItem();
                             }
+                            Tile promotionPieceEndTile = gui.board.getTile(getPosition()); // end position
                             assert promotePiece != null;
                             switch (promotePiece) {
                                 case "Knight":
-                                    gui.board.promote(Piece.PieceType.KNIGHT, gui.board.getTile(getPosition()));
+                                    gui.board.promote(Piece.PieceType.KNIGHT, promotionPieceEndTile);
                                     break;
                                 case "Rook":
-                                    gui.board.promote(Piece.PieceType.ROOK, gui.board.getTile(getPosition()));
+                                    gui.board.promote(Piece.PieceType.ROOK, promotionPieceEndTile);
                                     break;
                                 case "Bishop":
-                                    gui.board.promote(Piece.PieceType.BISHOP, gui.board.getTile(getPosition()));
+                                    gui.board.promote(Piece.PieceType.BISHOP, promotionPieceEndTile);
                                     break;
                                 default:
-                                    gui.board.promote(Piece.PieceType.QUEEN, gui.board.getTile(getPosition()));
+                                    gui.board.promote(Piece.PieceType.QUEEN, promotionPieceEndTile);
                                     break;
                             }
                             System.out.println("Promoted to a " + promotePiece + "!");
+                            gui.playerIsPromoting = false;
                         }
                         // update board tiles
                         gui.deselect();
@@ -523,9 +529,13 @@ public class ChessGUI extends JPanel {
         boolean playerPrompted = false;
         do {
             if (computerPlayer.getTurn() == board.isWhiteTurn()) {
+                if(chessGUI.playerIsPromoting) {
+                    TimeUnit.MILLISECONDS.sleep(500);
+                    continue;
+                }
                 // computer makes move
                 System.out.println("Engine is thinking...");
-                short move = computerPlayer.getBestMove(6); // search to depth 6
+                short move = computerPlayer.getBestMove(5); // search to depth 3
                 Move movement = new Move(board, move);
                 movement.makeMove();
                 chessGUI.update();

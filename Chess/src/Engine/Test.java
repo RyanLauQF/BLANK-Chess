@@ -97,12 +97,17 @@ public class Test {
 
     public int searchBestMove(int depth, int alpha, int beta){
         if(depth == 0){
-            count++;
-            return EvalUtilities.evaluate(board);
+            return quiescenceSearch(alpha, beta, 2);
+            //count++;
+            //return EvalUtilities.evaluate(board);
         }
         ArrayList<Short> encodedMoves = board.getAllLegalMoves();
         if(encodedMoves.size() == 0){
-            return EvalUtilities.evaluate(board);
+            //count++;
+            if(board.isKingChecked()){
+                return -Integer.MAX_VALUE;  // checkmate found
+            }
+            return 0;
         }
         int bestScore = Integer.MIN_VALUE;
         for (Short encodedMove : MoveOrdering.orderMoves(encodedMoves, board)) {
@@ -112,9 +117,36 @@ public class Test {
             move.unMake();
             if(searchedScore >= bestScore) bestScore = searchedScore;
             if(bestScore > alpha) alpha = bestScore;
-            if(alpha >= beta) return alpha;
+            if(bestScore >= beta) break;
         }
-        return bestScore;
+        return alpha;
+    }
+
+    private int quiescenceSearch(int alpha, int beta, int depth) {
+//        count++;
+        int stand_pat = EvalUtilities.evaluate(board);
+        if(stand_pat >= beta || depth == 0){
+//            System.out.println(count);
+//            count = 0;
+            count++;
+            return stand_pat;
+        }
+        if(alpha < stand_pat){
+            alpha = stand_pat;
+        }
+
+        ArrayList<Short> encodedMoves = board.getAllLegalMoves();
+        for (Short encodedMove : MoveOrdering.quiescenceOrdering(encodedMoves, board)) {
+            if(MoveGenerator.isCapture(encodedMove)){
+                Move move = new Move(board, encodedMove);
+                move.makeMove();
+                int searchedScore = -quiescenceSearch(-beta, -alpha, depth - 1);
+                move.unMake();
+                if(searchedScore >= beta) return beta;
+                if(searchedScore > alpha) alpha = searchedScore;
+            }
+        }
+        return alpha;
     }
 
     /*
@@ -127,15 +159,15 @@ public class Test {
         String FEN = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w - - 0 1";
         board.init(FEN);
         Test test = new Test(board);
-        int depth = 4;
+        int depth = 6;
 
         long start = System.currentTimeMillis();
         //long ans = test.divide(depth);
         //long ans = test.MoveGeneratorTest(depth);
 
-        //int ans = test.searchBestMove(depth, Integer.MIN_VALUE, Integer.MAX_VALUE);
+        int ans = test.searchBestMove(depth, Integer.MIN_VALUE, Integer.MAX_VALUE);
         //int ans = test.alphaBeta(depth, Integer.MIN_VALUE, Integer.MAX_VALUE);
-        int ans = test.negaMax(depth);
+        //int ans = test.negaMax(depth);
 
         long finish = System.currentTimeMillis();
         long timeElapsed = finish - start;
