@@ -2,7 +2,6 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.net.URL;
-import java.sql.Time;
 import java.util.Stack;
 import java.util.concurrent.TimeUnit;
 
@@ -23,7 +22,8 @@ public class ChessGUI extends JPanel {
     private int pieceSelected;  // index of selected piece, if not selected, set to -1
     private int prevHighlightedStart;   // index of highlighted previous start move tiles
     private int prevHighlightedEnd;     // index of highlighted previous end move tile
-    private boolean playerIsPromoting;
+    private boolean playerIsPromoting;  // checks if a player is currently choosing promotion piece
+    private boolean checkGameEndAfterEachMove; // set to true if human player vs human player
 
     /**
      * Constructor creates a overall JPanel to represent the chess board user interface
@@ -37,6 +37,7 @@ public class ChessGUI extends JPanel {
         this.prevHighlightedStart = -1;
         this.prevHighlightedEnd = -1;
         this.playerIsPromoting = false;
+        this.checkGameEndAfterEachMove = false;
 
         Dimension dimension = new Dimension(64, 64);
         setLayout(new GridLayout(8, 8));
@@ -243,6 +244,29 @@ public class ChessGUI extends JPanel {
     }
 
     /**
+     * @return true if the human player is currently selecting a piece to promote to
+     */
+    public boolean isPlayerIsPromoting(){
+        return playerIsPromoting;
+    }
+
+    /**
+     * flag to set checking of game end after every move is made.
+     * Only set to true if Human player vs human player as AI itself will check for game ended.
+     * @param isHumanVSHuman refers to if a game is human vs human players.
+     */
+    public void setCheckGameEndAfterEachMove(boolean isHumanVSHuman){
+        checkGameEndAfterEachMove = isHumanVSHuman;
+    }
+
+    /**
+     * @return true if the game is human vs human to check if game ends after every move
+     */
+    public boolean checksGameEndedAfterEveryMove(){
+        return checkGameEndAfterEachMove;
+    }
+
+    /**
      * Creates a JFrame to store the ChessGUI JPanel and add the JPanel into the JFrame
      * ChessGUI JPanel stores 64 TilePanels (to represent the chess board)
      */
@@ -381,12 +405,15 @@ public class ChessGUI extends JPanel {
                             interruptedException.printStackTrace();
                         }
                         gui.showMovementTiles(moveStart, moveEnd);
-                        // if Player vs AI disable game end check every move
-//                        if(GameStatus.checkGameEnded(gui.board)){
-//                            String gameState = GameStatus.getHowGameEnded();
-//                            JOptionPane.showMessageDialog(gui, gameState,
-//                                    "Game Manager", JOptionPane.INFORMATION_MESSAGE);
-//                        }
+
+                        if(gui.checksGameEndedAfterEveryMove()){
+                            // if human vs human, check if the game has ended after every move is made
+                            if(GameStatus.checkGameEnded(gui.board)){
+                                String gameState = GameStatus.getHowGameEnded();
+                                JOptionPane.showMessageDialog(gui, gameState,
+                                        "Game Manager", JOptionPane.INFORMATION_MESSAGE);
+                            }
+                        }
                     }
                 }
             });
@@ -481,9 +508,9 @@ public class ChessGUI extends JPanel {
     }
 
     /**
-     * main method to run chess GUI
+     * Unit testing
      */
-    public static void main(String[] args) throws InterruptedException {
+    public static void main(String[] args) {
         Board board = new Board();
         // Custom FEN input
         //String FEN = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1";
@@ -491,75 +518,5 @@ public class ChessGUI extends JPanel {
 
         ChessGUI chessGUI = new ChessGUI(board);
         chessGUI.initGUI();
-
-        //*** AI vs AI ***//
-
-//        AI player1 = new AI(true, board);
-//        AI player2 = new AI(false, board);
-//        boolean playerToMove;
-//        TimeUnit.MILLISECONDS.sleep(1500);
-//        while(board.getAllLegalMoves().size() != 0){
-//            playerToMove = board.isWhiteTurn();
-//            short move;
-//            if(player1.getTurn() == playerToMove){
-//                move = player1.getBestMove(5);
-//                Move movement = new Move(board, move);
-//                movement.makeMove();
-//            }
-//            else{
-//                move = player2.getMove();
-//                Move movement = new Move(board, move);
-//                movement.makeMove();
-//            }
-//            chessGUI.update();
-//            chessGUI.showMovementTiles(MoveGenerator.getStart(move), MoveGenerator.getEnd(move));
-//            if(board.getBlackPieces().getCount() == 1 && board.getWhitePieces().getCount() == 1){
-//                break;
-//            }
-//        }
-//        if(GameStatus.checkGameEnded(board)){
-//            String gameState = GameStatus.getHowGameEnded();
-//            JOptionPane.showMessageDialog(chessGUI, gameState,
-//                    "Game Manager", JOptionPane.INFORMATION_MESSAGE);
-//        }
-
-//                  //*** Player vs AI ***//
-
-        AI computerPlayer = new AI(false, board);   // computer plays as black
-        boolean playerPrompted = false;
-        do {
-            if (computerPlayer.getTurn() == board.isWhiteTurn()) {
-                if(chessGUI.playerIsPromoting) {
-                    TimeUnit.MILLISECONDS.sleep(500);
-                    continue;
-                }
-                // computer makes move
-                System.out.println("Engine is thinking...");
-                short move = computerPlayer.getBestMove(5); // search to depth 3
-                Move movement = new Move(board, move);
-                movement.makeMove();
-                chessGUI.update();
-                chessGUI.showMovementTiles(MoveGenerator.getStart(move), MoveGenerator.getEnd(move));
-                playerPrompted = false;
-            } else {
-                if(!playerPrompted){
-                    System.out.println("Waiting for Player move...");
-                    playerPrompted = true;
-                }
-                while (true) {
-                    if (board.isWhiteTurn() != computerPlayer.getTurn()) {
-                        TimeUnit.MILLISECONDS.sleep(1000);
-                        break;
-                    }
-                }
-            }
-        } while ((board.getBlackPieces().getCount() != 1 || board.getWhitePieces().getCount() != 1) &&
-                board.getAllLegalMoves().size() != 0);
-
-        if(GameStatus.checkGameEnded(board)){
-            String gameState = GameStatus.getHowGameEnded();
-            JOptionPane.showMessageDialog(chessGUI, gameState,
-                    "Game Manager", JOptionPane.INFORMATION_MESSAGE);
-        }
     }
 }

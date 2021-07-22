@@ -3,9 +3,10 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Random;
+import java.util.Set;
 
 public class OpeningTrie {
-    private static class Node {
+    public static class Node {
         String move;
         int occurrence;
         boolean isLastMove;
@@ -24,13 +25,34 @@ public class OpeningTrie {
     }
 
     private final Node rootNode;      // root node of the trie
-    private Node moveTracker;   // keeps track of which move we are currently at in the opening phase
+    public Node moveTracker;   // keeps track of which move we are currently at in the opening phase
     private int size;
 
+    /**
+     * Default constructor
+     */
     public OpeningTrie() {
         this.rootNode = new Node(null, false);  // create root node
         this.moveTracker = this.rootNode;
         this.size = 0;
+    }
+
+    /**
+     * Constructor with colour parameter.
+     * If isWhite, build white opening trie, else build black opening trie
+     * @param isWhite refers to the colour of the opening book
+     */
+    public OpeningTrie(boolean isWhite) throws IOException {
+        this.rootNode = new Node(null, false);  // create root node
+        this.moveTracker = this.rootNode;
+        this.size = 0;
+
+        if(isWhite){
+            this.buildTrie("whiteProcessedBook.txt");
+        }
+        else{
+            this.buildTrie("blackProcessedBook.txt");
+        }
     }
 
     public void buildTrie(String fileName) throws IOException {
@@ -82,11 +104,16 @@ public class OpeningTrie {
         }
         else{
             System.out.println("move no longer in book");
+            moveTracker = null; // no longer using the opening book so set the moveTracker to null.
         }
     }
 
     public boolean hasNextMove(String move){
         return moveTracker.nextMoves.containsKey(move);
+    }
+
+    public boolean hasMoves(){
+        return moveTracker != null;
     }
 
     // get next moves based on a occurrence probability in the opening PGN
@@ -103,7 +130,11 @@ public class OpeningTrie {
         return allMoves.get(randomIndex);
     }
 
-    public int treeSize(){
+    public Set<String> getSetOfBookMoves(){
+        return moveTracker.nextMoves.keySet();
+    }
+
+    public int size(){
         return size;
     }
 
@@ -112,29 +143,45 @@ public class OpeningTrie {
      */
     public static void main(String[] args) throws IOException {
         OpeningTrie openingTrie = new OpeningTrie();
-        openingTrie.buildTrie("tempFile.txt");
+        //openingTrie.buildTrie("whiteProcessedBook.txt");
+        openingTrie.buildTrie("blackProcessedBook.txt");
+//        Node node = openingTrie.moveTracker;
+//        for(String moves : node.nextMoves.keySet()){
+//            System.out.println(moves + " " + openingTrie.moveTracker.nextMoves.get(moves).getOccurrence());
+//        }
+//        System.out.println(openingTrie.getNextMove());
+//        System.out.println();
+
+//        openingTrie.makeMove("d4");
+//        node = openingTrie.moveTracker;
+//        for(String moves : node.nextMoves.keySet()){
+//            System.out.println(moves + " " + node.nextMoves.get(moves).getOccurrence());
+//        }
+//        System.out.println(openingTrie.getNextMove());
+//        System.out.println();
+//
+//        openingTrie.makeMove("Nf6");
+//        node = openingTrie.moveTracker;
+//        for(String moves : node.nextMoves.keySet()){
+//            System.out.println(moves + " " + node.nextMoves.get(moves).getOccurrence());
+//        }
+//        System.out.println(openingTrie.getNextMove());
         Node node = openingTrie.moveTracker;
         for(String moves : node.nextMoves.keySet()){
             System.out.println(moves + " " + openingTrie.moveTracker.nextMoves.get(moves).getOccurrence());
         }
-        System.out.println(openingTrie.getNextMove());
         System.out.println();
-
         openingTrie.makeMove("d4");
         node = openingTrie.moveTracker;
         for(String moves : node.nextMoves.keySet()){
             System.out.println(moves + " " + node.nextMoves.get(moves).getOccurrence());
         }
-        System.out.println(openingTrie.getNextMove());
+
         System.out.println();
+        System.out.println("Next Move: " + openingTrie.getNextMove());
+        System.out.println("Size of Trie: " + openingTrie.size());
 
-        openingTrie.makeMove("Nf6");
-        node = openingTrie.moveTracker;
-        for(String moves : node.nextMoves.keySet()){
-            System.out.println(moves + " " + node.nextMoves.get(moves).getOccurrence());
-        }
-        System.out.println(openingTrie.getNextMove());
-
-        System.out.println(openingTrie.treeSize());
+        openingTrie.makeMove("hi");
+        System.out.println(openingTrie.hasMoves());
     }
 }

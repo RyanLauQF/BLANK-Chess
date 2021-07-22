@@ -301,6 +301,15 @@ public abstract class Piece {
         return this.type == PieceType.KING;
     }
 
+    public static char getFile(int position){
+        int col = getCol(position);
+        return (char) ('a' + col);
+    }
+
+    public static char getRank(int position){
+        int rank = 8 - getRow(position);
+        return (char) (rank + '0'); // convert int to a char
+    }
 
     //---------------------------------------------------//
     /* ABSTRACT CLASSES TO BE IMPLEMENTED BY SUB CLASSES */

@@ -1,14 +1,23 @@
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Random;
 
 public class AI {
-    private final boolean isWhite;
-    private final Board board;
+    // opening book used by AI
+    protected final boolean isWhite;
+    protected final Board board;
+    private final OpeningTrie openingBook;
+    private boolean isUsingOpeningBook;
+    private int moveNum;
+
     private int count;
 
-    public AI(boolean isWhite, Board board){
+    public AI(boolean isWhite, Board board) throws IOException {
         this.isWhite = isWhite;
         this.board = board;
+        this.openingBook = new OpeningTrie(isWhite);    // builds the opening book for the AI
+        this.moveNum = 0;  // number of moves made by this AI
+        this.isUsingOpeningBook = true;
     }
 
     // selects a move when it is the AI turn
@@ -16,14 +25,56 @@ public class AI {
         ArrayList<Short> moves = board.getAllLegalMoves();
         Random rand = new Random();
         int randomMove = rand.nextInt(moves.size());
+        System.out.println("Making Random Move!");
         return moves.get(randomMove);
     }
 
-    public boolean getTurn(){
+    public short getOpeningMove(){
+        // convert the move from algebraic notation to an encoded move.
+        String PGN_notation = openingBook.getNextMove();
+        openingBook.makeMove(PGN_notation); // make the AI's move in opening book
+        return PGNExtract.convertNotationToMove(board, isWhite(), PGN_notation);
+    }
+
+    public boolean isWhite(){
         return isWhite;
     }
 
     public short getBestMove(int searchDepth){
+        moveNum++;
+        // gets opening moves from opening book for the first 8 moves
+        if(this.moveNum <= 8 && isUsingOpeningBook){
+            Move previousMove = board.getPreviousMove();
+            if(previousMove == null){   // first move being made. AI opening book does not need to record opponent move
+                System.out.println("Using Opening Book!");
+                return getOpeningMove();
+            }
+            else{
+                short previousMoveMade = previousMove.getEncodedMove();
+                boolean moveExistsInBook = false;
+                String lastMove = null;
+                // check if the previous move made by opponent exists in opening book
+                previousMove.unMake();  // undo previous move and check
+                for(String bookMoves : openingBook.getSetOfBookMoves()){
+                    if(PGNExtract.convertNotationToMove(board, !isWhite(), bookMoves) == previousMoveMade){
+                        moveExistsInBook = true;
+                        lastMove = bookMoves;   // get the PGN String format of the move
+                        break;
+                    }
+                }
+                previousMove.makeMove();  // make the move again
+                if(moveExistsInBook){
+                    // update the opening book with previous opponent move and get a response
+                    openingBook.makeMove(lastMove);
+                    System.out.println("Using Opening Book!");
+                    return getOpeningMove();
+                }
+                else{
+                    isUsingOpeningBook = false;
+                }
+            }
+        }
+
         count = 0;
         long start = System.currentTimeMillis();
         ArrayList<Short> moves = board.getAllLegalMoves();
@@ -55,13 +106,13 @@ public class AI {
 
     public int searchBestMove(int depth, int alpha, int beta){
         if(depth == 0){
-            //count++;
-            return quiescenceSearch(alpha, beta, 2);
-            //return EvalUtilities.evaluate(board);
+            count++;
+            //return quiescenceSearch(alpha, beta, 2);
+            return EvalUtilities.evaluate(board);
         }
         ArrayList<Short> encodedMoves = board.getAllLegalMoves();
         if(encodedMoves.size() == 0){
-            //count++;
+            count++;
             if(board.isKingChecked()){
                 return -Integer.MAX_VALUE;  // checkmate found
             }
@@ -107,20 +158,25 @@ public class AI {
     /**
      * Unit Testing
      */
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
         Board board = new Board();
         String FEN = "r3k2r/p1ppqpb1/Bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPB1PPP/R3K2R b - - 0 1";
-        board.init(FEN);
+        board.init(FENUtilities.startFEN);
         AI testAI = new AI(false, board);
-        int depth = 5;
-
-        long start = System.currentTimeMillis();
-        short move = testAI.getBestMove(depth);
-        long finish = System.currentTimeMillis();
-        long timeElapsed = finish - start;
-        float convertTime = (float) timeElapsed / 1000;
-
-        System.out.println("Seach to Depth " + depth + ": " + MoveGenerator.getStart(move) + " " + MoveGenerator.getEnd(move));
-        System.out.println("Time Elapsed: " + convertTime + " seconds");
+        Move movement = new Move(board, MoveGenerator.generateMove(51, 35, 1));
+        movement.makeMove();
+        short move = testAI.getMove();
+        System.out.println(MoveGenerator.getStart(move) + " " + MoveGenerator.getEnd(move));
+        System.out.println("Book size: " + testAI.openingBook.size());
+//        int depth = 2;
+//
+//        long start = System.currentTimeMillis();
+//        short move = testAI.getBestMove(depth);
+//        long finish = System.currentTimeMillis();
+//        long timeElapsed = finish - start;
+//        float convertTime = (float) timeElapsed / 1000;
+//
+//        System.out.println("Seach to Depth " + depth + ": " + MoveGenerator.getStart(move) + " " + MoveGenerator.getEnd(move));
+//        System.out.println("Time Elapsed: " + convertTime + " seconds");
     }
 }

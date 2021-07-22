@@ -59,6 +59,9 @@ public class Board {
     private int attackingPieceLocation;
     private int attackingOffSet;
 
+    // keeps track of the previous move made on the board. If at start state, initialise to 0
+    private Move previousMove;
+
     /**
      * Board constructor
      */
@@ -70,7 +73,35 @@ public class Board {
         this.pinnedList = new int[64];
         this.resetPinnedList = new Stack<>();
         this.checkCount = 0;
+        this.previousMove = null;
     }
+
+//    /**
+//     * Creates a deep copy of the board
+//     * @param board refers to the board to be copied
+//     */
+//    public Board(Board board){
+//        this.isWhiteTurn = board.isWhiteTurn;
+//        this.halfMoveClock = board.halfMoveClock;
+//        this.fullMoveNum = board.fullMoveNum;
+//        this.board = new Tile[64];
+//        this.whiteKingSideCastle = board.whiteKingSideCastle;
+//        this.whiteQueenSideCastle = board.whiteQueenSideCastle;
+//        this.blackKingSideCastle = board.blackKingSideCastle;
+//        this.blackQueenSideCastle = board.blackQueenSideCastle;
+//        this.enpassantPosition = board.enpassantPosition;
+//        this.whitePieces = new PieceList(board.whitePieces);
+//        this.blackPieces = new PieceList(board.blackPieces);
+//        this.whiteKingPosition = board.whiteKingPosition;
+//        this.blackKingPosition = board.blackKingPosition;
+//        this.pinnedList = board.pinnedList.clone();
+//        this.resetPinnedList = new Stack<>();
+//        this.resetPinnedList.addAll(board.resetPinnedList);
+//        this.checkCount = board.checkCount;
+//        this.attackingPieceLocation = board.attackingPieceLocation;
+//        this.attackingOffSet = board.attackingOffSet;
+//        this.previousMove = board.previousMove;
+//    }
 
     /**
      *  Takes in a FEN (Forsyth–Edwards Notation) and converts the data onto the chess board
@@ -559,6 +590,10 @@ public class Board {
         return checkCount;
     }
 
+    public Move getPreviousMove(){
+        return previousMove;
+    }
+
     public int getAttackingPieceLocation(){
         return attackingPieceLocation;
     }
@@ -625,6 +660,10 @@ public class Board {
         this.fullMoveNum = fullMoveNum;
     }
 
+    public void setPreviousMove(Move movement){
+        this.previousMove = movement;
+    }
+
     /**
      * Prints out state of board to show location of pieces for each side
      * along with the index of tiles on the board to compare
@@ -659,6 +698,19 @@ public class Board {
      * > Able to play Chess on CLI. (Promotion has not been implemented)
      */
     public static void main(String[] args){
+//        Board a = new Board();
+//        a.init(FENUtilities.startFEN);
+//
+//        Board b = new Board(a);
+//
+//        short move  = MoveGenerator.generateMove(51, 35, 1);
+//        Move movement = new Move(a, move);
+//        movement.makeMove();
+//
+//        a.state();
+//        System.out.println();
+//        b.state();
+
         Board b = new Board();
         // Custom FEN input
         String FEN = "r3kbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK2R b KQkq - 0 1";

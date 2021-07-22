@@ -16,6 +16,16 @@ public class PieceList {
         this.pieceCounter = 0;
     }
 
+    /**
+     * Creates a deep copy of pieceList
+     * @param pieceList refers to the piece list to be copied
+     */
+    public PieceList(PieceList pieceList){
+        this.boardTiles = pieceList.boardTiles.clone();
+        this.occupiedTiles = pieceList.occupiedTiles.clone();
+        this.pieceCounter = pieceList.pieceCounter;
+    }
+
     public void addPiece(int position){
         // the piece counting will also act as an indexer to give each piece their key based on when they are added
         boardTiles[position] = pieceCounter;

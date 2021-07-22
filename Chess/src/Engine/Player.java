@@ -1,40 +1,24 @@
-import java.util.ArrayList;
+import java.io.IOException;
 
-public class Player {
-    private final boolean isWhite;
-    private PieceList piecesLeft;
+public class Player extends AI{
+    protected final boolean isHuman;
 
-    private Board board;
-    private int score;
-
-    Player(boolean isWhite, Board board){
-        this.isWhite = isWhite;
-        this.board = board;
-        this.score = 0;
-        if(isWhite){
-            this.piecesLeft = board.getWhitePieces();
-        }
-        else{
-            this.piecesLeft = board.getBlackPieces();
-        }
-        // Set the initial score of the player
-        for(int i = 0; i  < getPiecesLeft().getCount(); i++){
-            this.score += getBoard().getTile(getPiecesLeft().occupiedTiles[i]).getPiece().getValue();
-        }
+    Player(boolean isWhite, boolean isHuman, Board board) throws IOException {
+        super(isWhite, board);
+        this.isHuman = isHuman;
     }
 
-    public int getScore(){
-        return score;
-    }
-
-    private Board getBoard(){
+    public Board getBoard(){
         return board;
     }
 
-    private PieceList getPiecesLeft(){
-        return piecesLeft;
+    public boolean isWhite(){
+        return isWhite;
     }
 
+    public boolean isHuman(){
+        return isHuman;
+    }
     /**
      * unit testing
      */

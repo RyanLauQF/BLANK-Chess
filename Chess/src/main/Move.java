@@ -1,8 +1,9 @@
 public class Move {
     private final Board board;
+    private final short encodedMove;
     private final int startPosition;
     private final int endPosition;
-    private final int moveType;
+    public final int moveType;
     private Piece attackedPiece;
     private boolean isEnpassant;
     private boolean rookLostCastling;
@@ -14,6 +15,7 @@ public class Move {
     private final boolean whiteQueenSideCastling;
     private final boolean blackKingSideCastling;
     private final boolean blackQueenSideCastling;
+    private final Move previousMove;
 
     /**
      * Move a piece on the board based on move rules and update the board
@@ -32,6 +34,7 @@ public class Move {
      */
     public Move(Board board, short encodedMove){
         this.board = board;
+        this.encodedMove = encodedMove;
         this.startPosition = MoveGenerator.getStart(encodedMove);
         this.endPosition = MoveGenerator.getEnd(encodedMove);
         this.moveType = MoveGenerator.getMoveType(encodedMove);
@@ -47,7 +50,31 @@ public class Move {
         this.whiteQueenSideCastling = board.getWhiteQueenSideCastle();
         this.blackKingSideCastling = board.getBlackKingSideCastle();
         this.blackQueenSideCastling = board.getBlackQueenSideCastle();
+        this.previousMove = board.getPreviousMove();
     }
+
+//    /**
+//     * Creates a deep copy of Move object
+//     * @param move refers to the move object to be copied
+//     */
+//    public Move(Move move){
+//        this.board = move.board;
+//        this.encodedMove = move.encodedMove;
+//        this.startPosition = move.startPosition;
+//        this.endPosition = move.endPosition;
+//        this.moveType = move.moveType;
+//        this.attackedPiece = move.attackedPiece;
+//        this.isEnpassant = move.isEnpassant;
+//        this.rookLostCastling = move.rookLostCastling;
+//        this.kingLostCastling = move.kingLostCastling;
+//        this.pawnPromotion = move.pawnPromotion;
+//        this.previousEnpassantPosition = move.previousEnpassantPosition;
+//        this.whiteKingSideCastling = move.whiteKingSideCastling;
+//        this.whiteQueenSideCastling = move.whiteQueenSideCastling;
+//        this.blackKingSideCastling = move.blackKingSideCastling;
+//        this.blackQueenSideCastling = move.blackQueenSideCastling;
+//        this.previousMove = board.getPreviousMove();
+//    }
 
     public void makeMove(){
         Tile startTile = board.getTile(getStart());
@@ -155,12 +182,14 @@ public class Move {
 
         // Update enpassant availability after shifting the pieces
         board.setEnpassant(enpassantPosition);
+        board.setPreviousMove(this);
         board.setTurn(!board.isWhiteTurn());
     }
 
     // undo the move made on the board
     public void unMake(){
         board.setTurn(!board.isWhiteTurn());
+        board.setPreviousMove(previousMove);
         Tile startTile = board.getTile(getStart());
         Tile endTile = board.getTile(getEnd());
 
@@ -342,6 +371,10 @@ public class Move {
             return Piece.PieceType.QUEEN;
         }
         return null;
+    }
+
+    public short getEncodedMove(){
+        return encodedMove;
     }
 
     private int getStart(){
