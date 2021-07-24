@@ -10,7 +10,13 @@ public class AI {
     private boolean isUsingOpeningBook;
     private int moveNum;
 
-    private int count;
+    private int depthCount;
+    private int search;
+    private int maxDepth;
+    private int nodeCount;
+
+
+    private static final int REDUCTION_CONSTANT = 2;
 
     public AI(boolean isWhite, Board board) throws IOException {
         this.isWhite = isWhite;
@@ -40,10 +46,10 @@ public class AI {
         return isWhite;
     }
 
-    public short getBestMove(int searchDepth){
+    public short getBestMove(int searchDepth, boolean enableOpeningBook){
         moveNum++;
         // gets opening moves from opening book for the first 8 moves
-        if(this.moveNum <= 8 && isUsingOpeningBook){
+        if(this.moveNum <= 8 && isUsingOpeningBook && enableOpeningBook){
             Move previousMove = board.getPreviousMove();
             if(previousMove == null){   // first move being made. AI opening book does not need to record opponent move
                 System.out.println("Using Opening Book!");
@@ -74,8 +80,12 @@ public class AI {
                 }
             }
         }
-
-        count = 0;
+        if(isEndGame()){
+            searchDepth += 3;
+        }
+        search = searchDepth;
+        maxDepth = 0;
+        nodeCount = 0;
         long start = System.currentTimeMillis();
         ArrayList<Short> moves = board.getAllLegalMoves();
         short bestMove = 0;
@@ -83,7 +93,7 @@ public class AI {
         for(Short move : MoveOrdering.orderMoves(moves, board)){
             Move movement = new Move(board, move);
             movement.makeMove();
-            int score = -searchBestMove(searchDepth - 1, Integer.MIN_VALUE, Integer.MAX_VALUE);
+            int score = -searchBestMove(searchDepth - 1, Integer.MIN_VALUE + 1, Integer.MAX_VALUE);
             //System.out.println(score + " " + MoveGenerator.getStart(move) + " " + MoveGenerator.getEnd(move));
             if(score > bestMoveScore){
                 bestMoveScore = score;
@@ -94,10 +104,10 @@ public class AI {
         long finish = System.currentTimeMillis();
         long timeElapsed = finish - start;
         float convertTime = (float) timeElapsed / 1000;
-
         System.out.println("---------------------------------");
         System.out.println("Depth: " + searchDepth);
-        System.out.println("Nodes Searched: " + count);
+        System.out.println("Max Depth Searched: " + maxDepth);
+        System.out.println("Nodes Searched: " + nodeCount);
         System.out.println("Best Move: " + FENUtilities.convertIndexToRankAndFile(MoveGenerator.getStart(bestMove)) + "-" + FENUtilities.convertIndexToRankAndFile(MoveGenerator.getEnd(bestMove)));
         System.out.println("Time Elapsed: " + convertTime + " seconds");
         System.out.println("---------------------------------");
@@ -106,19 +116,32 @@ public class AI {
 
     public int searchBestMove(int depth, int alpha, int beta){
         if(depth == 0){
-            count++;
-            //return quiescenceSearch(alpha, beta, 2);
-            return EvalUtilities.evaluate(board);
+            //count++;
+            depthCount = search;
+            return quiescenceSearch(alpha, beta, 2);
         }
+
+        // null move pruning
+        boolean isKingChecked = board.isKingChecked();
+        if(depth >= 3 && !isKingChecked && !isEndGame()){
+            Move nullMove = new Move(board, (short) 0);
+            nullMove.makeNullMove();
+            int score = -searchBestMove(depth - 1 - REDUCTION_CONSTANT, -beta, -beta + 1);   // set R to 2
+            nullMove.unmakeNullMove();
+            if (score >= beta){
+                return beta;
+            }
+        }
+
         ArrayList<Short> encodedMoves = board.getAllLegalMoves();
         if(encodedMoves.size() == 0){
-            count++;
+            nodeCount++;
             if(board.isKingChecked()){
                 return -Integer.MAX_VALUE;  // checkmate found
             }
             return 0;
         }
-        int bestScore = Integer.MIN_VALUE;
+        int bestScore = Integer.MIN_VALUE + 1;
         for (Short encodedMove : MoveOrdering.orderMoves(encodedMoves, board)) {
             Move move = new Move(board, encodedMove);
             move.makeMove();
@@ -134,25 +157,43 @@ public class AI {
     private int quiescenceSearch(int alpha, int beta, int depth) {
         int stand_pat = EvalUtilities.evaluate(board);
         if(stand_pat >= beta || depth == 0){
-            count++;
+            if(depthCount > maxDepth){
+                maxDepth = depthCount;
+            }
+            depthCount = 0;
+            nodeCount++;
             return stand_pat;
         }
+
+        // Delta pruning
+        int BIG_DELTA = 900; // queen value
+        if (stand_pat < (alpha - BIG_DELTA)) {
+            return stand_pat;
+        }
+
         if(alpha < stand_pat){
             alpha = stand_pat;
         }
 
-        ArrayList<Short> encodedMoves = board.getAllLegalMoves();
-        for (Short encodedMove : MoveOrdering.quiescenceOrdering(encodedMoves, board)) {
-            if(MoveGenerator.isCapture(encodedMove)){
-                Move move = new Move(board, encodedMove);
-                move.makeMove();
-                int searchedScore = -quiescenceSearch(-beta, -alpha, depth - 1);
-                move.unMake();
-                if(searchedScore >= beta) return beta;
-                if(searchedScore > alpha) alpha = searchedScore;
-            }
+        depthCount++;
+        ArrayList<Short> captureMoves = board.getAllCaptures();
+        for (Short encodedMove : MoveOrdering.orderMoves(captureMoves, board)) {
+            Move move = new Move(board, encodedMove);
+            move.makeMove();
+            int searchedScore = -quiescenceSearch(-beta, -alpha, depth - 1);
+            move.unMake();
+            if(searchedScore >= beta) return beta;
+            if(searchedScore > alpha) alpha = searchedScore;
         }
         return alpha;
+    }
+
+    /**
+     * If there are less than or equal to 7 pieces left, end game is reached
+     * @return true if the AI side is now in end game phase
+     */
+    public boolean isEndGame(){
+        return board.getPieceList(isWhite()).getCount() <= 7 && board.getPieceList(!isWhite()).getCount() <= 7;
     }
 
     /**
@@ -160,23 +201,24 @@ public class AI {
      */
     public static void main(String[] args) throws IOException {
         Board board = new Board();
-        String FEN = "r3k2r/p1ppqpb1/Bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPB1PPP/R3K2R b - - 0 1";
-        board.init(FENUtilities.startFEN);
-        AI testAI = new AI(false, board);
-        Move movement = new Move(board, MoveGenerator.generateMove(51, 35, 1));
-        movement.makeMove();
-        short move = testAI.getMove();
-        System.out.println(MoveGenerator.getStart(move) + " " + MoveGenerator.getEnd(move));
-        System.out.println("Book size: " + testAI.openingBook.size());
-//        int depth = 2;
-//
-//        long start = System.currentTimeMillis();
-//        short move = testAI.getBestMove(depth);
-//        long finish = System.currentTimeMillis();
-//        long timeElapsed = finish - start;
-//        float convertTime = (float) timeElapsed / 1000;
-//
-//        System.out.println("Seach to Depth " + depth + ": " + MoveGenerator.getStart(move) + " " + MoveGenerator.getEnd(move));
-//        System.out.println("Time Elapsed: " + convertTime + " seconds");
+        String FEN = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1";
+        board.init(FEN);
+        AI testAI = new AI(true, board);
+//        Move movement = new Move(board, MoveGenerator.generateMove(51, 35, 1));
+//        movement.makeMove();
+//        short move = testAI.getMove();
+//        System.out.println(MoveGenerator.getStart(move) + " " + MoveGenerator.getEnd(move));
+//        System.out.println("Book size: " + testAI.openingBook.size());
+
+        int depth = 5;  // 16469630 54.663
+
+        long start = System.currentTimeMillis();
+        short move = testAI.getBestMove(depth, false);
+        long finish = System.currentTimeMillis();
+        long timeElapsed = finish - start;
+        float convertTime = (float) timeElapsed / 1000;
+
+        System.out.println("Seach to Depth " + depth + ": " + MoveGenerator.getStart(move) + " " + MoveGenerator.getEnd(move));
+        System.out.println("Time Elapsed: " + convertTime + " seconds");
     }
 }

@@ -50,6 +50,7 @@ public class GameManager {
         }
         else if ((!whitePlayer.isHuman() && blackPlayer.isHuman()) || (whitePlayer.isHuman() && !blackPlayer.isHuman())){
             Player computerPlayer;
+
             if(!whitePlayer.isHuman()){
                 computerPlayer = whitePlayer;   // if the AI is the white player
             }
@@ -66,7 +67,7 @@ public class GameManager {
                     }
                     // computer makes move
                     System.out.println("Engine is thinking...");
-                    short move = computerPlayer.getBestMove(5);
+                    short move = computerPlayer.getBestMove(5, true);
                     Move movement = new Move(board, move);
                     movement.makeMove();
                     chessGUI.update();
@@ -103,7 +104,8 @@ public class GameManager {
     public static void main(String[] args) throws IOException, InterruptedException {
         Board board = new Board();
         // Custom FEN input
-        //String FEN = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1";
+        String FEN = "r3k2r/p1ppqpb1/Bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPB1PPP/R3K2R b - - 0 1";
+        //board.init("6k1/2p5/p3b3/5p2/3q4/6K1/3r4/8 b - - 0 1");
         board.init(FENUtilities.startFEN);
         ChessGUI chessGUI = new ChessGUI(board);
 

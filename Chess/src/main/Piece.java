@@ -44,10 +44,10 @@ public abstract class Piece {
                     3) Block the checking piece (if the attacking piece is a sliding piece)
             */
             if(this.isPinned()){    // if piece is pinned, only generate the moves along pin axis
-                moveSquares = generatePinnedMoves(new ArrayList<>());
+                moveSquares = generatePinnedMoves(new ArrayList<>(), false);
             }
             else{
-                moveSquares = getPossibleMoves();
+                moveSquares = getPossibleMoves(false);
             }
             int end;
             if(board.getAttackingPiece().isSliderPiece()){
@@ -87,14 +87,14 @@ public abstract class Piece {
             return moveList;
         }
         else if(this.isPinned()){
-            return generatePinnedMoves(moveList);
+            return generatePinnedMoves(moveList, false);
         }
         else{
-            moveSquares = getPossibleMoves();
+            moveSquares = getPossibleMoves(false);
             int kingPosition;
             for(short moves : moveSquares){
                 // The moves are currently pseudo-legal, test if king is in check to get legal moves
-                Move movement = new Move(this.board, moves);
+                Move movement = new Move(board, moves);
                 movement.makeMove();    // make the move on the board without making a copy
                 kingPosition = board.getKingPosition(this.isWhite());
                 // if king is not under check after making the move, the move is legal.
@@ -115,7 +115,7 @@ public abstract class Piece {
         return moveList;
     }
 
-    public ArrayList<Short> generatePinnedMoves(ArrayList<Short> moveList){
+    public ArrayList<Short> generatePinnedMoves(ArrayList<Short> moveList, boolean generateCapturesOnly){
         // if a knight is pinned it cannot move
         if(this.isKnight()){
             return moveList;
@@ -149,6 +149,9 @@ public abstract class Piece {
             }
             // pawn can only push
             else if(isPawn()){
+                if(generateCapturesOnly){
+                    return moveList;    // do not generate pawn push moves
+                }
                 if(absMath == 1) return moveList;
                 // generate pawn push moves
                 ArrayList<Short> legalMoves = new ArrayList<>();
@@ -167,16 +170,20 @@ public abstract class Piece {
         // generate moves towards the enemy piece by following pinned offset
         int endPosition = getPosition() + pinOffSet;
         while(!board.getTile(endPosition).isOccupied()){
-            moveList.add(MoveGenerator.generateMove(getPosition(), endPosition, 0));
+            if(!generateCapturesOnly){
+                moveList.add(MoveGenerator.generateMove(getPosition(), endPosition, 0));
+            }
             endPosition += pinOffSet;
         }
         moveList.add(MoveGenerator.generateMove(getPosition(), endPosition, 4));    // capture the enemy piece
 
         // reverse pinned offset to get offset towards king and generate moves towards the king
-        endPosition = getPosition() - pinOffSet;
-        while(!board.getTile(endPosition).isOccupied()){
-            moveList.add(MoveGenerator.generateMove(getPosition(), endPosition, 0));
-            endPosition -= pinOffSet;
+        if(!generateCapturesOnly){
+            endPosition = getPosition() - pinOffSet;
+            while(!board.getTile(endPosition).isOccupied()){
+                moveList.add(MoveGenerator.generateMove(getPosition(), endPosition, 0));
+                endPosition -= pinOffSet;
+            }
         }
         return moveList;
     }
@@ -195,6 +202,73 @@ public abstract class Piece {
                 moveList.add(MoveGenerator.generateMove(startPosition, endPosition, promotionIndex));
             }
         }
+    }
+
+    public ArrayList<Short> getCaptureMoves(){
+        ArrayList<Short> moveList = new ArrayList<>();
+        ArrayList<Short> moveSquares;
+
+        if(board.getCheckCount() == 1 && !this.isKing()){
+             /*
+                Possible moves if king is in single check:
+                    1) Move the king out of check (check all king valid moves)
+                    2) Capture checking piece
+                    3) Block the checking piece (if the attacking piece is a sliding piece)
+            */
+            if(this.isPinned()){    // if piece is pinned, only generate the moves along pin axis
+                moveSquares = generatePinnedMoves(new ArrayList<>(), true);
+            }
+            else{
+                moveSquares = getPossibleMoves(true);
+            }
+            int end;
+            for (Short moves : moveSquares) {
+                end = MoveGenerator.getEnd(moves);
+                if(this.isPawn()){  // if this piece is a pawn, check if can capture enpassant
+                    if (end == board.getAttackingPieceLocation() || end == board.getEnpassant()) {
+                        if(this.isPawn() && Pawn.canPromote(this.isWhite(), MoveGenerator.getEnd(moves))){
+                            generatePawnPromotionMoves(moves, moveList);
+                        }
+                        else{
+                            moveList.add(moves);
+                        }
+                    }
+                }
+                else{
+                    if (end == board.getAttackingPieceLocation()) {
+                        moveList.add(moves);
+                    }
+                }
+            }
+            return moveList;
+        }
+        else if(this.isPinned()){
+            return generatePinnedMoves(moveList, true);
+        }
+        else{
+            moveSquares = getPossibleMoves(true);
+            int kingPosition;
+            for(short moves : moveSquares){
+                // The moves are currently pseudo-legal, test if king is in check to get legal moves
+                Move movement = new Move(board, moves);
+                movement.makeMove();    // make the move on the board without making a copy
+                kingPosition = board.getKingPosition(this.isWhite());
+                // if king is not under check after making the move, the move is legal.
+                if(!board.isTileAttacked(kingPosition, this.isWhite())) {
+                    movement.unMake();
+                    if(this.isPawn() && Pawn.canPromote(this.isWhite(), MoveGenerator.getEnd(moves))){
+                        generatePawnPromotionMoves(moves, moveList);
+                    }
+                    else{
+                        moveList.add(moves);
+                    }
+                }
+                else{
+                    movement.unMake();  // revert board back to its original state
+                }
+            }
+        }
+        return moveList;
     }
 
     public final boolean isPinned(){
@@ -320,7 +394,7 @@ public abstract class Piece {
      * Obtain the pseudo-legal moves of a piece
      * @return a list of all pseudo-legal moves of the piece
      */
-    public abstract ArrayList<Short> getPossibleMoves();
+    public abstract ArrayList<Short> getPossibleMoves(boolean generateCapturesOnly);
 
     /**
      * Gets abbreviation of piece name

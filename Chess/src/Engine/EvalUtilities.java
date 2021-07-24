@@ -102,10 +102,9 @@ public class EvalUtilities {
         // get the value of each piece + position bonus points + other evaluation points
         PieceList whitePieces = board.getWhitePieces();
         PieceList blackPieces = board.getBlackPieces();
-        Tile[] chessBoard = board.getBoard();
 
-        int whiteEvaluation = calculateScore(whitePieces, chessBoard);
-        int blackEvaluation = calculateScore(blackPieces, chessBoard);
+        int whiteEvaluation = calculateScore(whitePieces, board);
+        int blackEvaluation = calculateScore(blackPieces, board);
 
         int currentTurnOffset = (board.isWhiteTurn()) ? 1 : -1;
 
@@ -113,11 +112,15 @@ public class EvalUtilities {
         return boardEvaluation * currentTurnOffset;
     }
 
-    private static int calculateScore(PieceList pieceList, Tile[] chessBoard){
+    private static int calculateScore(PieceList pieceList, Board board){
         int evaluation = 0;
+        Tile[] chessBoard = board.getBoard();
+
+        // static evaluation of all material values
         for(int i = 0; i < pieceList.getCount(); i++){
             evaluation += chessBoard[pieceList.occupiedTiles[i]].getPiece().getValue();
         }
+
         return evaluation;
     }
 

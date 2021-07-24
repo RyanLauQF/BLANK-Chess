@@ -11,7 +11,7 @@ public class Rook extends Piece{
      * Similar implementation to a Bishop
      */
 
-    private static final int ROOK_VALUE = 500;
+    private static final int ROOK_VALUE = 530;
 
     public Rook(boolean isWhite, int position, Board b){
         super(isWhite, position, b);
@@ -19,7 +19,7 @@ public class Rook extends Piece{
     }
 
     @Override
-    public ArrayList<Short> getPossibleMoves(){
+    public ArrayList<Short> getPossibleMoves(boolean generateCapturesOnly){
         ArrayList<Short> list = new ArrayList<>();
         int end, offSet;
         Tile endTile;
@@ -37,17 +37,32 @@ public class Rook extends Piece{
                     break;
                 }
                 else{
-                    // standard movement with no capture
-                    list.add(MoveGenerator.generateMove(getPosition(), end, 0));
+                    if(!generateCapturesOnly){
+                        // standard movement with no capture
+                        list.add(MoveGenerator.generateMove(getPosition(), end, 0));
+                    }
                 }
             }
         }
         return list;
     }
 
+    private boolean isSeventhRankRook(){
+        if(isWhite()){
+            return Piece.getRow(getPosition()) == 1;
+        }
+        else{
+            return Piece.getRow(getPosition()) == 6;
+        }
+    }
+
     @Override
     public int getValue(){  // value of a rook
         int positionBonus = (isWhite()) ? EvalUtilities.rookPST[getPosition()] : EvalUtilities.rookPST[EvalUtilities.blackFlippedPosition[getPosition()]];
+
+        if(isSeventhRankRook()){    // rook on rank 7 is able to create a major threat
+            positionBonus += 41;
+        }
         return ROOK_VALUE + positionBonus;
     }
 

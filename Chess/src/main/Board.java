@@ -1,7 +1,4 @@
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Scanner;
-import java.util.Stack;
+import java.util.*;
 
 /*
  *     Board class used in Chess-Engine to keep track of the board state for each move
@@ -50,6 +47,10 @@ public class Board {
     private int whiteKingPosition;
     private int blackKingPosition;
 
+    // used for evaluation to check king safety
+    private boolean hasWhiteKingCastled;
+    private boolean hasBlackKingCastled;
+
     // a map to show the location of pinned pieces
     private final int[] pinnedList;
     private final Stack<Integer> resetPinnedList;
@@ -74,34 +75,9 @@ public class Board {
         this.resetPinnedList = new Stack<>();
         this.checkCount = 0;
         this.previousMove = null;
+        this.hasWhiteKingCastled = false;
+        this.hasBlackKingCastled = false;
     }
-
-//    /**
-//     * Creates a deep copy of the board
-//     * @param board refers to the board to be copied
-//     */
-//    public Board(Board board){
-//        this.isWhiteTurn = board.isWhiteTurn;
-//        this.halfMoveClock = board.halfMoveClock;
-//        this.fullMoveNum = board.fullMoveNum;
-//        this.board = new Tile[64];
-//        this.whiteKingSideCastle = board.whiteKingSideCastle;
-//        this.whiteQueenSideCastle = board.whiteQueenSideCastle;
-//        this.blackKingSideCastle = board.blackKingSideCastle;
-//        this.blackQueenSideCastle = board.blackQueenSideCastle;
-//        this.enpassantPosition = board.enpassantPosition;
-//        this.whitePieces = new PieceList(board.whitePieces);
-//        this.blackPieces = new PieceList(board.blackPieces);
-//        this.whiteKingPosition = board.whiteKingPosition;
-//        this.blackKingPosition = board.blackKingPosition;
-//        this.pinnedList = board.pinnedList.clone();
-//        this.resetPinnedList = new Stack<>();
-//        this.resetPinnedList.addAll(board.resetPinnedList);
-//        this.checkCount = board.checkCount;
-//        this.attackingPieceLocation = board.attackingPieceLocation;
-//        this.attackingOffSet = board.attackingOffSet;
-//        this.previousMove = board.previousMove;
-//    }
 
     /**
      *  Takes in a FEN (Forsyth–Edwards Notation) and converts the data onto the chess board
@@ -132,6 +108,26 @@ public class Board {
             // pseudo-legal moves are filtered out when generating moves from individual pieces
             for (int i = 0; i < list.getCount(); i++) {
                 moveList.addAll(board[list.occupiedTiles[i]].getPiece().getLegalMoves()); // merge list
+            }
+        }
+        resetPinnedList();
+        return moveList;
+    }
+
+    public ArrayList<Short> getAllCaptures(){
+        ArrayList <Short> moveList = new ArrayList<>();
+        // calculate the number of enemies attacking the king
+        checkCount = kingCheckedCount(isWhiteTurn());
+        // if it is in double check, only king can move
+        if(checkCount >= 2){
+            int kingPosition = getKingPosition(isWhiteTurn());
+            moveList.addAll(board[kingPosition].getPiece().getCaptureMoves());
+        }
+        else {
+            PieceList list = getPieceList(isWhiteTurn());
+            // pseudo-legal moves are filtered out when generating moves from individual pieces
+            for (int i = 0; i < list.getCount(); i++) {
+                moveList.addAll(board[list.occupiedTiles[i]].getPiece().getCaptureMoves()); // merge list
             }
         }
         resetPinnedList();
@@ -237,6 +233,13 @@ public class Board {
         return checkCount;
     }
 
+    /**
+     * Checks if the current piece is being attacked by any opposing pawns
+     * @param isWhitePiece refers to the side of the piece being attacked
+     * @param piecePosition refers to the position of the piece
+     * @param checkCounter refers to the current number of attacks on the piece (if any)
+     * @return the number of pawns attacking the piece + checkCounter (if checkCounter is being used)
+     */
     public int checkPawnAttacking(boolean isWhitePiece, int piecePosition, int checkCounter){
         int rightPawnIndex;
         int leftPawnIndex;
@@ -311,6 +314,7 @@ public class Board {
     /**
      * Checks if a tile is being attacked by the opposing team by searching outwards
      * @param tilePosition refers to the index of tile on the chess board
+     * @param isWhiteTurn refers to the side being attacked
      * @return true if the tile is attacked else return false
      */
     public boolean isTileAttacked(int tilePosition, boolean isWhiteTurn){
@@ -435,6 +439,15 @@ public class Board {
         }
     }
 
+    public void setHasKingCastled(boolean hasCastled, boolean isWhiteKing){
+        if(isWhiteKing){
+            hasWhiteKingCastled = hasCastled;
+        }
+        else{
+            hasBlackKingCastled = hasCastled;
+        }
+    }
+
     /**
      * Checks if the current side has any castling rights
      * @return true if either king side or queen side castling is present for the current side
@@ -519,6 +532,15 @@ public class Board {
 
     public Tile getTile(int position){
         return board[position];
+    }
+
+    public boolean kingHasCastled(boolean isWhiteKing){
+        if(isWhiteKing){
+            return hasWhiteKingCastled;
+        }
+        else{
+            return hasBlackKingCastled;
+        }
     }
 
     public boolean getWhiteKingSideCastle(){
@@ -697,20 +719,7 @@ public class Board {
      * Unit testing
      * > Able to play Chess on CLI. (Promotion has not been implemented)
      */
-    public static void main(String[] args){
-//        Board a = new Board();
-//        a.init(FENUtilities.startFEN);
-//
-//        Board b = new Board(a);
-//
-//        short move  = MoveGenerator.generateMove(51, 35, 1);
-//        Move movement = new Move(a, move);
-//        movement.makeMove();
-//
-//        a.state();
-//        System.out.println();
-//        b.state();
-
+    public static void main(String[] args) {
         Board b = new Board();
         // Custom FEN input
         String FEN = "r3kbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK2R b KQkq - 0 1";

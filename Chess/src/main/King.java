@@ -27,7 +27,7 @@ public class King extends Piece {
 
     @Override
     // get all squares which piece is defending
-    public ArrayList<Short> getPossibleMoves(){
+    public ArrayList<Short> getPossibleMoves(boolean generateCapturesOnly){
         ArrayList<Short> list = new ArrayList<>();
         int endPosition, offSet;
         int[] directions = MoveDirections.getDirections(getPosition());
@@ -43,12 +43,14 @@ public class King extends Piece {
                     continue;
                 }
                 // Standard move with no capture
-                list.add(MoveGenerator.generateMove(getPosition(), endPosition, 0));
+                if(!generateCapturesOnly){  // disable quiet moves for quiescence search
+                    list.add(MoveGenerator.generateMove(getPosition(), endPosition, 0));
+                }
             }
         }
 
         // check castling squares if the king is not under attack
-        if(board.hasCastlingRights()){
+        if(!generateCapturesOnly && board.hasCastlingRights()){
             if(!super.board.isTileAttacked(getPosition(), this.isWhite())){
                 if(board.hasKingSideCastling(this.isWhite())){
                     if(checkKingSideCastling()){
@@ -142,6 +144,29 @@ public class King extends Piece {
         else {
             positionBonus = (isWhite()) ? EvalUtilities.kingMidGamePST[getPosition()] : EvalUtilities.kingMidGamePST[EvalUtilities.blackFlippedPosition[getPosition()]];
         }
+
+        // check for king safety with pawn shields (number of allied pawns adjacent to king)
+        int offSet, endPosition;
+        int kingPosition = getPosition();
+        int[] directions = MoveDirections.getDirections(kingPosition);
+        for(int index = 0; index < 8; index++){
+            offSet = MoveDirections.directionOffSets[index];
+            for(int i = 0; i < directions[index] && i < 1; i++){
+                endPosition = kingPosition + offSet;
+                if(board.getTile(endPosition).isOccupied()){
+                    Piece piece = board.getTile(endPosition).getPiece();
+                    if(piece.isPawn() && (piece.isWhite() == isWhite())){
+                        positionBonus += 35;
+                    }
+                }
+            }
+        }
+
+        // check for king castled for king safety
+        if(board.kingHasCastled(isWhite())){
+            positionBonus += 60;
+        }
+
         return KING_VALUE + positionBonus;
     }
 

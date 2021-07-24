@@ -22,10 +22,13 @@ public class Pawn extends Piece {
     }
 
     @Override
-    public ArrayList<Short> getPossibleMoves(){
+    public ArrayList<Short> getPossibleMoves(boolean generateCapturesOnly){
         ArrayList<Short> list = new ArrayList<>();
         int[] pawnMoveDirections = getPawnDirections(this.isWhite(), getPosition());
         generatePawnAttackMoves(pawnMoveDirections, this, list);
+        if(generateCapturesOnly){
+            return list;    // do not need to generate push moves
+        }
         generatePawnPushMoves(pawnMoveDirections[0], this, list);
         return list;
     }
@@ -129,9 +132,96 @@ public class Pawn extends Piece {
         }
     }
 
+    public static boolean isPassedPawn(Board board, Piece pawn){
+        boolean isWhitePawn = pawn.isWhite();
+        int position = pawn.getPosition();
+        int squaresToEdge, offSet, endPosition;
+        if(isWhitePawn){
+            squaresToEdge = Piece.getRow(position);
+            offSet = -8;
+        }
+        else{
+            squaresToEdge = 7 - Piece.getRow(position);
+            offSet = 8;
+        }
+
+        boolean rightEdgePiece = false;
+        boolean leftEdgePiece = false;
+
+        if(position % 8 == 0){ // piece on left edge
+            leftEdgePiece = true;
+        }
+        else if (position % 8 == 7){  // piece on right edge
+            rightEdgePiece = true;
+        }
+
+
+        // check in front of the pawn if theres any enemy pawns directly infront or on the adjacent files that can stop it
+        Piece piece;
+        for(int i = 0; i < squaresToEdge; i++){
+            endPosition = position + (offSet * (i + 1));
+            // checks column directly in front
+            if(board.getTile(endPosition).isOccupied()){
+                piece = board.getTile(endPosition).getPiece();
+                if(piece.isPawn() && piece.isWhite() != isWhitePawn){ // if an enemy pawn is found
+                    return false;
+                }
+            }
+            // check right column if this piece is not on right edge of board
+            if(!rightEdgePiece && board.getTile(endPosition + 1).isOccupied()){
+                piece = board.getTile(endPosition + 1).getPiece();
+                if(piece.isPawn() && piece.isWhite() != isWhitePawn){ // if an enemy pawn is found
+                    return false;
+                }
+            }
+            // check left column if this piece is not on left edge of board
+            if(!leftEdgePiece && board.getTile(endPosition - 1).isOccupied()){
+                piece = board.getTile(endPosition - 1).getPiece();
+                if(piece.isPawn() && piece.isWhite() != isWhitePawn){ // if an enemy pawn is found
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    // checks if a pawn is supported by a rook
+    private boolean rookBehindPawn(){
+        boolean isWhitePawn = isWhite();
+        int position = getPosition();
+        int squaresToEdge, offSet, endPosition;
+
+        if(isWhitePawn){
+            squaresToEdge = 7 - Piece.getRow(position);
+            offSet = 8;
+        }
+        else{
+            squaresToEdge = Piece.getRow(position);
+            offSet = -8;
+        }
+
+        Piece piece;
+        for(int i = 0; i < squaresToEdge; i++){
+            endPosition = position + (offSet * (i + 1));
+            if(board.getTile(endPosition).isOccupied()){
+                piece = board.getTile(endPosition).getPiece();
+                return piece.isRook() && piece.isWhite() == isWhite();
+            }
+        }
+        return false;
+    }
+
     @Override
     public int getValue(){  // value of a pawn
         int positionBonus = (isWhite()) ? EvalUtilities.pawnPST[getPosition()] : EvalUtilities.pawnPST[EvalUtilities.blackFlippedPosition[getPosition()]];
+
+        if(isPassedPawn(board, this)){
+            positionBonus += 62;
+            if(rookBehindPawn()){
+                positionBonus += 30;
+            }
+        }
+
         return PAWN_VALUE + positionBonus;
     }
 

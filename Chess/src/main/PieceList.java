@@ -1,3 +1,5 @@
+import java.io.Serializable;
+
 /**
  * Keeps track of the individual pieces of each side on the board within an array
  */
@@ -14,16 +16,6 @@ public class PieceList {
         this.boardTiles = new int[64]; // 64 squares on the chess board
         this.occupiedTiles = new int[16]; // 16 maximum possible pieces for each side
         this.pieceCounter = 0;
-    }
-
-    /**
-     * Creates a deep copy of pieceList
-     * @param pieceList refers to the piece list to be copied
-     */
-    public PieceList(PieceList pieceList){
-        this.boardTiles = pieceList.boardTiles.clone();
-        this.occupiedTiles = pieceList.occupiedTiles.clone();
-        this.pieceCounter = pieceList.pieceCounter;
     }
 
     public void addPiece(int position){

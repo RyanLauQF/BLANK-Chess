@@ -10,7 +10,7 @@ public class Bishop extends Piece{
      * Similar implementation to a Rook
      */
 
-    private static final int BISHOP_VALUE = 330;
+    private static final int BISHOP_VALUE = 374;
 
     public Bishop(boolean isWhite, int position, Board b){
         super(isWhite, position, b);
@@ -18,7 +18,7 @@ public class Bishop extends Piece{
     }
 
     @Override
-    public ArrayList<Short> getPossibleMoves(){
+    public ArrayList<Short> getPossibleMoves(boolean generateCapturesOnly){
         ArrayList<Short> list = new ArrayList<>();
         // check each diagonal path until it reaches edge of board or get blocked by another piece
         int end, offSet;
@@ -37,8 +37,10 @@ public class Bishop extends Piece{
                     break;
                 }
                 else{
-                    // standard movement with no capture
-                    list.add(MoveGenerator.generateMove(getPosition(), end, 0));
+                    if(!generateCapturesOnly){  // disable normal moves
+                        // standard movement with no capture
+                        list.add(MoveGenerator.generateMove(getPosition(), end, 0));
+                    }
                 }
             }
         }
@@ -48,6 +50,12 @@ public class Bishop extends Piece{
     @Override
     public int getValue(){  // value of a bishop
         int positionBonus = (isWhite()) ? EvalUtilities.bishopPST[getPosition()] : EvalUtilities.bishopPST[EvalUtilities.blackFlippedPosition[getPosition()]];
+
+        // bishop on large diagonals (2 diagonals that go from edge to edge) have higher mobility and is able to control the center
+        if(getPosition() % 9 == 0 || getPosition() % 7 == 0){
+            positionBonus += 74;
+        }
+
         return BISHOP_VALUE + positionBonus;
     }
 

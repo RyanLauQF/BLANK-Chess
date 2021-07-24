@@ -10,7 +10,7 @@ public class Queen extends Piece{
      * Similar implementation to a Bishop + Rook movement
      */
 
-    private static final int QUEEN_VALUE = 900;
+    private static final int QUEEN_VALUE = 911;
 
     public Queen(boolean isWhite, int position, Board b){
         super(isWhite, position, b);
@@ -18,7 +18,7 @@ public class Queen extends Piece{
     }
 
     @Override
-    public ArrayList<Short> getPossibleMoves(){
+    public ArrayList<Short> getPossibleMoves(boolean generateCapturesOnly){
         ArrayList<Short> list = new ArrayList<>();
         int end, offSet;
         Tile endTile;
@@ -36,8 +36,10 @@ public class Queen extends Piece{
                     break;
                 }
                 else{
-                    // standard movement with no capture
-                    list.add(MoveGenerator.generateMove(getPosition(), end, 0));
+                    if(!generateCapturesOnly){  // disable quiet moves if generating captures
+                        // standard movement with no capture
+                        list.add(MoveGenerator.generateMove(getPosition(), end, 0));
+                    }
                 }
             }
         }

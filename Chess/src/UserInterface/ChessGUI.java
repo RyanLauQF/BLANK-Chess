@@ -271,13 +271,15 @@ public class ChessGUI extends JPanel {
      * ChessGUI JPanel stores 64 TilePanels (to represent the chess board)
      */
     public void initGUI(){
-        JFrame frame = new JFrame("Chess Interface");
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.add(this);
-        frame.pack();
-        frame.setLocationRelativeTo(null);
-        frame.setVisible(true);
-        frame.setResizable(false);
+        SwingUtilities.invokeLater(() -> {  // initiates Swing on Event Dispatcher Thread (EDT)
+            JFrame frame = new JFrame("Chess Interface");
+            frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+            frame.add(this);
+            frame.pack();
+            frame.setLocationRelativeTo(null);
+            frame.setVisible(true);
+            frame.setResizable(false);
+        });
     }
 
     /**
@@ -405,7 +407,6 @@ public class ChessGUI extends JPanel {
                             interruptedException.printStackTrace();
                         }
                         gui.showMovementTiles(moveStart, moveEnd);
-
                         if(gui.checksGameEndedAfterEveryMove()){
                             // if human vs human, check if the game has ended after every move is made
                             if(GameStatus.checkGameEnded(gui.board)){
@@ -517,6 +518,7 @@ public class ChessGUI extends JPanel {
         board.init(FENUtilities.startFEN);
 
         ChessGUI chessGUI = new ChessGUI(board);
+        chessGUI.setCheckGameEndAfterEachMove(true);
         chessGUI.initGUI();
     }
 }

@@ -10,7 +10,7 @@ public class Test {
         this.count = 0;
     }
 
-    private long MoveGeneratorTest(int depth){
+    private long MoveGeneratorTest(int depth) {
         if(depth == 0){
             return 1;
         }
@@ -32,7 +32,7 @@ public class Test {
         return count;
     }
 
-    private long divide(int depth){
+    private long divide(int depth) {
         ArrayList<Short> encodedMoves = board.getAllLegalMoves();
         long total = 0;
         long currCount;
@@ -152,20 +152,20 @@ public class Test {
     /*
         UNIT TESTING FOR MOVE GENERATION
      */
-    public static void main(String[] args) {
+    public static void main(String[] args) throws InterruptedException {
 //***** STANDARD DEBUGGING WITH PERFT SPEED *****//
 //-------------------------------------------------
         Board board = new Board();
         String FEN = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w - - 0 1";
         board.init(FEN);
         Test test = new Test(board);
-        int depth = 6;
+        int depth = 5;
 
         long start = System.currentTimeMillis();
-        //long ans = test.divide(depth);
+        long ans = test.divide(depth);
         //long ans = test.MoveGeneratorTest(depth);
 
-        int ans = test.searchBestMove(depth, Integer.MIN_VALUE, Integer.MAX_VALUE);
+        //int ans = test.searchBestMove(depth, Integer.MIN_VALUE, Integer.MAX_VALUE);
         //int ans = test.alphaBeta(depth, Integer.MIN_VALUE, Integer.MAX_VALUE);
         //int ans = test.negaMax(depth);
 
@@ -173,11 +173,11 @@ public class Test {
         long timeElapsed = finish - start;
 
         float convertTime = (float) timeElapsed / 1000;
-        // double NPS = (double) ans / convertTime;
+        double NPS = (double) ans / convertTime;
         System.out.println("Seach to Depth " + depth + ": " + ans);
         System.out.println("Time Elapsed: " + convertTime + " seconds");
-        System.out.println(test.count);
-        // System.out.println("NPS: " + NPS);
+        //System.out.println(test.count);
+        System.out.println("NPS: " + NPS);
         // System.out.println(test.counter);
 
 

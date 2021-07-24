@@ -21,9 +21,13 @@ public class MoveOrdering {
         Piece startPiece = board.getTile(start).getPiece();
 
         if(MoveGenerator.isCapture(move)){
+            // Sort by Most Valuable Victim / Least Valuable Aggressor
             if (MoveGenerator.getMoveType(move) == 4) {
-                // normal capture (exclude enpassant)
+                // normal capture
                 score += (10 * (board.getTile(end).getPiece().getValue() - startPiece.getValue()));
+            }
+            else{   // enpassant capture
+                score += 10;
             }
         }
         if(MoveGenerator.isPromotion(move)){
@@ -48,8 +52,22 @@ public class MoveOrdering {
             // if tile being moved to is attacked by enemy pawn, usually bad.
             score -= startPiece.getValue();
         }
+
         return score;
     }
+
+//    int seeCapture(int from, int to, int side)
+//    {
+//        value = 0;
+//        piece = board[from];
+//
+//        make_capture(piece, to);
+//        value = piece_just_captured() - see(to, other(side));
+//        undo_capture(piece, to);
+//        return value;
+//    }
+
+
 
     public static ArrayList<Short> quiescenceOrdering(ArrayList<Short> moves, Board board) {
         ArrayList<Short> captureMoves = new ArrayList<>();
@@ -64,42 +82,6 @@ public class MoveOrdering {
 
             return Integer.compare(moveScore1, moveScore2);
         });
-//        moves.sort((move1, move2) -> {
-//            int moveScore1 = getQuiescenceScore(move1, board);
-//            int moveScore2 = getQuiescenceScore(move2, board);
-//
-//            return Integer.compare(moveScore1, moveScore2);
-//        });
         return captureMoves;
-    }
-
-    private static int getQuiescenceScore(Short move, Board board){
-        int moveType = MoveGenerator.getMoveType(move);
-        int score = 0;
-        int start = MoveGenerator.getStart(move);
-        int end = MoveGenerator.getEnd(move);
-        Piece startPiece = board.getTile(start).getPiece();
-
-        if(MoveGenerator.isCapture(move)){
-            if (moveType == 4) {
-                // normal capture (exclude enpassant)
-                score += (10 * (board.getTile(end).getPiece().getValue() - startPiece.getValue()));
-            }
-            score += 10000;  // prioritise captures for quiescence search
-        }
-        if(MoveGenerator.isPromotion(move)){
-            if(moveType == 8 || moveType == 12){
-                // knight promotion
-                score += 320;
-            }
-            else if(moveType == 11 || moveType == 15){
-                // queen promotion
-                score += 900;
-            }
-            else{
-                score += 300; // rook and bishop not as useful as Queen / Knight promotion (knight discovered checks)
-            }
-        }
-        return score;
     }
 }
