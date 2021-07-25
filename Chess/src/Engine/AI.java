@@ -7,6 +7,7 @@ public class AI {
     protected final boolean isWhite;
     protected final Board board;
     private final OpeningTrie openingBook;
+    private final TranspositionTable TT;
     private boolean isUsingOpeningBook;
     private int moveNum;
 
@@ -15,6 +16,7 @@ public class AI {
     private int maxDepth;
     private int nodeCount;
 
+    public int counter;
 
     private static final int REDUCTION_CONSTANT = 2;
 
@@ -22,6 +24,7 @@ public class AI {
         this.isWhite = isWhite;
         this.board = board;
         this.openingBook = new OpeningTrie(isWhite);    // builds the opening book for the AI
+        this.TT = new TranspositionTable();
         this.moveNum = 0;  // number of moves made by this AI
         this.isUsingOpeningBook = true;
     }
@@ -81,11 +84,12 @@ public class AI {
             }
         }
         if(isEndGame()){
-            searchDepth += 3;
+            searchDepth += 1;
         }
         search = searchDepth;
         maxDepth = 0;
         nodeCount = 0;
+        counter = 0;
         long start = System.currentTimeMillis();
         ArrayList<Short> moves = board.getAllLegalMoves();
         short bestMove = 0;
@@ -101,6 +105,9 @@ public class AI {
             }
             movement.unMake();
         }
+        // record into Transposition table
+        TT.store(board.getZobristHash(), bestMove, (byte) searchDepth, bestMoveScore);
+
         long finish = System.currentTimeMillis();
         long timeElapsed = finish - start;
         float convertTime = (float) timeElapsed / 1000;
@@ -110,11 +117,20 @@ public class AI {
         System.out.println("Nodes Searched: " + nodeCount);
         System.out.println("Best Move: " + FENUtilities.convertIndexToRankAndFile(MoveGenerator.getStart(bestMove)) + "-" + FENUtilities.convertIndexToRankAndFile(MoveGenerator.getEnd(bestMove)));
         System.out.println("Time Elapsed: " + convertTime + " seconds");
+        System.out.println("Transposition Table size: " + TT.table.size());
         System.out.println("---------------------------------");
         return bestMove;
     }
 
     public int searchBestMove(int depth, int alpha, int beta){
+        if(TT.containsKey(board.getZobristHash())){
+            TranspositionTable.TTEntry entry = TT.getEntry(board.getZobristHash());
+            if(entry.depth == search){
+                counter++;
+                return entry.eval;
+            }
+        }
+
         if(depth == 0){
             //count++;
             depthCount = search;
@@ -131,6 +147,12 @@ public class AI {
             if (score >= beta){
                 return beta;
             }
+
+        }
+
+        // Check extension
+        if(isKingChecked){
+            depth++;
         }
 
         ArrayList<Short> encodedMoves = board.getAllLegalMoves();
@@ -141,16 +163,31 @@ public class AI {
             }
             return 0;
         }
+
         int bestScore = Integer.MIN_VALUE + 1;
+        short currentBestMove = 0;
+
         for (Short encodedMove : MoveOrdering.orderMoves(encodedMoves, board)) {
             Move move = new Move(board, encodedMove);
             move.makeMove();
             int searchedScore = -searchBestMove(depth - 1, -beta, -alpha);
             move.unMake();
-            if(searchedScore >= bestScore) bestScore = searchedScore;
-            if(bestScore > alpha) alpha = bestScore;
-            if(alpha >= beta) return alpha;
+            if(searchedScore >= bestScore){
+                bestScore = searchedScore;
+                currentBestMove = encodedMove;
+            }
+            if(bestScore > alpha){
+                alpha = bestScore;
+            }
+            if(alpha >= beta) {
+                TT.store(board.getZobristHash(), currentBestMove, (byte) depth, alpha);
+                return alpha;
+            }
         }
+
+        // store the best move at current position
+        TT.store(board.getZobristHash(), currentBestMove, (byte) depth, bestScore);
+
         return bestScore;
     }
 
@@ -210,7 +247,7 @@ public class AI {
 //        System.out.println(MoveGenerator.getStart(move) + " " + MoveGenerator.getEnd(move));
 //        System.out.println("Book size: " + testAI.openingBook.size());
 
-        int depth = 5;  // 16469630 54.663
+        int depth = 5;  // 16469630 54.663  17370058 57.695
 
         long start = System.currentTimeMillis();
         short move = testAI.getBestMove(depth, false);

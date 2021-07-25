@@ -135,8 +135,8 @@ public class Test {
             alpha = stand_pat;
         }
 
-        ArrayList<Short> encodedMoves = board.getAllLegalMoves();
-        for (Short encodedMove : MoveOrdering.quiescenceOrdering(encodedMoves, board)) {
+        ArrayList<Short> encodedMoves = board.getAllCaptures();
+        for (Short encodedMove : MoveOrdering.orderMoves(encodedMoves, board)) {
             if(MoveGenerator.isCapture(encodedMove)){
                 Move move = new Move(board, encodedMove);
                 move.makeMove();

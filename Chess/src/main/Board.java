@@ -63,6 +63,9 @@ public class Board {
     // keeps track of the previous move made on the board. If at start state, initialise to 0
     private Move previousMove;
 
+    // hash of the current board position
+    public long zobristHash;
+
     /**
      * Board constructor
      */
@@ -87,6 +90,7 @@ public class Board {
     public void init(String FEN){
         // set board to default position / custom FEN position
         FENUtilities.convertFENtoBoard(FEN, this);
+        zobristHash = Zobrist.generateHash(this);   // starting hash of the board
     }
 
     /**
@@ -417,7 +421,9 @@ public class Board {
      * @param position refers to the position of the piece being attacked and removed from the board
      */
     public void removePiece(Integer position){
-        if(board[position].getPiece().isWhite()){
+        Piece piece = board[position].getPiece();
+
+        if(piece.isWhite()){
             whitePieces.removePiece(position);
         }
         else{
@@ -504,6 +510,10 @@ public class Board {
 
 //  /******** GETTER FUNCTIONS ********/
 //  ------------------------------------
+
+    public long getZobristHash(){
+        return zobristHash;
+    }
 
     public PieceList getWhitePieces(){
         return whitePieces;
@@ -640,6 +650,10 @@ public class Board {
 
 //  /******** SET FUNCTIONS ********/
 //  ---------------------------------
+
+    public void setZobristHash(long newHash){
+        this.zobristHash = newHash;
+    }
 
     public void setTurn(boolean whiteTurn){
         this.isWhiteTurn = whiteTurn;

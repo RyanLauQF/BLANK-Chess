@@ -34,16 +34,17 @@ public class MoveOrdering {
             int moveType = MoveGenerator.getMoveType(move);
             if(moveType == 8 || moveType == 12){
                 // knight promotion
-                score += 320;
+                score += 342;
             }
             else if(moveType == 11 || moveType == 15){
                 // queen promotion
-                score += 900;
+                score += 911;
             }
             else{
                 score += 300; // rook and bishop not as useful as Queen / Knight promotion (knight discovered checks)
             }
         }
+
         if(MoveGenerator.isCastling(move)){
             score += 100;
         }
@@ -54,34 +55,5 @@ public class MoveOrdering {
         }
 
         return score;
-    }
-
-//    int seeCapture(int from, int to, int side)
-//    {
-//        value = 0;
-//        piece = board[from];
-//
-//        make_capture(piece, to);
-//        value = piece_just_captured() - see(to, other(side));
-//        undo_capture(piece, to);
-//        return value;
-//    }
-
-
-
-    public static ArrayList<Short> quiescenceOrdering(ArrayList<Short> moves, Board board) {
-        ArrayList<Short> captureMoves = new ArrayList<>();
-        for(Short move : moves){
-            if(MoveGenerator.isCapture(move)){
-                captureMoves.add(move);
-            }
-        }
-        captureMoves.sort((move1, move2) -> {
-            int moveScore1 = getMoveScore(move1, board);
-            int moveScore2 = getMoveScore(move2, board);
-
-            return Integer.compare(moveScore1, moveScore2);
-        });
-        return captureMoves;
     }
 }

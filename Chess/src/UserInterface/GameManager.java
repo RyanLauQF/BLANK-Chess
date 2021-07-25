@@ -105,8 +105,8 @@ public class GameManager {
         Board board = new Board();
         // Custom FEN input
         String FEN = "r3k2r/p1ppqpb1/Bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPB1PPP/R3K2R b - - 0 1";
-        //board.init("6k1/2p5/p3b3/5p2/3q4/6K1/3r4/8 b - - 0 1");
-        board.init(FENUtilities.startFEN);
+        board.init("1N4k1/1p3pp1/8/p2r4/3b2K1/8/8/8 w - - 0 1");
+        //board.init(FENUtilities.startFEN);
         ChessGUI chessGUI = new ChessGUI(board);
 
         boolean whitePlayer_isHuman = true;

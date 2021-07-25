@@ -46,6 +46,8 @@ public class Knight extends Piece{
         if(board.checkPawnAttacking(!isWhite(), getPosition(), 0) > 0){
             positionBonus += 40;
         }
+
+
         return KNIGHT_VALUE + positionBonus;
     }
 

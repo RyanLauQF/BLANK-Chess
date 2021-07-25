@@ -16,6 +16,7 @@ public class Move {
     private final boolean blackKingSideCastling;
     private final boolean blackQueenSideCastling;
     private final Move previousMove;
+    private final long zobrist;
 
     /**
      * Move a piece on the board based on move rules and update the board
@@ -51,6 +52,7 @@ public class Move {
         this.blackKingSideCastling = board.getBlackKingSideCastle();
         this.blackQueenSideCastling = board.getBlackQueenSideCastle();
         this.previousMove = board.getPreviousMove();
+        this.zobrist = board.getZobristHash();
     }
 
     public void makeMove(){
@@ -139,6 +141,9 @@ public class Move {
                 rookLostCastling = true;
             }
             board.removePiece(getEnd());
+
+            // remove attacked piece from zobrist
+            board.setZobristHash(Zobrist.update(board.getZobristHash(), getEnd(), attackedPiece));
         }
         // check move is an enpassant capture
         else if(isEnpassantCapture()){
@@ -148,10 +153,20 @@ public class Move {
             board.removePiece(enpassantPawnAttacked);
             board.getTile(enpassantPawnAttacked).setPiece(null);
             isEnpassant = true;
+
+            // remove attacked pawn from zobrist
+            board.setZobristHash(Zobrist.update(board.getZobristHash(), enpassantPawnAttacked, attackedPiece));
         }
 
         if(isPawnPromotion()){
+            // remove pawn from zobrist
+            board.setZobristHash(Zobrist.update(board.getZobristHash(), getStart(), startPiece));
+
+            // pawn is promoted then moved to the end
             board.promote(getPromotionPieceType(moveType), startTile);
+
+            // add promoted piece to zobrist
+            board.setZobristHash(Zobrist.update(board.getZobristHash(), getStart(), startPiece));
         }
 
         // updates piece position in piece list in board which tracks individual pieces
@@ -260,6 +275,9 @@ public class Move {
             Piece piece = startTile.getPiece();
             startTile.setPiece(new Pawn(piece.isWhite(), piece.getPosition(), board));
         }
+
+        // reset zobrist hash back to original
+        board.setZobristHash(zobrist);
     }
 
     /**
@@ -296,8 +314,12 @@ public class Move {
      * @param endPosition refers to the position which the piece has moved to
      */
     private void updatePiecePosition(boolean isWhitePiece, int startPosition, int endPosition){
+        Piece piece = board.getTile(startPosition).getPiece();
         board.getPieceList(isWhitePiece).movePiece(startPosition, endPosition);
-        board.getTile(startPosition).getPiece().setPosition(endPosition);
+        piece.setPosition(endPosition);
+
+        // update zobrist key in board
+        board.setZobristHash(Zobrist.movePiece(board.getZobristHash(), startPosition, endPosition, piece));
     }
 
 
