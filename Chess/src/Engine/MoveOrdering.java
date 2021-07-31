@@ -1,21 +1,37 @@
 import java.util.ArrayList;
 
 public class MoveOrdering {
-    public static ArrayList<Short> orderMoves(ArrayList<Short> moves, Board board) {
+    public static ArrayList<Short> orderMoves(ArrayList<Short> moves, Board board, TranspositionTable TT) {
         moves.sort((move1, move2) -> {
-            int moveScore1 = getMoveScore(move1, board);
-            int moveScore2 = getMoveScore(move2, board);
+            int moveScore1 = getMoveScore(move1, board, TT);
+            int moveScore2 = getMoveScore(move2, board, TT);
 
             return Integer.compare(moveScore1, moveScore2);
         });
         return moves;
     }
 
-    private static int getMoveScore(Short move, Board board){
+    private static int getMoveScore(Short move, Board board, TranspositionTable TT){
+        short hashMove = 0;
+        byte flag = -1;
+        if(TT.containsKey(board.getZobristHash())){
+            hashMove = TT.getEntry(board.getZobristHash()).bestMove;
+            flag = TT.getEntry(board.getZobristHash()).entry_TYPE;
+        }
+
         // evaluate the move scores
         int score = 0;
         int start = MoveGenerator.getStart(move);
         int end = MoveGenerator.getEnd(move);
+
+        if(move == hashMove){
+            if(flag == TranspositionTable.EXACT_TYPE){
+                score += 20000; // pv node
+            }
+            else if(flag == TranspositionTable.UPPERBOUND_TYPE){
+                score += 10000; // almost-best move at the current position to cause a cut-off
+            }
+        }
 
         boolean isWhitePiece = board.getTile(start).getPiece().isWhite();
         Piece startPiece = board.getTile(start).getPiece();
@@ -34,11 +50,11 @@ public class MoveOrdering {
             int moveType = MoveGenerator.getMoveType(move);
             if(moveType == 8 || moveType == 12){
                 // knight promotion
-                score += 342;
+                score += Knight.KNIGHT_VALUE;
             }
             else if(moveType == 11 || moveType == 15){
                 // queen promotion
-                score += 911;
+                score += Queen.QUEEN_VALUE;
             }
             else{
                 score += 300; // rook and bishop not as useful as Queen / Knight promotion (knight discovered checks)

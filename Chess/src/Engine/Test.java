@@ -2,12 +2,14 @@ import java.util.ArrayList;
 
 public class Test {
     private final Board board;
+    private TranspositionTable TT;
     private long count;
     private int score;
 
     public Test(Board board){
         this.board = board;
         this.count = 0;
+        this.TT = new TranspositionTable();
     }
 
     private long MoveGeneratorTest(int depth) {
@@ -110,7 +112,7 @@ public class Test {
             return 0;
         }
         int bestScore = Integer.MIN_VALUE;
-        for (Short encodedMove : MoveOrdering.orderMoves(encodedMoves, board)) {
+        for (Short encodedMove : MoveOrdering.orderMoves(encodedMoves, board, TT)) {
             Move move = new Move(board, encodedMove);
             move.makeMove();
             int searchedScore = -searchBestMove(depth - 1, -beta, -alpha);
@@ -136,7 +138,7 @@ public class Test {
         }
 
         ArrayList<Short> encodedMoves = board.getAllCaptures();
-        for (Short encodedMove : MoveOrdering.orderMoves(encodedMoves, board)) {
+        for (Short encodedMove : MoveOrdering.orderMoves(encodedMoves, board, TT)) {
             if(MoveGenerator.isCapture(encodedMove)){
                 Move move = new Move(board, encodedMove);
                 move.makeMove();

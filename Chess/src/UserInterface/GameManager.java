@@ -27,18 +27,24 @@ public class GameManager {
                 playerToMove = board.isWhiteTurn();
                 short move;
                 if(whitePlayer.isWhite() == playerToMove){
-                    move = whitePlayer.getMove();
+                    move = whitePlayer.getBestMove(4, true);
                     Move movement = new Move(board, move);
                     movement.makeMove();
                 }
                 else{
-                    move = blackPlayer.getMove();
+                    move = blackPlayer.getBestMove(4, true);
                     Move movement = new Move(board, move);
                     movement.makeMove();
                 }
                 chessGUI.update();
                 chessGUI.showMovementTiles(MoveGenerator.getStart(move), MoveGenerator.getEnd(move));
-                if(board.getBlackPieces().getCount() == 1 && board.getWhitePieces().getCount() == 1){
+
+                // store zobrist hash of board after AI moved into repetition history
+                long zobristHash = board.getZobristHash();
+                byte repetitionCount = board.repetitionHistory.containsKey(zobristHash) ? board.repetitionHistory.get(zobristHash) : 0;
+                board.repetitionHistory.put(zobristHash, (byte) (repetitionCount + 1));
+
+                if(board.getBlackPieces().getCount() == 1 && board.getWhitePieces().getCount() == 1 || board.repetitionHistory.get(board.getZobristHash()) == 3){
                     break;
                 }
             }
@@ -65,11 +71,22 @@ public class GameManager {
                         TimeUnit.MILLISECONDS.sleep(500);
                         continue;
                     }
+                    // store zobrist hash of board after player has moved into repetition history
+                    long zobristHash = board.getZobristHash();
+                    int repetitionCount = board.repetitionHistory.containsKey(zobristHash) ? board.repetitionHistory.get(zobristHash) : 0;
+                    board.repetitionHistory.put(zobristHash, (byte) (repetitionCount + 1));
+
                     // computer makes move
                     System.out.println("Engine is thinking...");
                     short move = computerPlayer.getBestMove(5, true);
                     Move movement = new Move(board, move);
                     movement.makeMove();
+
+                    // store zobrist hash of board after AI moved into repetition history
+                    zobristHash = board.getZobristHash();
+                    repetitionCount = board.repetitionHistory.containsKey(zobristHash) ? board.repetitionHistory.get(zobristHash) : 0;
+                    board.repetitionHistory.put(zobristHash, (byte) (repetitionCount + 1));
+
                     chessGUI.update();
                     chessGUI.showMovementTiles(MoveGenerator.getStart(move), MoveGenerator.getEnd(move));
                     playerPrompted = false;
@@ -86,7 +103,7 @@ public class GameManager {
                     }
                 }
             } while ((board.getBlackPieces().getCount() != 1 || board.getWhitePieces().getCount() != 1) &&
-                    board.getAllLegalMoves().size() != 0);
+                    board.getAllLegalMoves().size() != 0 || board.repetitionHistory.get(board.getZobristHash()) == 3);
 
             if(GameStatus.checkGameEnded(board)){
                 String gameState = GameStatus.getHowGameEnded();
@@ -105,11 +122,13 @@ public class GameManager {
         Board board = new Board();
         // Custom FEN input
         String FEN = "r3k2r/p1ppqpb1/Bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPB1PPP/R3K2R b - - 0 1";
-        board.init("1N4k1/1p3pp1/8/p2r4/3b2K1/8/8/8 w - - 0 1");
-        //board.init(FENUtilities.startFEN);
+        //board.init("8/1p2kp2/6pK/p3b3/4r3/8/8/8 w - - 0 1");
+        //board.init("8/8/8/5R2/1p3k2/6pK/1r6/8 b - - 0 1");
+
+        board.init(FENUtilities.startFEN);
         ChessGUI chessGUI = new ChessGUI(board);
 
-        boolean whitePlayer_isHuman = true;
+        boolean whitePlayer_isHuman = false;
         boolean blackPlayer_isHuman = false;
 
         GameManager gameManager = new GameManager(chessGUI, board, whitePlayer_isHuman, blackPlayer_isHuman);

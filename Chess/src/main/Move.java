@@ -83,6 +83,9 @@ public class Move {
                         updatePiecePosition(true, 63, 61);
                         board.getTile(61).setPiece(board.getTile(63).getPiece());
                         board.getTile(63).setPiece(null);
+
+                        // update white king side castling hash
+                        board.setZobristHash((board.getZobristHash() ^ Zobrist.castlingHash[0]));
                     }
                     else if (isQueenSideCastling()) {
                         // shift white queen side rook (from position 56 to 59) and remove castling rights
@@ -90,6 +93,9 @@ public class Move {
                         updatePiecePosition(true, 56, 59);
                         board.getTile(59).setPiece(board.getTile(56).getPiece());
                         board.getTile(56).setPiece(null);
+
+                        // update white queen side castling hash
+                        board.setZobristHash((board.getZobristHash() ^ Zobrist.castlingHash[1]));
                     }
                     // even if it is not a castling move, remove white castling rights as king has moved
                     board.setWhiteKingSideCastle(false);
@@ -104,12 +110,18 @@ public class Move {
                         board.getTile(5).setPiece(board.getTile(7).getPiece());
                         board.getTile(7).setPiece(null);
 
+                        // update black king side castling hash
+                        board.setZobristHash((board.getZobristHash() ^ Zobrist.castlingHash[2]));
+
                     } else if(isQueenSideCastling()) {
                         // shift black queen side rook (from position 0 to 3) and remove castling rights
                         board.setHasKingCastled(true, false);
                         updatePiecePosition(false, 0, 3);
                         board.getTile(3).setPiece(board.getTile(0).getPiece());
                         board.getTile(0).setPiece(null);
+
+                        // update black queen side castling hash
+                        board.setZobristHash((board.getZobristHash() ^ Zobrist.castlingHash[3]));
                     }
                     // even if it is not a castling move, remove black castling rights as king has moved
                     board.setBlackKingSideCastle(false);
@@ -125,10 +137,28 @@ public class Move {
                 if (board.hasKingSideCastling(isWhitePiece) && isKingSideRook(isWhitePiece, getStart())) {
                     board.setRookSideCastling(isWhitePiece, getStart(), false);
                     rookLostCastling = true;
+
+                    if(isWhitePiece){
+                        // update white king side castling hash
+                        board.setZobristHash((board.getZobristHash() ^ Zobrist.castlingHash[0]));
+                    }
+                    else{
+                        // update black king side castling hash
+                        board.setZobristHash((board.getZobristHash() ^ Zobrist.castlingHash[2]));
+                    }
                 }
                 else if (board.hasQueenSideCastling(isWhitePiece) && isQueenSideRook(isWhitePiece, getStart())) {
                     board.setRookSideCastling(isWhitePiece, getStart(), false);
                     rookLostCastling = true;
+
+                    if(isWhitePiece){
+                        // update white queen side castling hash
+                        board.setZobristHash((board.getZobristHash() ^ Zobrist.castlingHash[1]));
+                    }
+                    else{
+                        // update black queen side castling hash
+                        board.setZobristHash((board.getZobristHash() ^ Zobrist.castlingHash[3]));
+                    }
                 }
             }
         }

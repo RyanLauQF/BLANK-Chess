@@ -407,7 +407,13 @@ public class ChessGUI extends JPanel {
                             interruptedException.printStackTrace();
                         }
                         gui.showMovementTiles(moveStart, moveEnd);
+
                         if(gui.checksGameEndedAfterEveryMove()){
+                            // store zobrist hash of board after player has moved into repetition history
+                            long zobristHash = gui.board.getZobristHash();
+                            int repetitionCount = gui.board.repetitionHistory.containsKey(zobristHash) ? gui.board.repetitionHistory.get(zobristHash) : 0;
+                            gui.board.repetitionHistory.put(zobristHash, (byte) (repetitionCount + 1));
+
                             // if human vs human, check if the game has ended after every move is made
                             if(GameStatus.checkGameEnded(gui.board)){
                                 String gameState = GameStatus.getHowGameEnded();

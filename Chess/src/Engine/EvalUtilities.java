@@ -92,6 +92,8 @@ public class EvalUtilities {
             -50,-30,-30,-30,-30,-30,-30,-50
     };
 
+    public static final int CHECKMATE_SCORE = 100000;
+
     /**
      * Static evaluation of a board in its current state
      * @param board refers to the board at a specific position to be evaluated

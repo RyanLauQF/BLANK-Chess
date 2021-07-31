@@ -23,7 +23,7 @@ public class GameStatus {
             isCheckMate = true;
             return true;
         }
-        if(board.getWhitePieces().getCount() == 1 && board.getBlackPieces().getCount() == 1){
+        if(board.getWhitePieces().getCount() == 1 && board.getBlackPieces().getCount() == 1 || board.repetitionHistory.get(board.getZobristHash()) == 3){
             isDraw = true;
             return true;
         }

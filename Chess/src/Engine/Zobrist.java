@@ -21,19 +21,56 @@ public class Zobrist {
      *      9 - black rook
      *      10 - black queen
      *      11 - black king
+     *
+     * Castling rights indexing:
+     *      0 - white king side castle
+     *      1 - white queen side castle
+     *      2 - black king side castle
+     *      3 - black queen side castle
+     *
+     * Enpassant hash indexing:
+     *      0 - a file
+     *      1 - b file
+     *      2 - c file
+     *      3 - d file
+     *      4 - e file
+     *      5 - f file
+     *      6 - g file
+     *      7 - h file
      */
 
     public static long[][] pieceKeys;
+    public static long isWhiteTurnHash;
+    public static long[] castlingHash;
+    public static long[] enpassantHash;
+
 
     static{
         // generate a random number for each piece type at each square
         pieceKeys = new long[64][12];
+        castlingHash = new long[4];
+        enpassantHash = new long[8];
+
         Random rand = new Random();
 
+        // generate piece position hash
         for(int i = 0; i < 64; i++){
             for(int j = 0; j < 12; j++){
                 pieceKeys[i][j] = rand.nextLong();
             }
+        }
+
+        // generate turn hash
+        isWhiteTurnHash = rand.nextLong();
+
+        // generate castling rights hash
+        for(int i = 0; i < 4; i++){
+            castlingHash[i] = rand.nextLong();
+        }
+
+        // generate enpassant hash for each file
+        for(int i = 0; i < 8; i++){
+            enpassantHash[i] = rand.nextLong();
         }
     }
 
@@ -42,6 +79,7 @@ public class Zobrist {
         PieceList whitePieces = board.getWhitePieces();
         PieceList blackPieces = board.getBlackPieces();
 
+        // get piece position data
         Piece piece;
         for(int i = 0; i < whitePieces.getCount(); i++){
             piece = board.getTile(whitePieces.occupiedTiles[i]).getPiece();
@@ -51,6 +89,33 @@ public class Zobrist {
         for(int i = 0; i < blackPieces.getCount(); i++){
             piece = board.getTile(blackPieces.occupiedTiles[i]).getPiece();
             zobristHash ^= getKey(piece);
+        }
+
+        // get turn data
+        if(board.isWhiteTurn()){
+            zobristHash ^= isWhiteTurnHash;
+        }
+
+        // get castling data
+        if(board.getWhiteKingSideCastle()){
+            zobristHash ^= castlingHash[0];
+        }
+
+        if(board.getWhiteQueenSideCastle()){
+            zobristHash ^= castlingHash[1];
+        }
+
+        if(board.getBlackKingSideCastle()){
+            zobristHash ^= castlingHash[2];
+        }
+
+        if(board.getBlackQueenSideCastle()){
+            zobristHash ^= castlingHash[3];
+        }
+
+        // get enpassant data
+        if(board.canEnpassant()){
+            zobristHash ^= enpassantHash[Piece.getCol(board.getEnpassant())];
         }
 
         return zobristHash;

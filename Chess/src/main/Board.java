@@ -66,6 +66,9 @@ public class Board {
     // hash of the current board position
     public long zobristHash;
 
+    // used to track 3 fold repetition
+    public HashMap<Long, Byte> repetitionHistory;
+
     /**
      * Board constructor
      */
@@ -80,6 +83,8 @@ public class Board {
         this.previousMove = null;
         this.hasWhiteKingCastled = false;
         this.hasBlackKingCastled = false;
+        this.repetitionHistory = new HashMap<>();
+        this.zobristHash = 0;
     }
 
     /**
@@ -91,6 +96,7 @@ public class Board {
         // set board to default position / custom FEN position
         FENUtilities.convertFENtoBoard(FEN, this);
         zobristHash = Zobrist.generateHash(this);   // starting hash of the board
+        repetitionHistory.put(zobristHash, (byte) 1);
     }
 
     /**
@@ -656,6 +662,10 @@ public class Board {
     }
 
     public void setTurn(boolean whiteTurn){
+        if(getZobristHash() != 0){  // checks if hash has been initiated
+            // update zobrist hash for turn change
+            setZobristHash((getZobristHash() ^ Zobrist.isWhiteTurnHash));
+        }
         this.isWhiteTurn = whiteTurn;
     }
 
@@ -685,6 +695,19 @@ public class Board {
     }
 
     public void setEnpassant(int position){
+        if(this.zobristHash != 0){  // checks if hash has been initiated
+            // update the zobrist hash with enpassant availability
+            if(this.enpassantPosition != -1) {
+                // if there was an enpassant position previously
+                // remove previous enpassant hash from zobrist
+                setZobristHash((getZobristHash() ^ Zobrist.enpassantHash[Piece.getCol(this.enpassantPosition)]));
+            }
+            if(position != -1){
+                // enpassant is available
+                setZobristHash((getZobristHash() ^ Zobrist.enpassantHash[Piece.getCol(position)]));
+            }
+        }
+
         this.enpassantPosition = position;
     }
 
