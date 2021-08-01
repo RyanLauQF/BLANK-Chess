@@ -13,7 +13,7 @@ public class Pawn extends Piece {
      * Pawn moves by sliding. Check if the pawn is blocked by any piece when it moves.
      */
 
-    private static final int PAWN_VALUE = 100;
+    public static final int PAWN_VALUE = 100;
 
 
     public Pawn(boolean isWhite, int position, Board b){
@@ -223,6 +223,11 @@ public class Pawn extends Piece {
         }
 
         return PAWN_VALUE + positionBonus;
+    }
+
+    @Override
+    public int getPieceValue(){
+        return PAWN_VALUE;
     }
 
     @Override

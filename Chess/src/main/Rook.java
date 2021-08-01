@@ -11,7 +11,7 @@ public class Rook extends Piece{
      * Similar implementation to a Bishop
      */
 
-    private static final int ROOK_VALUE = 530;
+    public static final int ROOK_VALUE = 530;
 
     public Rook(boolean isWhite, int position, Board b){
         super(isWhite, position, b);
@@ -136,6 +136,11 @@ public class Rook extends Piece{
         }
 
         return ROOK_VALUE + positionBonus;
+    }
+
+    @Override
+    public int getPieceValue(){
+        return ROOK_VALUE;
     }
 
     @Override

@@ -17,7 +17,7 @@ public class King extends Piece {
      * Similar implementation to a knight
      */
 
-    private static final int KING_VALUE = 20000;
+    public static final int KING_VALUE = 20000;
 
     public King(boolean isWhite, int position, Board b){
         super(isWhite, position, b);
@@ -168,6 +168,11 @@ public class King extends Piece {
         }
 
         return KING_VALUE + positionBonus;
+    }
+
+    @Override
+    public int getPieceValue(){
+        return KING_VALUE;
     }
 
     @Override

@@ -410,9 +410,14 @@ public abstract class Piece {
     public abstract String toString();
 
     /**
-     * Represents the value of a piece
+     * Represents the total value of a piece including position evaluation
      * > Used for Chess Engine score evaluation
      * @return the value of the chess piece
      */
     public abstract int getValue();
+
+    /**
+     * @return the value of the piece itself without positional evaluation
+     */
+    public abstract int getPieceValue();
 }

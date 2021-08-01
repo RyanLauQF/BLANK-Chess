@@ -78,7 +78,7 @@ public class GameManager {
 
                     // computer makes move
                     System.out.println("Engine is thinking...");
-                    short move = computerPlayer.getBestMove(5, true);
+                    short move = computerPlayer.getBestMove(6, true);
                     Move movement = new Move(board, move);
                     movement.makeMove();
 
@@ -128,7 +128,7 @@ public class GameManager {
         board.init(FENUtilities.startFEN);
         ChessGUI chessGUI = new ChessGUI(board);
 
-        boolean whitePlayer_isHuman = false;
+        boolean whitePlayer_isHuman = true;
         boolean blackPlayer_isHuman = false;
 
         GameManager gameManager = new GameManager(chessGUI, board, whitePlayer_isHuman, blackPlayer_isHuman);
