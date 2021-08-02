@@ -1,24 +1,29 @@
 import java.io.IOException;
-import java.sql.Time;
 import java.util.ArrayList;
 import java.util.Random;
 
 public class AI {
-    // opening book used by AI
     protected final boolean isWhite;
     protected final Board board;
-    private final OpeningTrie openingBook;
+    private final OpeningTrie openingBook;  // opening book used by AI
     private final TranspositionTable TT;
     private boolean isUsingOpeningBook;
     private int moveNum;
 
+    private static final int MAX_PLY = 60;
+    private static final int REDUCTION_CONSTANT = 2;
+
     private int fullSearchDepth;
-    private int ply;
+    public int ply;
     private int maxPly;
     private int nodeCount;
     private int cutOffCount;
 
-    private static final int REDUCTION_CONSTANT = 2;
+    public short[][] killerMoves;
+    public short[][] historyMoves;
+
+    public Clock timer;
+    private boolean searchStoppedByClock;
 
     public AI(boolean isWhite, Board board) throws IOException {
         this.isWhite = isWhite;
@@ -27,9 +32,16 @@ public class AI {
         this.TT = new TranspositionTable();
         this.moveNum = 0;  // number of moves made by this AI
         this.isUsingOpeningBook = true;
+        this.timer = new Clock();
+        this.killerMoves = new short[2][MAX_PLY];
+        this.historyMoves = new short[64][64];
     }
 
-    // selects a move when it is the AI turn
+    public boolean isWhite(){
+        return isWhite;
+    }
+
+    // selects a random move when it is the AI turn
     public short getMove(){
         ArrayList<Short> moves = board.getAllLegalMoves();
         Random rand = new Random();
@@ -39,50 +51,46 @@ public class AI {
     }
 
     public short getOpeningMove(){
+        Move previousMove = board.getPreviousMove();
+        if(previousMove == null){   // first move being made. AI opening book does not need to record opponent move
+            System.out.println("Using Opening Book!");
+            return getMoveFromOpeningBook();
+        }
+        else{
+            short previousMoveMade = previousMove.getEncodedMove();
+            boolean moveExistsInBook = false;
+            String lastMove = null;
+            // check if the previous move made by opponent exists in opening book
+            previousMove.unMake();  // undo previous move and check
+            for(String bookMoves : openingBook.getSetOfBookMoves()){
+                if(PGNExtract.convertNotationToMove(board, !isWhite(), bookMoves) == previousMoveMade){
+                    moveExistsInBook = true;
+                    lastMove = bookMoves;   // get the PGN String format of the move
+                    break;
+                }
+            }
+            previousMove.makeMove();  // make the move again
+            if(moveExistsInBook){
+                // update the opening book with previous opponent move and get a response
+                openingBook.makeMove(lastMove);
+                System.out.println("Using Opening Book!");
+                return getMoveFromOpeningBook();
+            }
+            else{
+                isUsingOpeningBook = false;
+            }
+        }
+        return -1;
+    }
+
+    public short getMoveFromOpeningBook(){
         // convert the move from algebraic notation to an encoded move.
         String PGN_notation = openingBook.getNextMove();
         openingBook.makeMove(PGN_notation); // make the AI's move in opening book
         return PGNExtract.convertNotationToMove(board, isWhite(), PGN_notation);
     }
 
-    public boolean isWhite(){
-        return isWhite;
-    }
-
-    public short getBestMove(int searchDepth, boolean enableOpeningBook){
-        moveNum++;
-        // gets opening moves from opening book for the first 8 moves
-        if(this.moveNum <= 8 && isUsingOpeningBook && enableOpeningBook){
-            Move previousMove = board.getPreviousMove();
-            if(previousMove == null){   // first move being made. AI opening book does not need to record opponent move
-                System.out.println("Using Opening Book!");
-                return getOpeningMove();
-            }
-            else{
-                short previousMoveMade = previousMove.getEncodedMove();
-                boolean moveExistsInBook = false;
-                String lastMove = null;
-                // check if the previous move made by opponent exists in opening book
-                previousMove.unMake();  // undo previous move and check
-                for(String bookMoves : openingBook.getSetOfBookMoves()){
-                    if(PGNExtract.convertNotationToMove(board, !isWhite(), bookMoves) == previousMoveMade){
-                        moveExistsInBook = true;
-                        lastMove = bookMoves;   // get the PGN String format of the move
-                        break;
-                    }
-                }
-                previousMove.makeMove();  // make the move again
-                if(moveExistsInBook){
-                    // update the opening book with previous opponent move and get a response
-                    openingBook.makeMove(lastMove);
-                    System.out.println("Using Opening Book!");
-                    return getOpeningMove();
-                }
-                else{
-                    isUsingOpeningBook = false;
-                }
-            }
-        }
+    public short getBestMove(int searchDepth){
         if(isEndGame()){
             searchDepth += 1;
         }
@@ -92,18 +100,21 @@ public class AI {
         maxPly = 0;
         nodeCount = 0;
         cutOffCount = 0;
+        killerMoves = new short[2][MAX_PLY];
+        historyMoves = new short[64][64];
 
         long start = System.currentTimeMillis();
-        ArrayList<Short> moves = board.getAllLegalMoves();
+
         short bestMove = 0;
         int bestMoveScore = Integer.MIN_VALUE;
-        for(Short move : MoveOrdering.orderMoves(moves, board, TT)){
+        ArrayList<Short> moves = board.getAllLegalMoves();
+        for(Short move : MoveOrdering.orderMoves(moves, board, TT, this)){
             Move movement = new Move(board, move);
             ply++;
             nodeCount++;
             movement.makeMove();
             int score = -searchBestMove(searchDepth - 1, Integer.MIN_VALUE + 1, Integer.MAX_VALUE);
-            System.out.println(FENUtilities.convertIndexToRankAndFile(MoveGenerator.getStart(move)) + "-" + FENUtilities.convertIndexToRankAndFile(MoveGenerator.getEnd(move)) + " " + score);
+            //System.out.println(FENUtilities.convertIndexToRankAndFile(MoveGenerator.getStart(move)) + "-" + FENUtilities.convertIndexToRankAndFile(MoveGenerator.getEnd(move)) + " " + score);
             if(score > bestMoveScore){
                 bestMoveScore = score;
                 bestMove = move;
@@ -111,27 +122,30 @@ public class AI {
             movement.unMake();
             ply--;
         }
+
         // record into Transposition table
         TT.store(board.getZobristHash(), bestMove, (byte) searchDepth, bestMoveScore, TranspositionTable.EXACT_TYPE);
 
         long finish = System.currentTimeMillis();
         long timeElapsed = finish - start;
         float convertTime = (float) timeElapsed / 1000;
-        System.out.println("---------------------------------");
-        System.out.println("Best Move Score: " + bestMoveScore);
-        System.out.println("Depth: " + searchDepth);
-        System.out.println("Max Depth Searched: " + maxPly);
-        System.out.println("Nodes Searched: " + nodeCount);
-        System.out.println("Best Move: " + FENUtilities.convertIndexToRankAndFile(MoveGenerator.getStart(bestMove)) + "-" + FENUtilities.convertIndexToRankAndFile(MoveGenerator.getEnd(bestMove)));
-        System.out.println("Time Elapsed: " + convertTime + " seconds");
-        System.out.println("Transposition Table size: " + TT.table.size());
-        System.out.println("Transposition Cutoff: " + cutOffCount);
-        System.out.println("---------------------------------");
+
+        if(!searchStoppedByClock){
+            System.out.println("---------------------------------");
+            System.out.println("Best Move Score: " + bestMoveScore);
+            System.out.println("Depth: " + searchDepth);
+            System.out.println("Max Depth Searched: " + maxPly);
+            System.out.println("Nodes Searched: " + nodeCount);
+            System.out.println("Best Move: " + FENUtilities.convertIndexToRankAndFile(MoveGenerator.getStart(bestMove)) + "-" + FENUtilities.convertIndexToRankAndFile(MoveGenerator.getEnd(bestMove)));
+            System.out.println("Time Elapsed: " + convertTime + " seconds");
+            System.out.println("Transposition Table size: " + TT.table.size());
+            System.out.println("Transposition Cutoff: " + cutOffCount);
+            System.out.println("---------------------------------");
+        }
         return bestMove;
     }
 
     public int searchBestMove(int depth, int alpha, int beta){
-
         long zobrist = board.getZobristHash();
         // obtain transposition table data if current position has already been evaluated before
         if(TT.containsKey(zobrist)){
@@ -174,6 +188,13 @@ public class AI {
             int score = -searchBestMove(depth - 1 - REDUCTION_CONSTANT, -beta, -beta + 1);   // set R to 2
             nullMove.unmakeNullMove();
             ply--;
+
+            // time is up
+            if (timer.isTimeUp()) {
+                searchStoppedByClock = true;
+                return 0;
+            }
+
             if (score >= beta){
                 return beta;
             }
@@ -196,13 +217,20 @@ public class AI {
         short currentBestMove = 0;
         int bestScore = Integer.MIN_VALUE + 1;
 
-        for (Short encodedMove : MoveOrdering.orderMoves(encodedMoves, board, TT)) {
+        for (Short encodedMove : MoveOrdering.orderMoves(encodedMoves, board, TT, this)) {
             Move move = new Move(board, encodedMove);
             ply++;
             move.makeMove();
             int searchedScore = -searchBestMove(depth - 1, -beta, -alpha);
             move.unMake();
             ply--;
+
+            // time is up
+            if (timer.isTimeUp()) {
+                searchStoppedByClock = true;
+                return 0;
+            }
+
             if(searchedScore >= bestScore){
                 bestScore = searchedScore;
                 currentBestMove = encodedMove;
@@ -211,7 +239,19 @@ public class AI {
                 alpha = bestScore;
             }
             if(alpha >= beta) { // cut off has occurred
+                // store in tranposition table
                 TT.store(board.getZobristHash(), currentBestMove, (byte) depth, alpha, TranspositionTable.LOWERBOUND_TYPE);
+
+                // if the move that causes a cut off is a quiet move (not a capture) store move as killer and history moves
+                if(!MoveGenerator.isCapture(encodedMove)){
+                    // store killer move
+                    killerMoves[1][ply] = killerMoves[0][ply];
+                    killerMoves[0][ply] = encodedMove;
+
+                    // store history move data
+                    historyMoves[MoveGenerator.getStart(encodedMove)][MoveGenerator.getEnd(encodedMove)]++;
+                }
+
                 return alpha;
             }
         }
@@ -240,7 +280,7 @@ public class AI {
         }
 
         ArrayList<Short> captureMoves = board.getAllCaptures();
-        for (Short encodedMove : MoveOrdering.orderMoves(captureMoves, board, TT)) {
+        for (Short encodedMove : MoveOrdering.orderMoves(captureMoves, board, TT, this)) {
             Move move = new Move(board, encodedMove);
 
             ply++;
@@ -249,6 +289,12 @@ public class AI {
             int searchedScore = -quiescenceSearch(-beta, -alpha);
             move.unMake();
             ply--;
+
+            // time is up
+            if (timer.isTimeUp()) {
+                searchStoppedByClock = true;
+                return 0;
+            }
 
             if(searchedScore >= beta) {
                 return beta;
@@ -261,12 +307,31 @@ public class AI {
         return alpha;
     }
 
-    public void iterativeDS(int depth){
-        for(int curr_depth = 1; curr_depth <= depth; curr_depth++){
-            // int score = searchBestMove(curr_depth, Integer.MIN_VALUE + 1, Integer.MAX_VALUE);
-            int score = getBestMove(curr_depth, false);
-            System.out.println(score);
+    public short iterativeDS(long searchDuration, boolean enableOpeningBook){
+        moveNum++;
+        short bestMove = 0;
+        // gets opening moves from opening book for the first 8 moves
+        if(this.moveNum <= 8 && isUsingOpeningBook && enableOpeningBook){
+            bestMove = getOpeningMove();
+            if(bestMove != -1){
+                return bestMove;
+            }
         }
+
+        timer.setTimeControl(searchDuration);
+        timer.start();
+        searchStoppedByClock = false;
+        short currentMove;
+        for(int curr_depth = 1; curr_depth <= MAX_PLY; curr_depth++){
+            currentMove = getBestMove(curr_depth);
+            if(!searchStoppedByClock){  // use move in the last iteration if the search was stopped by clock
+                bestMove = currentMove;
+            }
+            if(timer.isTimeUp()){
+                break;
+            }
+        }
+        return bestMove;
     }
 
     /**
@@ -282,27 +347,27 @@ public class AI {
      */
     public static void main(String[] args) throws IOException {
         Board board = new Board();
-        String FEN = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1";
-        board.init("6k1/5ppp/p1nB4/1p1p4/3P1K2/2P4P/PP3PP1/8 b - - 0 1");
+        board.init(FENUtilities.trickyFEN);
         AI testAI = new AI(false, board);
 
-        int depth = 5;
+        int depth = 10;
 
         long start = System.currentTimeMillis();
-        testAI.getBestMove(depth, false);
-        //testAI.iterativeDS(depth);
+        testAI.iterativeDS(depth, false);
         long finish = System.currentTimeMillis();
         long timeElapsed = finish - start;
         float convertTime = (float) timeElapsed / 1000;
 
+//        Iterative Deepening count: 2668644
+
 //        Best Move Score: 15
 //        Depth: 5
 //        Max Depth Searched: 28
-//        Nodes Searched: 3697623
+//        Nodes Searched: 3584173
 //        Best Move: e2-a6
-//        Time Elapsed: 10.792 seconds
-//        Transposition Table size: 49578
-//        Transposition Cutoff: 7325
+//        Time Elapsed: 9.579 seconds
+//        Transposition Table size: 49272
+//        Transposition Cutoff: 7363
 
         System.out.println("Time Elapsed: " + convertTime + " seconds");
     }

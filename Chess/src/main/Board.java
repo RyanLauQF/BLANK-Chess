@@ -754,7 +754,7 @@ public class Board {
 
     /**
      * Unit testing
-     * > Able to play Chess on CLI. (Promotion has not been implemented)
+     * > Able to play Chess on CLI.
      */
     public static void main(String[] args) {
         Board b = new Board();

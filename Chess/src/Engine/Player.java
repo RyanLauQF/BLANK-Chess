@@ -19,10 +19,4 @@ public class Player extends AI{
     public boolean isHuman(){
         return isHuman;
     }
-    /**
-     * unit testing
-     */
-    public static void main(String[] args) {
-
-    }
 }

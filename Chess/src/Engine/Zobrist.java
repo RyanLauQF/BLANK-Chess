@@ -5,8 +5,13 @@ public class Zobrist {
      * Zobrist hashing is a hash function used to hash a board position of the chess board.
      * This allows for quick look-ups of the same position from a transposition table
      *
-     * At the start of the program, for each 64 square, 12 random numbers will be calculated for each of the
-     * 6 piece types for the 2 sides for a total of 64 * 12 keys.
+     * At the start of the program:
+     *      - For each 64 square, 12 random numbers will be calculated for each of the 6 piece types for the 2 sides
+     *      - 4 numbers for castling rights
+     *      - 8 numbers for enpassant available files
+     *      - 1 number to check which sides turn.
+     *
+     * Total of 64 * 12 + 8 + 4 + 1 = 781 random numbers
      *
      * Piece indexing in hashKey array:
      *      0 - white pawn
@@ -74,6 +79,11 @@ public class Zobrist {
         }
     }
 
+    /**
+     * Generates a Zobrist hash which represents the board in its current position
+     * @param board refers to the current state of the board to be hashed
+     * @return the Zobrist hash of the board state
+     */
     public static long generateHash(Board board){
         long zobristHash = 0;
         PieceList whitePieces = board.getWhitePieces();

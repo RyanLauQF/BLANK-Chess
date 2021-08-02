@@ -8,6 +8,8 @@ public class GameManager {
     private final Player blackPlayer;
     private final Board board;
 
+    private static final long TIME_PER_TURN = 7;
+
     public GameManager(ChessGUI chessGUI, Board board, boolean p1_isHuman, boolean p2_isHuman) throws IOException {
         this.chessGUI = chessGUI;
         this.whitePlayer = new Player(true, p1_isHuman, board);
@@ -27,12 +29,12 @@ public class GameManager {
                 playerToMove = board.isWhiteTurn();
                 short move;
                 if(whitePlayer.isWhite() == playerToMove){
-                    move = whitePlayer.getBestMove(4, true);
+                    move = whitePlayer.iterativeDS(1, true);
                     Move movement = new Move(board, move);
                     movement.makeMove();
                 }
                 else{
-                    move = blackPlayer.getBestMove(4, true);
+                    move = blackPlayer.iterativeDS(1, true);
                     Move movement = new Move(board, move);
                     movement.makeMove();
                 }
@@ -78,7 +80,7 @@ public class GameManager {
 
                     // computer makes move
                     System.out.println("Engine is thinking...");
-                    short move = computerPlayer.getBestMove(6, true);
+                    short move = computerPlayer.iterativeDS(TIME_PER_TURN, true);
                     Move movement = new Move(board, move);
                     movement.makeMove();
 
@@ -102,8 +104,8 @@ public class GameManager {
                         }
                     }
                 }
-            } while ((board.getBlackPieces().getCount() != 1 || board.getWhitePieces().getCount() != 1) &&
-                    board.getAllLegalMoves().size() != 0 || board.repetitionHistory.get(board.getZobristHash()) == 3);
+            } while ((board.getBlackPieces().getCount() + board.getWhitePieces().getCount() != 2) &&
+                    board.getAllLegalMoves().size() != 0);
 
             if(GameStatus.checkGameEnded(board)){
                 String gameState = GameStatus.getHowGameEnded();
@@ -121,7 +123,7 @@ public class GameManager {
     public static void main(String[] args) throws IOException, InterruptedException {
         Board board = new Board();
         // Custom FEN input
-        String FEN = "r3k2r/p1ppqpb1/Bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPB1PPP/R3K2R b - - 0 1";
+        String FEN = "5R2/1k6/8/8/6K1/8/8/8 b - - 0 1";
         //board.init("8/1p2kp2/6pK/p3b3/4r3/8/8/8 w - - 0 1");
         //board.init("8/8/8/5R2/1p3k2/6pK/1r6/8 b - - 0 1");
 

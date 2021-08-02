@@ -1,6 +1,7 @@
 public class FENUtilities { // static class for all FEN related methods
     // starting FEN notation for a normal game
     public static final String startFEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+    public static final String trickyFEN = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1";
 
     /**
      * DO NOT INSTANTIATE A STATIC CLASS

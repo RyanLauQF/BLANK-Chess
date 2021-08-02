@@ -1,3 +1,4 @@
+import java.io.IOException;
 import java.util.ArrayList;
 
 public class MoveOrdering {
@@ -19,17 +20,17 @@ public class MoveOrdering {
             {0, 0, 0, 0, 0, 0, 0},          // victim None, attacker K, Q, R, B, N, P, None
     };
 
-    public static ArrayList<Short> orderMoves(ArrayList<Short> moves, Board board, TranspositionTable TT) {
+    public static ArrayList<Short> orderMoves(ArrayList<Short> moves, Board board, TranspositionTable TT, AI ai) {
         moves.sort((move1, move2) -> {
-            int moveScore1 = getMoveScore(move1, board, TT);
-            int moveScore2 = getMoveScore(move2, board, TT);
+            int moveScore1 = getMoveScore(move1, board, TT, ai);
+            int moveScore2 = getMoveScore(move2, board, TT, ai);
 
             return Integer.compare(moveScore2, moveScore1);
         });
         return moves;
     }
 
-    private static int getMoveScore(Short move, Board board, TranspositionTable TT){
+    private static int getMoveScore(Short move, Board board, TranspositionTable TT, AI ai){
         short hashMove = 0;
         byte flag = -1;
         if(TT.containsKey(board.getZobristHash())){
@@ -58,13 +59,27 @@ public class MoveOrdering {
             // Sort by Most Valuable Victim / Least Valuable Aggressor
             if (MoveGenerator.getMoveType(move) == 4) {
                 // normal capture
-//                score += (10 * (board.getTile(end).getPiece().getPieceValue() - startPiece.getPieceValue()));
                 score += MVV_LVA(board.getTile(end).getPiece(), startPiece);
             }
-            else{   // enpassant capture
+            else{
+                // enpassant capture
                 score += MVV_LVA_SCORES[PAWN_INDEX][PAWN_INDEX];  // pawn (victim) - pawn (attacker) capture
             }
             score += 10000; // prioritise captures
+        }
+        // quiet positions
+        else{
+            // killer move
+            if(move == ai.killerMoves[0][ai.ply]){
+                score += 8000;
+            }
+            else if(move == ai.killerMoves[1][ai.ply]){
+                score += 7000;
+            }
+            else{
+               // history move score
+                score += ai.historyMoves[start][end];
+            }
         }
 
         if(MoveGenerator.isPromotion(move)){
@@ -124,16 +139,17 @@ public class MoveOrdering {
         return NONE_INDEX;
     }
 
-    public static void main(String[] args){
+    public static void main(String[] args) throws IOException {
         Board board = new Board();
         board.init("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
         TranspositionTable TT = new TranspositionTable();
-
-        ArrayList<Short> allMoves = orderMoves(board.getAllLegalMoves(), board, TT);
+        AI ai = new AI(true, board);
+        ai.iterativeDS(10, false);
+        ArrayList<Short> allMoves = orderMoves(board.getAllLegalMoves(), board, TT, ai);
 
         for(Short moves : allMoves){
             System.out.print(FENUtilities.convertIndexToRankAndFile(MoveGenerator.getStart(moves)) + "-" + FENUtilities.convertIndexToRankAndFile(MoveGenerator.getEnd(moves)) + " ");
-            System.out.println("Score: " + getMoveScore(moves, board, TT) + " ");
+            System.out.println("Score: " + getMoveScore(moves, board, TT, ai) + " ");
         }
     }
 }
