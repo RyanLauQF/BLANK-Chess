@@ -307,30 +307,48 @@ public class AI {
         return alpha;
     }
 
-    public short iterativeDS(long searchDuration, boolean enableOpeningBook){
+    public short iterativeDS(double searchDuration, boolean enableOpeningBook){
         moveNum++;
         short bestMove = 0;
+
         // gets opening moves from opening book for the first 8 moves
         if(this.moveNum <= 8 && isUsingOpeningBook && enableOpeningBook){
             bestMove = getOpeningMove();
-            if(bestMove != -1){
+            if(bestMove != -1){     // checks if the opening book contains the move, if it does not, -1 is returned
                 return bestMove;
             }
         }
 
-        timer.setTimeControl(searchDuration);
-        timer.start();
+        System.out.println("Time Allocated: " + searchDuration + " seconds");
+        // set the time for search.
+        timer.setTime(searchDuration);
+        timer.start();  // start the clock
         searchStoppedByClock = false;
         short currentMove;
+        double iterationEndTime, timeElapsedSinceStart;
+
+        // iterative deepening search
         for(int curr_depth = 1; curr_depth <= MAX_PLY; curr_depth++){
+            // search for best move to the given depth of current iteration
             currentMove = getBestMove(curr_depth);
+
+            // end time of this iteration
+            iterationEndTime = System.currentTimeMillis();
+
+            // time taken to get to this iteration (to determine if we should continue to search next iteration in given time)
+            timeElapsedSinceStart = iterationEndTime - timer.getStartTime();
+
             if(!searchStoppedByClock){  // use move in the last iteration if the search was stopped by clock
                 bestMove = currentMove;
             }
-            if(timer.isTimeUp()){
+
+            // hard stop the search if timer is up or if the remaining time is less than the time taken to get to current ply
+            if(timer.isTimeUp() || (timer.getRemainingTime() < timeElapsedSinceStart)){
+                System.out.println("Time Taken: " + timeElapsedSinceStart);
                 break;
             }
         }
+
         return bestMove;
     }
 
@@ -350,7 +368,7 @@ public class AI {
         board.init(FENUtilities.trickyFEN);
         AI testAI = new AI(false, board);
 
-        int depth = 10;
+        int depth = 15;
 
         long start = System.currentTimeMillis();
         testAI.iterativeDS(depth, false);

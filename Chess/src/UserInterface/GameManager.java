@@ -8,13 +8,19 @@ public class GameManager {
     private final Player blackPlayer;
     private final Board board;
 
-    private static final long TIME_PER_TURN = 7;
+    private final Clock playerOneClock;
+    private final Clock playerTwoClock;
+
+    private static final int timePerPlayer = 300;    // 5 minutes per player
+    private static final int incrementPerMove = 5;   // 5 seconds increment per move
 
     public GameManager(ChessGUI chessGUI, Board board, boolean p1_isHuman, boolean p2_isHuman) throws IOException {
         this.chessGUI = chessGUI;
         this.whitePlayer = new Player(true, p1_isHuman, board);
         this.blackPlayer = new Player(false, p2_isHuman, board);
         this.board = board;
+        this.playerOneClock = new Clock();
+        this.playerTwoClock = new Clock();
     }
 
     public void startGame() throws InterruptedException {
@@ -66,6 +72,9 @@ public class GameManager {
                 computerPlayer = blackPlayer;   // if the AI is the black player
             }
 
+            // sets time control for the game
+            setGameTimeControl(timePerPlayer, incrementPerMove);
+
             boolean playerPrompted = false;
             do {
                 if (computerPlayer.isWhite() == board.isWhiteTurn()) {
@@ -73,6 +82,7 @@ public class GameManager {
                         TimeUnit.MILLISECONDS.sleep(500);
                         continue;
                     }
+                    playerTwoClock.start();
                     // store zobrist hash of board after player has moved into repetition history
                     long zobristHash = board.getZobristHash();
                     int repetitionCount = board.repetitionHistory.containsKey(zobristHash) ? board.repetitionHistory.get(zobristHash) : 0;
@@ -80,7 +90,7 @@ public class GameManager {
 
                     // computer makes move
                     System.out.println("Engine is thinking...");
-                    short move = computerPlayer.iterativeDS(TIME_PER_TURN, true);
+                    short move = computerPlayer.iterativeDS(Clock.getTimePerMove(playerTwoClock.getRemainingTime() / 1000, incrementPerMove), true);
                     Move movement = new Move(board, move);
                     movement.makeMove();
 
@@ -92,6 +102,9 @@ public class GameManager {
                     chessGUI.update();
                     chessGUI.showMovementTiles(MoveGenerator.getStart(move), MoveGenerator.getEnd(move));
                     playerPrompted = false;
+                    playerTwoClock.pause();
+                    playerTwoClock.incrementTime();
+                    System.out.println("Remaining Time: " + playerTwoClock.getRemainingTime());
                 } else {
                     if(!playerPrompted){
                         System.out.println("Waiting for Player move...");
@@ -118,6 +131,17 @@ public class GameManager {
             // check if the game has ended after every move is made on the board by the players
             chessGUI.setCheckGameEndAfterEachMove(true);
         }
+    }
+
+    /**
+     * Sets time control for the game
+     * @param totalTimePerPlayer refers to the total time given to each player for the game (in seconds)
+     * @param incrementPerMove refers to the bonus time awarded after each move is made (in seconds)
+     */
+    private void setGameTimeControl(double totalTimePerPlayer, double incrementPerMove){
+        // set time control
+        playerOneClock.setTimeControl(totalTimePerPlayer, incrementPerMove);
+        playerTwoClock.setTimeControl(totalTimePerPlayer, incrementPerMove);
     }
 
     public static void main(String[] args) throws IOException, InterruptedException {

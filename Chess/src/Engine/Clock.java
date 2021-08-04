@@ -1,52 +1,139 @@
 public class Clock {
-    private long timeControl;
-    private long endTime;
+    private double startTime;
+    private double endTime;
+    private double remainingTime;
+    private double timeIncrementPerMove;
+
     private boolean isClockStarted;
 
     /**
      * Constructor
      */
-    public Clock(){
-        this.timeControl = 5;   // default time control is 5 seconds
+    public Clock() {
         this.isClockStarted = false;
+        this.startTime = 0;
         this.endTime = 0;
+        this.remainingTime = 0;
+        this.timeIncrementPerMove = 0;
     }
 
     /**
-     * Sets the end timing to start time + duration specified
+     * Sets the time duration for the clock to run
+     *
+     * @param duration refers to the time set on clock to run (in seconds)
      */
-    public void start(){
-        endTime = System.currentTimeMillis() + convertTimeToMs(timeControl);
+    public void setTime(double duration) {
+        this.remainingTime = convertTimeToMs(duration);
+
+        // resets the clock
+        isClockStarted = false;
+    }
+
+    /**
+     * Used for managing time control in a chess game
+     * @param gameDuration refers to the total time allocated to each player for the game (in seconds)
+     * @param incrementPerMove refers to the bonus time awarded to player after each move (in seconds)
+     */
+    public void setTimeControl(double gameDuration, double incrementPerMove){
+        setTime(gameDuration);
+        this.timeIncrementPerMove = convertTimeToMs(incrementPerMove);
+    }
+
+    /**
+     * Sets the end timing to start time + remaining time
+     */
+    public void start() {
+        startTime = System.currentTimeMillis();
+        endTime = startTime + remainingTime;
         isClockStarted = true;
+    }
+
+    public void pause(){
+        if(!isTimeUp()){
+            remainingTime = getRemainingTime();
+        }
+    }
+
+    public void incrementTime(){
+        remainingTime += timeIncrementPerMove;
     }
 
     /**
      * Checks if current time has exceeded end time after clock has started
+     *
      * @return true if it has, else return false
      */
-    public boolean isTimeUp(){
-        if(!isClockStarted){
-            return false;   // clock has not been started
+    public boolean isTimeUp() {
+        if (!isClockStarted) {
+            return true;   // clock has not been started
         }
-        long currentTime = System.currentTimeMillis();
+        double currentTime = System.currentTimeMillis();
         return endTime - currentTime < 0;
     }
 
     /**
-     * Sets the time duration for each turn
-     * @param timeControl refers to the duration per turn on the clock
+     * Calculates the remaining time left on the clock
+     *
+     * @return the remaining time in milliseconds
      */
-    public void setTimeControl(long timeControl){
-        this.timeControl = timeControl;
-        isClockStarted = false; // resets the clock
+    public double getRemainingTime() {
+        if (isTimeUp()) {
+            return 0;
+        }
+        double currentTime = System.currentTimeMillis();
+        return endTime - currentTime;
+    }
+
+    /**
+     * @return start time of the clock. If the time has not started, return 0;
+     */
+    public double getStartTime() {
+        if (!isClockStarted) {
+            return 0;   // clock has not been started
+        }
+        return startTime;
+    }
+
+    /**
+     * Checks if the clock has been started
+     * @return true if clock is running else return false
+     */
+    public boolean hasClockStarted(){
+        return isClockStarted;
+    }
+
+    /**
+     * Gets the time per move allocated to an AI based on time left and bonus timing (if any)
+     * @param totalTimeLeft refers to the time left for the AI (in seconds)
+     * @param incrementPerMove refers to the bonus time awarded at the end of each turn (in seconds)
+     * @return the time allocated for the AI to think based on the time conditions (seconds)
+     */
+    public static double getTimePerMove(double totalTimeLeft, double incrementPerMove) {
+        totalTimeLeft = convertTimeToMs(totalTimeLeft);
+        incrementPerMove = convertTimeToMs(incrementPerMove);
+
+        int estimatedMovesToGo = 30; // divides the total time left by 30
+        int lagTime = 50;    // account for lag time per move in milliseconds (when breaking out of search / processing inputs)
+
+        totalTimeLeft -= lagTime;
+        double timePerMove = (totalTimeLeft / estimatedMovesToGo) + incrementPerMove;
+
+        // ensure that the AI does not lose based on time
+        if(incrementPerMove > 0 && totalTimeLeft < (5 * incrementPerMove)){
+            // use only 75% of the increment time to play each move to account for lag time
+            return (incrementPerMove * 75) / 100;
+        }
+
+        return timePerMove / 1000;
     }
 
     /**
      * Converts time in seconds to milliseconds (10 ^ 3)
+     *
      * @param timeInSeconds refers to the time measured in seconds
      * @return the converted time in milliseconds
      */
-    private static long convertTimeToMs(long timeInSeconds){
+    private static double convertTimeToMs(double timeInSeconds) {
         return timeInSeconds * 1000;
     }
 }
