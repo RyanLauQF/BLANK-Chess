@@ -108,9 +108,24 @@ public class MoveGenerator {
         return (moveType & CAPTURE_MASK) == 4;
     }
 
+    /**
+     * Checks if the move is a castling move
+     * @param move refers to the 16 bit encoded mpve
+     * @return true if the move type is equal to 2 / 3 for king or queen side castling respectively
+     */
     public static boolean isCastling(short move){
         int moveType = getMoveType(move);
         return moveType == 2 || moveType == 3;
+    }
+
+    /**
+     * Used for to convert the moves to rank and file
+     */
+    public static String toString(short move){
+        int start = MoveGenerator.getStart(move);
+        int end = MoveGenerator.getEnd(move);
+
+        return FENUtilities.convertIndexToRankAndFile(start) + FENUtilities.convertIndexToRankAndFile(end);
     }
 
 //    /**

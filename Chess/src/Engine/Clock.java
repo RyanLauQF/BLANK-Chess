@@ -65,7 +65,7 @@ public class Clock {
      */
     public boolean isTimeUp() {
         if (!isClockStarted) {
-            return true;   // clock has not been started
+            return false;   // clock has not been started
         }
         double currentTime = System.currentTimeMillis();
         return endTime - currentTime < 0;
@@ -92,14 +92,6 @@ public class Clock {
             return 0;   // clock has not been started
         }
         return startTime;
-    }
-
-    /**
-     * Checks if the clock has been started
-     * @return true if clock is running else return false
-     */
-    public boolean hasClockStarted(){
-        return isClockStarted;
     }
 
     /**

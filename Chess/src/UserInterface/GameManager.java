@@ -35,12 +35,12 @@ public class GameManager {
                 playerToMove = board.isWhiteTurn();
                 short move;
                 if(whitePlayer.isWhite() == playerToMove){
-                    move = whitePlayer.iterativeDS(1, true);
+                    move = whitePlayer.iterativeDS(0.5, true);
                     Move movement = new Move(board, move);
                     movement.makeMove();
                 }
                 else{
-                    move = blackPlayer.iterativeDS(1, true);
+                    move = blackPlayer.iterativeDS(0.5, true);
                     Move movement = new Move(board, move);
                     movement.makeMove();
                 }
@@ -52,7 +52,7 @@ public class GameManager {
                 byte repetitionCount = board.repetitionHistory.containsKey(zobristHash) ? board.repetitionHistory.get(zobristHash) : 0;
                 board.repetitionHistory.put(zobristHash, (byte) (repetitionCount + 1));
 
-                if(board.getBlackPieces().getCount() == 1 && board.getWhitePieces().getCount() == 1 || board.repetitionHistory.get(board.getZobristHash()) == 3){
+                if(board.getBlackPieces().getCount() == 1 && board.getWhitePieces().getCount() == 1 || board.repetitionHistory.get(zobristHash) == 3){
                     break;
                 }
             }
@@ -86,6 +86,7 @@ public class GameManager {
                     // store zobrist hash of board after player has moved into repetition history
                     long zobristHash = board.getZobristHash();
                     int repetitionCount = board.repetitionHistory.containsKey(zobristHash) ? board.repetitionHistory.get(zobristHash) : 0;
+                    System.out.println(repetitionCount);
                     board.repetitionHistory.put(zobristHash, (byte) (repetitionCount + 1));
 
                     // computer makes move
@@ -146,11 +147,6 @@ public class GameManager {
 
     public static void main(String[] args) throws IOException, InterruptedException {
         Board board = new Board();
-        // Custom FEN input
-        String FEN = "5R2/1k6/8/8/6K1/8/8/8 b - - 0 1";
-        //board.init("8/1p2kp2/6pK/p3b3/4r3/8/8/8 w - - 0 1");
-        //board.init("8/8/8/5R2/1p3k2/6pK/1r6/8 b - - 0 1");
-
         board.init(FENUtilities.startFEN);
         ChessGUI chessGUI = new ChessGUI(board);
 

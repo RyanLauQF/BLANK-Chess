@@ -1,5 +1,3 @@
-import java.io.Serializable;
-
 /**
  * Keeps track of the individual pieces of each side on the board within an array
  */

@@ -417,9 +417,10 @@ public class PGNExtract {
         //PGNExtract.processPGN("black2600.pgn");
         //PGNExtract.processPGN("white2600.pgn");
 
-        Board board = new Board();
-        board.init(FENUtilities.startFEN);
-        short test = PGNExtract.convertNotationToMove(board, board.isWhiteTurn(), "d4");
+//        Board board = new Board();
+//        board.init(FENUtilities.startFEN);
+//        short test = PGNExtract.convertNotationToMove(board, board.isWhiteTurn(), "d4");
+
         // Test convertNotationToMove method
 //        URL path = PGNExtract.class.getResource("whiteProcessedBook.txt");
 //        File processedPGN = new File(path.getFile());
