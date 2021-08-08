@@ -1,6 +1,7 @@
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
+import java.io.IOException;
 import java.net.URL;
 import java.util.Stack;
 import java.util.concurrent.TimeUnit;
@@ -270,7 +271,7 @@ public class ChessGUI extends JPanel {
      * Creates a JFrame to store the ChessGUI JPanel and add the JPanel into the JFrame
      * ChessGUI JPanel stores 64 TilePanels (to represent the chess board)
      */
-    public void initGUI(){
+    public void initGUI() {
         SwingUtilities.invokeLater(() -> {  // initiates Swing on Event Dispatcher Thread (EDT)
             JFrame frame = new JFrame("Chess Interface");
             frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);

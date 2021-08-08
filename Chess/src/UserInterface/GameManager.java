@@ -146,12 +146,15 @@ public class GameManager {
     }
 
     public static void main(String[] args) throws IOException, InterruptedException {
+        // checks if we want to use UCI protocol
+        UCI.UCICommunicate();
+
         Board board = new Board();
         board.init(FENUtilities.startFEN);
         ChessGUI chessGUI = new ChessGUI(board);
 
-        boolean whitePlayer_isHuman = true;
-        boolean blackPlayer_isHuman = false;
+        boolean whitePlayer_isHuman = false;
+        boolean blackPlayer_isHuman = true;
 
         GameManager gameManager = new GameManager(chessGUI, board, whitePlayer_isHuman, blackPlayer_isHuman);
         gameManager.startGame();

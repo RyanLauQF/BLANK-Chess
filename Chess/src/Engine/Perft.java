@@ -50,6 +50,21 @@ public class Perft {
         return total;
     }
 
+    public void perft(int depth){
+        long start = System.currentTimeMillis();
+        long ans = divide(depth);
+        long finish = System.currentTimeMillis();
+        long timeElapsed = finish - start;
+
+        float convertTime = (float) timeElapsed / 1000;
+        double NPS = (double) ans / convertTime;
+
+        System.out.println();
+        System.out.println("Seach to Depth " + depth + ": " + ans);
+        System.out.println("Time Elapsed: " + convertTime + " seconds");
+        System.out.println("NPS: " + NPS);
+    }
+
     /*
      * UNIT TESTING FOR MOVE GENERATION USING PERFT RESULTS
      */
@@ -61,17 +76,7 @@ public class Perft {
         board.init(FEN);
         Perft test = new Perft(board);
         int depth = 5;
-
-        long start = System.currentTimeMillis();
-        long ans = test.divide(depth);
-        long finish = System.currentTimeMillis();
-        long timeElapsed = finish - start;
-
-        float convertTime = (float) timeElapsed / 1000;
-        double NPS = (double) ans / convertTime;
-        System.out.println("Seach to Depth " + depth + ": " + ans);
-        System.out.println("Time Elapsed: " + convertTime + " seconds");
-        System.out.println("NPS: " + NPS);
+        test.perft(depth);
 
 
 //***** USED FOR PERFT TREE DEBUGGING WITH STOCKFISH *****//

@@ -4,13 +4,6 @@ public class FENUtilities { // static class for all FEN related methods
     public static final String trickyFEN = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1";
 
     /**
-     * DO NOT INSTANTIATE A STATIC CLASS
-     */
-    private FENUtilities(){
-        throw new IllegalArgumentException("Do Not Instantiate");
-    }
-
-    /**
      * Converts information from FEN (Forsyth–Edwards Notation) to chess board
      *
      * The FEN String is parsed into 6 different sections based on the " " spacing

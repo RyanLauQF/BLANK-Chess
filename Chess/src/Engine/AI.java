@@ -60,9 +60,13 @@ public class AI {
 
     public short getOpeningMove(){
         Move previousMove = board.getPreviousMove();
+        short openingMove = -1; // return -1 if the opening move is not found
+
         if(previousMove == null){   // first move being made. AI opening book does not need to record opponent move
+            openingMove = getMoveFromOpeningBook();
             System.out.println("Using Opening Book!");
-            return getMoveFromOpeningBook();
+            System.out.println("bestmove " + MoveGenerator.toString(openingMove));
+            return openingMove;
         }
         else{
             short previousMoveMade = previousMove.getEncodedMove();
@@ -81,14 +85,16 @@ public class AI {
             if(moveExistsInBook){
                 // update the opening book with previous opponent move and get a response
                 openingBook.makeMove(lastMove);
+                openingMove = getMoveFromOpeningBook();
                 System.out.println("Using Opening Book!");
-                return getMoveFromOpeningBook();
+                System.out.println("bestmove " + MoveGenerator.toString(openingMove));
+                return openingMove;
             }
             else{
                 isUsingOpeningBook = false;
             }
         }
-        return -1;
+        return openingMove;
     }
 
     public short getMoveFromOpeningBook(){
@@ -184,6 +190,21 @@ public class AI {
         for (Short encodedMove : MoveOrdering.orderMoves(encodedMoves, board, TT, this)) {
             Move move = new Move(board, encodedMove);
             move.makeMove();
+            //            // PVS Search
+//            if (searched_moves == 0) {
+//                score = -alpha_beta(pos, -beta, -alpha, depth - 1, search_info, true);
+//            }
+//            else {
+//                // Late move reductions
+//                if ((searched_moves >= 4) & (!in_check) & (!move_list.moves[i].is_capture()) & (depth > 2))
+//                    score = -alpha_beta(pos, -alpha-1, -alpha, depth - 2, search_info, true);
+//                else
+//                    score = -alpha_beta(pos, -alpha-1, -alpha, depth - 1, search_info, true);
+//
+//                if (score > alpha)
+//                    score = -alpha_beta(pos, -beta, -alpha, depth - 1, search_info, true);
+//            }
+
             int searchedScore = -searchBestMove(depth - 1, searchPly + 1, -beta, -alpha);
             move.unMake();
 
@@ -354,6 +375,7 @@ public class AI {
             //      - remaining time < time taken to get to current ply
 
             if(timer.isTimeUp() || (timer.getRemainingTime() < timeElapsedSinceStart)){
+                System.out.println("bestmove " + MoveGenerator.toString(bestMove));
                 System.out.println("Time Taken: " + timeElapsedSinceStart);
                 break;
             }
@@ -394,12 +416,6 @@ public class AI {
         AI testAI = new AI(false, board);
 
         int timePerSearch = 15;
-
-        long start = System.currentTimeMillis();
         testAI.iterativeDS(timePerSearch, false);
-        long finish = System.currentTimeMillis();
-        long timeElapsed = finish - start;
-        float convertTime = (float) timeElapsed / 1000;
-        System.out.println("Time Elapsed: " + convertTime + " seconds");
     }
 }
