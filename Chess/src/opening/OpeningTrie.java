@@ -1,5 +1,4 @@
 import java.io.*;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Random;
@@ -59,13 +58,12 @@ public class OpeningTrie {
         if(fileName == null){
             throw new IllegalArgumentException("Invalid file!");
         }
-        // gets the path to the file
-        URL path = getClass().getResource(fileName);
-        // builds the opening tree based on PGN input
-        File processedPGN = new File(path.getFile());
-        BufferedReader reader = new BufferedReader(new FileReader(processedPGN));
-        String fileLine;
 
+        // builds the opening tree based on PGN input
+        InputStream inputStream = getClass().getResourceAsStream(fileName);
+        BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+
+        String fileLine;
         // build the trie by processing the file line by line for each move
         while((fileLine = reader.readLine()) != null){
             addMove(fileLine);  // adds the whole line to the trie

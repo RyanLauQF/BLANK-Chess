@@ -35,12 +35,12 @@ public class GameManager {
                 playerToMove = board.isWhiteTurn();
                 short move;
                 if(whitePlayer.isWhite() == playerToMove){
-                    move = whitePlayer.iterativeDS(0.5, true);
+                    move = whitePlayer.searchMove(true, 0.5);
                     Move movement = new Move(board, move);
                     movement.makeMove();
                 }
                 else{
-                    move = blackPlayer.iterativeDS(0.5, true);
+                    move = blackPlayer.searchMove(true, 0.5);
                     Move movement = new Move(board, move);
                     movement.makeMove();
                 }
@@ -91,7 +91,7 @@ public class GameManager {
 
                     // computer makes move
                     System.out.println("Engine is thinking...");
-                    short move = computerPlayer.iterativeDS(Clock.getTimePerMove(playerTwoClock.getRemainingTime() / 1000, incrementPerMove), true);
+                    short move = computerPlayer.searchMove(true, Clock.getTimePerMove(playerTwoClock.getRemainingTime() / 1000, incrementPerMove));
                     Move movement = new Move(board, move);
                     movement.makeMove();
 
@@ -147,14 +147,15 @@ public class GameManager {
 
     public static void main(String[] args) throws IOException, InterruptedException {
         // checks if we want to use UCI protocol
-        UCI.UCICommunicate();
+        new UCI();
 
+        // if user types in "gui" in UCI protocol, local gui will be initiated
         Board board = new Board();
         board.init(FENUtilities.startFEN);
         ChessGUI chessGUI = new ChessGUI(board);
 
-        boolean whitePlayer_isHuman = false;
-        boolean blackPlayer_isHuman = true;
+        boolean whitePlayer_isHuman = true;
+        boolean blackPlayer_isHuman = false;
 
         GameManager gameManager = new GameManager(chessGUI, board, whitePlayer_isHuman, blackPlayer_isHuman);
         gameManager.startGame();

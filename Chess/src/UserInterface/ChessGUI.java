@@ -1,7 +1,6 @@
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
-import java.io.IOException;
 import java.net.URL;
 import java.util.Stack;
 import java.util.concurrent.TimeUnit;
@@ -520,8 +519,6 @@ public class ChessGUI extends JPanel {
      */
     public static void main(String[] args) {
         Board board = new Board();
-        // Custom FEN input
-        //String FEN = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1";
         board.init(FENUtilities.startFEN);
 
         ChessGUI chessGUI = new ChessGUI(board);

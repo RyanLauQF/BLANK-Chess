@@ -20,17 +20,21 @@ public class MoveOrdering {
             {0, 0, 0, 0, 0, 0, 0},          // victim None, attacker K, Q, R, B, N, P, None
     };
 
-    public static ArrayList<Short> orderMoves(ArrayList<Short> moves, Board board, TranspositionTable TT, AI ai) {
+    public static ArrayList<Short> orderMoves(ArrayList<Short> moves, Search searcher) {
         moves.sort((move1, move2) -> {
-            int moveScore1 = getMoveScore(move1, board, TT, ai);
-            int moveScore2 = getMoveScore(move2, board, TT, ai);
+            int moveScore1 = getMoveScore(move1, searcher);
+            int moveScore2 = getMoveScore(move2, searcher);
 
             return Integer.compare(moveScore2, moveScore1);
         });
         return moves;
     }
 
-    private static int getMoveScore(Short move, Board board, TranspositionTable TT, AI ai){
+    private static int getMoveScore(Short move, Search searcher){
+        TranspositionTable TT = searcher.TT;
+        Board board = searcher.board;
+        int currentSearchPly = searcher.ply;
+
         short hashMove = 0;
         byte flag = -1;
         if(TT.containsKey(board.getZobristHash())){
@@ -70,15 +74,15 @@ public class MoveOrdering {
         // quiet positions
         else{
             // killer move
-            if(move == ai.killerMoves[0][ai.ply]){
+            if(move == searcher.killerMoves[0][currentSearchPly]){
                 score += 8000;
             }
-            else if(move == ai.killerMoves[1][ai.ply]){
+            else if(move == searcher.killerMoves[1][currentSearchPly]){
                 score += 7000;
             }
             else{
                // history move score
-                score += ai.historyMoves[start][end];
+                score += searcher.historyMoves[start][end];
             }
         }
 
@@ -140,16 +144,16 @@ public class MoveOrdering {
     }
 
     public static void main(String[] args) throws IOException {
-        Board board = new Board();
-        board.init("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
-        TranspositionTable TT = new TranspositionTable();
-        AI ai = new AI(true, board);
-        ai.iterativeDS(10, false);
-        ArrayList<Short> allMoves = orderMoves(board.getAllLegalMoves(), board, TT, ai);
-
-        for(Short moves : allMoves){
-            System.out.print(FENUtilities.convertIndexToRankAndFile(MoveGenerator.getStart(moves)) + "-" + FENUtilities.convertIndexToRankAndFile(MoveGenerator.getEnd(moves)) + " ");
-            System.out.println("Score: " + getMoveScore(moves, board, TT, ai) + " ");
-        }
+//        Board board = new Board();
+//        board.init("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
+//        TranspositionTable TT = new TranspositionTable();
+//        AI ai = new AI(true, board);
+//        ai.iterativeDS(10, false);
+//        ArrayList<Short> allMoves = orderMoves(board.getAllLegalMoves(), board, TT, ai);
+//
+//        for(Short moves : allMoves){
+//            System.out.print(FENUtilities.convertIndexToRankAndFile(MoveGenerator.getStart(moves)) + "-" + FENUtilities.convertIndexToRankAndFile(MoveGenerator.getEnd(moves)) + " ");
+//            System.out.println("Score: " + getMoveScore(moves, board, TT, ai) + " ");
+//        }
     }
 }
