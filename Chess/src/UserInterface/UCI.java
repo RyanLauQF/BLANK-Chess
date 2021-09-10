@@ -176,13 +176,19 @@ public class UCI {
                     index += 2;
                     break;
                 default:
-                    defaultTiming = true;
                     break;
             }
             index++;
         }
 
+        if(TOTAL_TIME_LEFT == 0 && INCREMENT_TIME == 0){
+            defaultTiming = true;
+        }
+
         if(!isPerft && !defaultTiming){
+            // time given is in milliseconds, convert to seconds
+            TOTAL_TIME_LEFT = TOTAL_TIME_LEFT / 1000;
+            INCREMENT_TIME = INCREMENT_TIME / 1000;
             ALLOCATED_TIME = Clock.getTimePerMove(TOTAL_TIME_LEFT, INCREMENT_TIME);
         }
 

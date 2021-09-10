@@ -1,5 +1,6 @@
 import javax.swing.*;
 import java.io.IOException;
+import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
 
 public class GameManager {
@@ -11,8 +12,9 @@ public class GameManager {
     private final Clock playerOneClock;
     private final Clock playerTwoClock;
 
-    private static final int timePerPlayer = 300;    // 5 minutes per player
-    private static final int incrementPerMove = 5;   // 5 seconds increment per move
+    // default setting
+    private static int timePerPlayer = 300;    // 5 minutes per player
+    private static int incrementPerMove = 5;   // 5 seconds increment per move
 
     public GameManager(ChessGUI chessGUI, Board board, boolean p1_isHuman, boolean p2_isHuman) throws IOException {
         this.chessGUI = chessGUI;
@@ -134,6 +136,108 @@ public class GameManager {
         }
     }
 
+    private static void getTimeControl(){
+        System.out.println("\nGame Settings\n" +
+                "----------------------------------------------------------\n" +
+                "Bullet:\n" +
+                "1) 1 | 0\n" +
+                "2) 2 | 1\n" +
+                "\n" +
+                "Blitz:\n" +
+                "3) 3 | 0\n" +
+                "4) 3 | 2\n" +
+                "5) 5 | 0\n" +
+                "6) 5 | 5\n" +
+                "7) 10 | 0\n" +
+                "\n" +
+                "Custom:\n" +
+                "Type '0' for custom time control\n");
+
+        System.out.println("i.e. 3|2 - represents a game of 3 minutes per player with 2 seconds increment per turn.\n" +
+                "Input the respective indices to select desired time control.\n");
+
+        Scanner sc = new Scanner(System.in);
+        int timeControlIndex = -1;
+        do {
+            System.out.print("Select time control: ");
+            while(!sc.hasNextInt()){    // check for valid input
+                System.out.println("Invalid Input! (0 - 7)");
+                System.out.print("Select time control: ");
+                sc.next();
+            }
+            timeControlIndex = sc.nextInt();
+            switch(timeControlIndex) {
+                case 1:
+                    timePerPlayer = 60;
+                    incrementPerMove = 0;
+                    break;
+
+                case 2:
+                    timePerPlayer = 120;
+                    incrementPerMove = 1;
+                    break;
+
+                case 3:
+                    timePerPlayer = 180;
+                    incrementPerMove = 0;
+                    break;
+
+                case 4:
+                    timePerPlayer = 180;
+                    incrementPerMove = 2;
+                    break;
+
+                case 5:
+                    timePerPlayer = 300;
+                    incrementPerMove = 0;
+                    break;
+
+                case 6:
+                    timePerPlayer = 300;
+                    incrementPerMove = 5;
+                    break;
+
+                case 7:
+                    timePerPlayer = 600;
+                    incrementPerMove = 0;
+                    break;
+
+                case 0:
+                    System.out.println("\nCustom Settings:\n" + "----------------------------------------------------------");
+                    Scanner scanner = new Scanner(System.in);
+                    int customTimePerPlayer;
+                    do {
+                        System.out.print("Total time for each player (in seconds): ");
+                        while (!scanner.hasNextInt()) {
+                            System.out.println("Invalid duration!");
+                            scanner.next();
+                            System.out.print("Total time for each player (in seconds): ");
+                        }
+                        customTimePerPlayer = scanner.nextInt();
+                    } while (customTimePerPlayer <= 0);
+
+                    System.out.println();
+                    int customIncrement;
+                    do {
+                        System.out.print("Bonus time after each turn (in seconds): ");
+                        while (!scanner.hasNextInt()) {
+                            System.out.println("Invalid timing!");
+                            scanner.next();
+                            System.out.print("Bonus time after each turn (in seconds): ");
+                        }
+                        customIncrement = scanner.nextInt();
+                    } while (customIncrement < 0);
+                    System.out.println();
+
+                    // set to custom time controls
+                    timePerPlayer = customTimePerPlayer;
+                    incrementPerMove = customIncrement;
+                    break;
+            }
+        }
+        while(timeControlIndex < 0 || timeControlIndex > 7);
+    }
+
     /**
      * Sets time control for the game
      * @param totalTimePerPlayer refers to the total time given to each player for the game (in seconds)
@@ -143,11 +247,21 @@ public class GameManager {
         // set time control
         playerOneClock.setTimeControl(totalTimePerPlayer, incrementPerMove);
         playerTwoClock.setTimeControl(totalTimePerPlayer, incrementPerMove);
+
+        System.out.println("Game has Started!\n" +
+                "----------------------------------------------------------\n" +
+                "Time Control:\n" +
+                "Time Per Player: " + totalTimePerPlayer + " seconds\n" +
+                "Bonus Time Per Move: " + incrementPerMove + " seconds\n" +
+                "----------------------------------------------------------\n");
     }
 
     public static void main(String[] args) throws IOException, InterruptedException {
         // checks if we want to use UCI protocol
         new UCI();
+
+        // time control setting
+        GameManager.getTimeControl();
 
         // if user types in "gui" in UCI protocol, local gui will be initiated
         Board board = new Board();
