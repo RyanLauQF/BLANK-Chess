@@ -129,14 +129,22 @@ public abstract class Piece {
             }
             // pawn can only attack along offset
             else if(isPawn()){
-                if((isWhite() && pinOffSet > 0) || (!isWhite() && pinOffSet < 0)) return moveList;
+                if((isWhite() && pinOffSet > 0) || (!isWhite() && pinOffSet < 0)) {
+                    return moveList;
+                }
                 ArrayList<Short> legalMoves = new ArrayList<>();
                 Pawn.generatePawnAttackMoves(Pawn.getPawnDirections(this.isWhite(), getPosition()), this, moveList);
-                int diff;
+                int diff, end;
                 for(Short moves: moveList){
-                    diff = Math.abs(getPosition() - MoveGenerator.getEnd(moves));
+                    end = MoveGenerator.getEnd(moves);
+                    diff = Math.abs(getPosition() - end);
                     if(diff == absMath){
-                        legalMoves.add(moves);
+                        if(Pawn.canPromote(this.isWhite(), end)){
+                            generatePawnPromotionMoves(moves, legalMoves);
+                        }
+                        else{
+                            legalMoves.add(moves);
+                        }
                     }
                 }
                 return legalMoves;
@@ -156,11 +164,17 @@ public abstract class Piece {
                 // generate pawn push moves
                 ArrayList<Short> legalMoves = new ArrayList<>();
                 Pawn.generatePawnPushMoves(Pawn.getPawnDirections(this.isWhite(), getPosition())[0], this, moveList);
-                int diff;
+                int diff, end;
                 for(Short moves: moveList){
-                    diff = Math.abs(getPosition() - MoveGenerator.getEnd(moves));
+                    end = MoveGenerator.getEnd(moves);
+                    diff = Math.abs(getPosition() - end);
                     if(diff % 8 == 0){
-                        legalMoves.add(moves);
+                        if(Pawn.canPromote(this.isWhite(), end)){
+                            generatePawnPromotionMoves(moves, legalMoves);
+                        }
+                        else{
+                            legalMoves.add(moves);
+                        }
                     }
                 }
                 return legalMoves;

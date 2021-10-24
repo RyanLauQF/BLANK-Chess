@@ -96,13 +96,22 @@ public class OpeningTrie {
         }
     }
 
-    public void makeMove(String move) {
+    /**
+     * "Records" the move being made inside the opening trie by traversing along the sequence of moves made
+     * in the trie using a pointer
+     * @param move refers to the move in algebraic notation
+     * @return true if the move was successfully recorded in the book else return false if the move is no longer
+     *         following an existing sequence in the opening trie.
+     */
+    public boolean makeMove(String move) {
         if(hasNextMove(move)){
             moveTracker = moveTracker.nextMoves.get(move);
+            return true;
         }
         else{
-            System.out.println("move no longer in book");
+            System.out.println("move no longer in book!");
             moveTracker = null; // no longer using the opening book so set the moveTracker to null.
+            return false;
         }
     }
 

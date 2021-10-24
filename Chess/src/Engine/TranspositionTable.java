@@ -37,7 +37,7 @@ public class TranspositionTable {
     public final Queue<Long> zobristRemoval; // Remove the hashes added the transposition table on a FIFO basis
 
     public TranspositionTable(){
-        table = new HashMap<>(4194304); // initiate to a large enough size (2 ^ 22 used) to avoid resizing. Size must be in powers of 2;
+        table = new HashMap<>(1048576); // initiate to a large enough size (2 ^ 20 used) to avoid resizing. Size must be in powers of 2;
         zobristRemoval = new LinkedList<>();
     }
 
@@ -46,8 +46,8 @@ public class TranspositionTable {
 
         if(!table.containsKey(zobristHash)){
             zobristRemoval.add(zobristHash);
-            // limits the size of the hashmap to 5 million entries
-            if(zobristRemoval.size() > 5000000){
+            // limits the size of the hashmap to 1 million entries
+            if(zobristRemoval.size() > 1000000){
                 long hash = zobristRemoval.remove();
                 table.remove(hash);
             }

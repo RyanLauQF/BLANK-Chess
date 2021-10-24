@@ -1,5 +1,6 @@
+import java.io.BufferedReader;
 import java.io.IOException;
-import java.util.Scanner;
+import java.io.InputStreamReader;
 
 public class UCI {
     public static final String ENGINE_NAME = "BLANK";
@@ -22,8 +23,9 @@ public class UCI {
 
         // checks if user wants to enable uci
         while(true){
-            Scanner scanner = new Scanner(System.in);
-            String command = scanner.nextLine();
+            BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+            String command = reader.readLine();
+
             if(command.equals("gui")){
                 break;
             }
@@ -50,12 +52,14 @@ public class UCI {
      * Implements the UCI protocol (Not all functions are available)
      */
     public void UCICommunicate() throws IOException {
+        BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+
         while(true){
             // obtains UCI command from CLI
-            Scanner scanner = new Scanner(System.in);
-            String command = scanner.nextLine();
+            String command = reader.readLine();
+
             // tells the engine to use UCI protocol. Engine will identify itself and respond with uciok
-            if(command.equals("uci")){
+            if (command.equals("uci")) {
                 System.out.println("id name " + ENGINE_NAME);
                 System.out.println("id author Ryan Lau Q. F.");
                 System.out.println("uciok");
@@ -67,25 +71,25 @@ public class UCI {
             }
 
             // prints out the starting FEN of the board
-            else if(command.equals("fen")){
+            else if (command.equals("fen")) {
                 System.out.println(FEN);
             }
 
             // re-initialise the board and engine
-            else if(command.equals("ucinewgame")) {
+            else if (command.equals("ucinewgame")) {
                 board = new Board();
                 board.init(FENUtilities.startFEN);
                 engine = new AI(board.isWhiteTurn(), board);
             }
 
             // sets up a fen position on the board
-            else if(command.startsWith("position")) {
+            else if (command.startsWith("position")) {
                 parsePosition(command);
                 engine.board.state();
             }
 
             // starts search
-            else if(command.startsWith("go")) {
+            else if (command.startsWith("go")) {
                 processGo(command);
             }
 
@@ -94,14 +98,14 @@ public class UCI {
                 board.state();
             }
 
-            else if(command.contains("stop")){
+            else if (command.contains("stop")) {
                 //** Not yet working **//
                 // reset the chess board
                 board = new Board();
                 board.init(FEN);
             }
 
-            else if(command.equals("help")){
+            else if (command.equals("help")) {
                 System.out.println("Usage:");
                 System.out.println("- go <movetime> <time in seconds>");
                 System.out.println("- go wtime <wtime> btime <btime> winc <winc> binc <binc>");
@@ -109,16 +113,16 @@ public class UCI {
             }
 
             // uses local GUI
-            else if(command.equals("gui")){
+            else if (command.equals("gui")) {
                 break;
             }
 
             // quit the program
-            else if(command.equals("quit")){
+            else if (command.equals("quit")) {
                 System.exit(0);
             }
 
-            else{
+            else {
                 System.out.println("Unknown command");
             }
         }
@@ -215,8 +219,10 @@ public class UCI {
 
         // create the board based on the initial fen input
         board = new Board();
+        boolean enableOpeningBook = false;
         if(input.startsWith("position startpos")){
             board.init(FENUtilities.startFEN);
+            enableOpeningBook = true;
         }
         else if(input.startsWith("position fen ")){
             // custom fen input
@@ -230,7 +236,7 @@ public class UCI {
 
         // create the AI based on which turn to play and the starting board state
         engine = new AI(isWhiteTurn, board);
-
+        engine.isUsingOpeningBook = enableOpeningBook;
         // process moves
         if(input.contains("moves")){
             // moves[0] will be "moves";
@@ -239,7 +245,7 @@ public class UCI {
             isWhiteTurn = board.isWhiteTurn();
             boolean moveExistsInBook = false;
             String lastMove = "";
-            Move previousMove = null;
+            Move previousMove;
             board.setPreviousMove(null);
 
             if(moves.length >= 16) {    // disable using opening book if the moves have exceeded the length of opening book
@@ -255,9 +261,10 @@ public class UCI {
 
                 // records the moves made in the engine's opening book
                 if(engine.isUsingOpeningBook && i != moves.length - 1){
-                    if(previousMove != null){
-                        System.out.println(MoveGenerator.toString(board.getPreviousMove().getEncodedMove()));
-                    }
+//                    if(previousMove != null){
+//                        System.out.println("Previous Move: " + MoveGenerator.toString(board.getPreviousMove().getEncodedMove()));
+//                    }
+                    // position startpos moves g1f3 g8f6 e2e3 g7g6 f1d3 d7d5 b1c3
 
                     for(String bookMoves : engine.openingBook.getSetOfBookMoves()){
                         if(PGNExtract.convertNotationToMove(board, isWhiteTurn, bookMoves) == currentMove){
@@ -266,10 +273,16 @@ public class UCI {
                             break;
                         }
                     }
+
                     if(moveExistsInBook){
                         // update the opening book
-                        engine.openingBook.makeMove(lastMove);
-                        System.out.println(lastMove);
+                        boolean bookWasUpdated = engine.openingBook.makeMove(lastMove);
+                        if(!bookWasUpdated){
+                            engine.isUsingOpeningBook = false;
+                        }
+                        else{
+                            System.out.println("Move recorded in Book: " + lastMove);
+                        }
                     }
                     else{
                         engine.isUsingOpeningBook = false;

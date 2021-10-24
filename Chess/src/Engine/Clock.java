@@ -105,7 +105,7 @@ public class Clock {
         incrementPerMove = convertTimeToMs(incrementPerMove);
 
         int estimatedMovesToGo = 30; // divides the total time left by 30
-        int lagTime = 50;    // account for lag time per move in milliseconds (when breaking out of search / processing inputs)
+        int lagTime = 150;    // account for lag time per move in milliseconds (when breaking out of search / processing inputs)
 
         totalTimeLeft -= lagTime;
         double timePerMove = (totalTimeLeft / estimatedMovesToGo) + incrementPerMove;
