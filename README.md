@@ -40,9 +40,9 @@ java -jar BLANK.jar
 To install BLANK Chess as a UCI engine on Arena Chess GUI:
 * Download the [Arena GUI](http://www.playwitharena.de/)
 * Download the binary of BLANK chess engine from the latest release.
-* From the Arena GUI MenuBar, Select 'Engines' > 'Install New Engine'
-* Select '.jar' file type and navigate to location of the saved binary file.
-* Select the binary file and choose 'UCI protocol'.
-* Go to the MenuBar, Select 'Engines' > 'Manage...' > 'Details' and Select BLANK Chess Engine
-* Under 'General', Click on the 'Type' drop-down list > select 'UCI'. Apply changes.
+* From the Arena GUI MenuBar, Select `Engines` > `Install New Engine`
+* Select `.jar` file type and navigate to location of the saved binary file.
+* Select the binary file and choose `UCI protocol`.
+* Go to the MenuBar, Select `Engines` > `Manage...` > `Details` and Select BLANK Chess Engine
+* Under `General`, Click on the `Type` drop-down list > select `UCI`. Apply changes.
 * Enjoy the engine!
