@@ -80,7 +80,7 @@ public class Search {
                 bestMove = currentMove;
 
                 // information obtained from the search
-                String searchInfo = "info depth " + curr_depth + " maxDepth " + maxPly + " score cp " + score
+                String searchInfo = "info depth " + curr_depth + " seldepth " + maxPly + " score cp " + score
                         + " nodes " + nodeCount + " tbCut " + cutOffCount + " time " + convertTime;
 
                 // PV line obtained from the search

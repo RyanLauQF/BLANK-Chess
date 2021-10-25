@@ -125,7 +125,31 @@ public class MoveGenerator {
         int start = MoveGenerator.getStart(move);
         int end = MoveGenerator.getEnd(move);
 
-        return FENUtilities.convertIndexToRankAndFile(start) + FENUtilities.convertIndexToRankAndFile(end);
+        String moveToString = FENUtilities.convertIndexToRankAndFile(start) + FENUtilities.convertIndexToRankAndFile(end);
+
+        // If a move is a promotion move, the UCI expression will be followed by a character denoting the promotion piece.
+        // q for Queen,
+        // n for Knight,
+        // r for Rook,
+        // b for Bishop.
+
+        if(isPromotion(move)){
+            // add notation to indicate promotion type
+            int moveType = getMoveType(move);
+            char notation = 'q';
+            if(moveType == 8 || moveType == 12){
+                notation = 'n';
+            }
+            else if(moveType == 9 || moveType == 13){
+                notation = 'b';
+            }
+            else if(moveType == 10 || moveType == 14){
+                notation = 'r';
+            }
+            moveToString += notation;
+        }
+
+        return moveToString;
     }
 
 //    /**
