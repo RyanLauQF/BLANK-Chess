@@ -25,12 +25,12 @@ The basic  [UCI (Universal Chess Interface) protocol](http://wbec-ridderkerk.nl/
 
 ## Installation:
 
-You can download the binary ```BLANK.jar``` from the latest release of this repository.
+You can download the binary `BLANK.jar` from the latest release of this repository.
 > This engine was built using Java SE 11. Ensure that you have installed either Java 8 or a later version of the JRE in order to run BLANK.
 
 Navigate to the directory of the saved binary file:
 ```
-cd [file directory] (i.e. "cd C:\Desktop\Chess-Engine").
+cd [file directory] (i.e. "cd Desktop\BLANK-Chess").
 ```
 Run the engine:
 ```
