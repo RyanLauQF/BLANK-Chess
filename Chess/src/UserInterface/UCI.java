@@ -7,9 +7,11 @@ public class UCI {
     public static final int INFINITE_SEARCH = Integer.MAX_VALUE;
     public static final int DEFAULT_SEARCH = 5; // default search duration set to 5 seconds per search
     public static String FEN = FENUtilities.startFEN;
+    public static boolean usingOwnBook = true;
 
     public Board board;
     public AI engine;
+
 
     public UCI() throws IOException {
         System.out.println("BLANK chess engine\n" +
@@ -40,6 +42,7 @@ public class UCI {
 
                 System.out.println("id name " + ENGINE_NAME);
                 System.out.println("id author Ryan Lau Q. F.");
+                System.out.println("\noption name OwnBook type check default true\n");
                 System.out.println("uciok");
 
                 // starts UCI communication
@@ -68,6 +71,10 @@ public class UCI {
             // used by GUI to check if engine is responding
             else if (command.equals("isready")) {
                 System.out.println("readyok");
+            }
+
+            else if (command.startsWith("setoption name ")){
+                processOption(command);
             }
 
             // prints out the starting FEN of the board
@@ -128,6 +135,23 @@ public class UCI {
         }
     }
 
+    private void processOption(String input){
+        // cut "setoption name " out of the input
+        input = input.substring(15);
+        if(input.startsWith("OwnBook value ")){
+            // setoption name OwnBook value false
+            input = input.substring(input.lastIndexOf("value") + 5);
+            if(input.contains("true")){
+                usingOwnBook = true;
+                System.out.println("OwnBook enabled!");
+            }
+            else if(input.contains("false")){
+                usingOwnBook = false;
+                System.out.println("OwnBook disabled!");
+            }
+        }
+    }
+
     private void processGo(String input) {
         double ALLOCATED_TIME = DEFAULT_SEARCH;
         double TOTAL_TIME_LEFT = 0;
@@ -167,8 +191,11 @@ public class UCI {
                     }
                     break;
                 case "movetime":
-                    TOTAL_TIME_LEFT = Integer.parseInt(tokens[index + 1]);
-                    break;
+                    // search for exactly input milliseconds
+                    ALLOCATED_TIME = Integer.parseInt(tokens[index + 1]);
+                    ALLOCATED_TIME /= 1000; // convert from milliseconds to seconds
+                    engine.searchMove(useOpeningBook && usingOwnBook, ALLOCATED_TIME);
+                    return;
                 case "infinite":
                     TOTAL_TIME_LEFT = INFINITE_SEARCH;
                     break;
@@ -197,7 +224,7 @@ public class UCI {
         }
 
         // start searching with engine
-        engine.searchMove(useOpeningBook, ALLOCATED_TIME);
+        engine.searchMove(useOpeningBook && usingOwnBook, ALLOCATED_TIME);
     }
 
     // debugging uci commands
@@ -248,7 +275,7 @@ public class UCI {
             Move previousMove;
             board.setPreviousMove(null);
 
-            if(moves.length >= 16) {    // disable using opening book if the moves have exceeded the length of opening book
+            if(moves.length >= 16 || !usingOwnBook) {    // disable using opening book if the moves have exceeded the length of opening book
                 engine.isUsingOpeningBook = false;
             }
 

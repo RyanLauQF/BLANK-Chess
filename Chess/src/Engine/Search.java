@@ -39,6 +39,7 @@ public class Search {
         this.PVLength = new int[MAX_PLY];
     }
 
+    // search duration is given in seconds
     public short startSearch(double searchDuration){
         short bestMove = 0;
 
