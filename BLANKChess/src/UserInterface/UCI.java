@@ -4,6 +4,8 @@ import java.io.InputStreamReader;
 
 public class UCI {
     public static final String ENGINE_NAME = "BLANK";
+    public static final String VERSION = "v1.0.1";
+    public static final String AUTHOR = "Ryan Lau Q. F.";
     public static final int INFINITE_SEARCH = Integer.MAX_VALUE;
     public static final int DEFAULT_SEARCH = 5; // default search duration set to 5 seconds per search
     public static String FEN = FENUtilities.startFEN;
@@ -14,9 +16,9 @@ public class UCI {
 
 
     public UCI() throws IOException {
-        System.out.println("BLANK chess engine\n" +
-                           "v1.0-alpha\n" +
-                           "author Ryan Lau Q. F.\n");
+        System.out.println("BLANK Chess Engine");
+        System.out.println(VERSION);
+        System.out.println("author " + AUTHOR + "\n");
 
         System.out.println("commands:");
         System.out.println("'uci' - to enable Universal Chess Interface (UCI protocol)");
@@ -40,8 +42,8 @@ public class UCI {
                 board.init(FEN);
                 engine = new AI(board.isWhiteTurn(), board);
 
-                System.out.println("id name " + ENGINE_NAME);
-                System.out.println("id author Ryan Lau Q. F.");
+                System.out.println("id name " + ENGINE_NAME + " " + VERSION);
+                System.out.println("id author " + AUTHOR);
                 System.out.println("\noption name OwnBook type check default true\n");
                 System.out.println("uciok");
 
@@ -63,8 +65,9 @@ public class UCI {
 
             // tells the engine to use UCI protocol. Engine will identify itself and respond with uciok
             if (command.equals("uci")) {
-                System.out.println("id name " + ENGINE_NAME);
-                System.out.println("id author Ryan Lau Q. F.");
+                System.out.println("id name " + ENGINE_NAME + " " + VERSION);
+                System.out.println("id author " + AUTHOR);
+                System.out.println("\noption name OwnBook type check default true\n");
                 System.out.println("uciok");
             }
 
