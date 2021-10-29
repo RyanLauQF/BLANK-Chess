@@ -5,6 +5,9 @@
 This engine was written from scratch based off Object-Oriented design using Java.
 The basic  [UCI (Universal Chess Interface) protocol](http://wbec-ridderkerk.nl/html/UCIProtocol.html) has been implemented for communication with UCI-compatible GUIs. It also has an in-built GUI to directly interact with the engine.
 
+BLANK is deployed on Lichess, running on Heroku servers.
+>You can challenge it [here on Lichess!](https://lichess.org/@/BLANK_BOT).
+
 ## AI Features:
 * Opening Book (Built into an `OpeningTrie` using a database of >2600 Elo Games)
 * Negamax Search with Alpha-Beta pruning
