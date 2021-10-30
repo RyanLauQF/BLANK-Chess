@@ -39,7 +39,7 @@ public class AI {
         return move;
     }
 
-    public short searchMove(boolean enableOpeningBook, double searchDuration){
+    public short searchMove(boolean enableOpeningBook, double searchDuration, boolean enableThreadedSearch) {
         moveNum++;
         short bestMove;
 
@@ -52,8 +52,31 @@ public class AI {
             }
         }
 
-        bestMove = searcher.startSearch(searchDuration);
+        // Use threaded Search ONLY when in UCI mode (connected to external gui)
+        if(enableThreadedSearch){
+            // threaded search will only print "bestmove" once it has ended or has been killed
+            // hence it will not return a bestmove
+            searcher.startThreadedSearch(searchDuration);
+            return 0;
+        }
+        else{
+            // use standard search in local gui
+            //bestMove = searcher.startSearch(searchDuration);
+            searcher.startThreadedSearch(searchDuration);
+            try{
+                // wait for search to complete before continuing
+                searcher.searchThread.join();
+            }
+            catch(InterruptedException e){
+                System.out.println("Search was incomplete!");
+            }
+            bestMove = searcher.bestMoveFound[0];
+        }
         return bestMove;
+    }
+
+    public void stopSearcher(){
+        searcher.stopSearch();
     }
 
     public short getOpeningMove(){
@@ -111,6 +134,6 @@ public class AI {
         AI testAI = new AI(false, board);
 
         int timePerSearch = 15;
-        testAI.searchMove(false, timePerSearch);
+        testAI.searchMove(false, timePerSearch, true);
     }
 }

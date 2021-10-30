@@ -1,10 +1,21 @@
 import java.util.ArrayList;
 
 public class Search {
+    public Thread searchThread;
+    private boolean searchCompleted;
+    private boolean searchStopped;
+    public final short[] bestMoveFound = new short[1];   // store best move in at a specific memory address on the heap for thread to index.
+
     public Board board;
 
-    private static final int MAX_PLY = 60;
+    // null move pruning
     private static final int REDUCTION_CONSTANT = 2;
+
+    // Late Move Reduction look-up table
+    private static final int MAX_PLY = 60;
+    private static final int MAX_MOVES = 300;
+    private static final int REDUCTION_LIMIT = 3;
+    private static final int[][] REDUCTION_TABLE;
 
     public int ply;
     private int maxPly;
@@ -17,7 +28,6 @@ public class Search {
 
     // A clock to limit the search duration
     private final Clock timer;
-    private boolean searchStoppedByClock;
 
     // Used to obtain Principle Variation from iterative deepening search
     private short[][] PVMoves;
@@ -26,7 +36,28 @@ public class Search {
     // Used to check if the current search iteration is following a null move line
     private boolean isDoingNullMove;
 
+    // init at the start of the program to fill up reduction factors for varying depth and move numbers
+    static {
+        REDUCTION_TABLE = new int[MAX_PLY][MAX_MOVES];
+        for(int depth = 0; depth < MAX_PLY; depth++){
+            for(int moveCount = 0; moveCount < MAX_MOVES; moveCount++){
+                REDUCTION_TABLE[depth][moveCount] = calculateReduction(depth, moveCount);
+            }
+        }
+
+        for(int depth = 0; depth < MAX_PLY; depth++){
+            REDUCTION_TABLE[depth][0] = 0;
+            REDUCTION_TABLE[depth][1] = 0;
+        }
+
+        for(int moveCount = 0; moveCount < MAX_MOVES; moveCount++){
+            REDUCTION_TABLE[0][moveCount] = 0;
+            REDUCTION_TABLE[1][moveCount] = 0;
+        }
+    }
+
     public Search(Board board){
+        this.searchCompleted = true;
         this.board = board;
         this.isDoingNullMove = false;
         this.timer = new Clock();
@@ -40,71 +71,89 @@ public class Search {
     }
 
     // search duration is given in seconds
-    public short startSearch(double searchDuration){
-        short bestMove = 0;
+    public void startThreadedSearch(double searchDuration){
+        // Create a thread to run the search while still listening to UCI commands
+        searchThread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                startSearch();
+            }
 
-        System.out.println("Time Allocated: " + searchDuration + " seconds");
+            public void startSearch() {
+                bestMoveFound[0] = 0;
 
-        // set the time for search.
-        timer.setTime(searchDuration);
-        timer.start();  // start the clock
-        searchStoppedByClock = false;
+                System.out.println("Time Allocated: " + searchDuration + " seconds");
 
-        short currentMove;
-        double iterationEndTime, timeElapsedSinceStart;
+                // set the time for search.
+                timer.setTime(searchDuration);
+                timer.start();  // start the clock
+                searchStopped = false;
+                searchCompleted = false;
 
-        // iterative deepening search
-        for(int curr_depth = 1; curr_depth <= MAX_PLY; curr_depth++){
-            long start = System.currentTimeMillis();
+                short currentMove;
+                double iterationEndTime, timeElapsedSinceStart;
+                int totalNodeCount = 0;
 
-            // reset all counters for each iteration
-            resetSearch();
+                // iterative deepening search
+                for (int curr_depth = 1; curr_depth <= MAX_PLY; curr_depth++) {
 
-            int score = negamax(curr_depth, 0, Integer.MIN_VALUE + 1, Integer.MAX_VALUE);
+                    // reset all counters for each iteration
+                    resetSearch();
 
-            long finish = System.currentTimeMillis();
-            long timeElapsed = finish - start;
-            float convertTime = (float) timeElapsed / 1000;
+                    int score = negamax(curr_depth, 0, Integer.MIN_VALUE + 1, Integer.MAX_VALUE);
 
-            // best move found in current iteration
-            currentMove = PVMoves[0][0];
+                    // best move found in current iteration
+                    currentMove = PVMoves[0][0];
 
-            // end time of this iteration
-            iterationEndTime = System.currentTimeMillis();
+                    // end time of this iteration
+                    iterationEndTime = System.currentTimeMillis();
 
-            // time taken to get to this iteration (to determine if we should continue to search next iteration in given time)
-            timeElapsedSinceStart = iterationEndTime - timer.getStartTime();
+                    // time taken to get to this iteration (to determine if we should continue to search next iteration in given time)
+                    timeElapsedSinceStart = iterationEndTime - timer.getStartTime();
 
-            // if the current search was not stopped by clock, use the results of the search
-            if(!searchStoppedByClock){
-                // set best move to the best move of current iteration
-                bestMove = currentMove;
+                    // if the current search was not stopped by clock, use the results of the search
+                    if (!searchStopped) {
+                        // set best move to the best move of current iteration
+                        bestMoveFound[0] = currentMove;
 
-                // information obtained from the search
-                String searchInfo = "info depth " + curr_depth + " seldepth " + maxPly + " score cp " + score
-                        + " nodes " + nodeCount + " tbCut " + cutOffCount + " time " + convertTime;
+                        // information obtained from the search
+                        String searchInfo = "info depth " + curr_depth + " seldepth " + maxPly + " score cp " + score
+                                + " nodes " + (totalNodeCount += nodeCount) + " ttCut " + cutOffCount + " time " + (int) timeElapsedSinceStart;
 
-                // PV line obtained from the search
-                StringBuilder PVLine = new StringBuilder(" pv ");
-                for(int i = 0; i < PVLength[0]; i++){
-                    PVLine.append(MoveGenerator.toString(PVMoves[0][i]));
-                    PVLine.append(" ");
+                        // PV line obtained from the search
+                        StringBuilder PVLine = new StringBuilder(" pv ");
+                        for (int i = 0; i < PVLength[0]; i++) {
+                            PVLine.append(MoveGenerator.toString(PVMoves[0][i]));
+                            PVLine.append(" ");
+                        }
+                        System.out.println(searchInfo + PVLine.toString());
+                    }
+
+                    // hard stop the search if:
+                    //      - timer is up
+                    //      - remaining time < time taken to get to current ply
+
+                    if (timer.isTimeUp() || (timer.getRemainingTime() < timeElapsedSinceStart) || searchStopped) {
+                        System.out.println("bestmove " + MoveGenerator.toString(bestMoveFound[0]));
+                        System.out.println("Time Taken: " + timeElapsedSinceStart);
+                        searchCompleted = true;
+                        break;
+                    }
                 }
-                System.out.println(searchInfo + PVLine.toString());
+                System.out.println("Transposition Table Size: " + TT.table.size());
             }
+        });
 
-            // hard stop the search if:
-            //      - timer is up
-            //      - remaining time < time taken to get to current ply
+        searchThread.start();
+    }
 
-            if(timer.isTimeUp() || (timer.getRemainingTime() < timeElapsedSinceStart)){
-                System.out.println("bestmove " + MoveGenerator.toString(bestMove));
-                System.out.println("Time Taken: " + timeElapsedSinceStart);
-                break;
-            }
-        }
-        System.out.println("Transposition Table Size: " + TT.table.size());
-        return bestMove;
+    public void stopSearch(){
+        searchStopped = true;
+        System.out.println("stopping...");
+    }
+
+    public boolean isSearching(){
+        return !searchCompleted;
     }
 
     public int negamax(int depth, int searchPly, int alpha, int beta){
@@ -141,7 +190,7 @@ public class Search {
         }
 
         // evaluate the positions after doing a quiescence search to remove horizon effect (search all captures)
-        if(depth == 0){
+        if(depth <= 0){
             ply = searchPly;
             return quiescenceSearch(alpha, beta);
         }
@@ -158,8 +207,8 @@ public class Search {
             isDoingNullMove = false;
 
             // time is up
-            if (timer.isTimeUp()) {
-                searchStoppedByClock = true;
+            if (timer.isTimeUp() || searchStopped) {
+                searchStopped = true;
                 return 0;
             }
 
@@ -189,31 +238,50 @@ public class Search {
         short bestMove = 0;
         byte moveFlag = TranspositionTable.UPPERBOUND_TYPE;
         int bestScore = Integer.MIN_VALUE + 1;
+        int moveCount = 0;
+        int searchedScore;
 
         for (Short encodedMove : MoveOrdering.orderMoves(encodedMoves, this)) {
+            moveCount++;
             Move move = new Move(board, encodedMove);
             move.makeMove();
-            //            // PVS Search
-//            if (searched_moves == 0) {
-//                score = -alpha_beta(pos, -beta, -alpha, depth - 1, search_info, true);
-//            }
-//            else {
-//                // Late move reductions
-//                if ((searched_moves >= 4) & (!in_check) & (!move_list.moves[i].is_capture()) & (depth > 2))
-//                    score = -alpha_beta(pos, -alpha-1, -alpha, depth - 2, search_info, true);
-//                else
-//                    score = -alpha_beta(pos, -alpha-1, -alpha, depth - 1, search_info, true);
-//
-//                if (score > alpha)
-//                    score = -alpha_beta(pos, -beta, -alpha, depth - 1, search_info, true);
-//            }
 
-            int searchedScore = -negamax(depth - 1, searchPly + 1, -beta, -alpha);
+            // pv move, do a full search
+            if(moveCount == 1){
+                searchedScore = -negamax(depth - 1, searchPly + 1, -beta, -alpha);
+            }
+            else{
+                // late move reductions
+                if(depth >= REDUCTION_LIMIT && moveCount > 1
+                        && !MoveGenerator.isPromotion(encodedMove)
+                        && !MoveGenerator.isCapture(encodedMove)
+                        && !isKingChecked){
+
+                    // do reduced search based on reduction factor with a narrowed window
+                    int reduction = REDUCTION_TABLE[depth][moveCount];
+                    searchedScore = -negamax(depth - 1 - reduction, searchPly + 1, -alpha - 1, -alpha);
+                }
+                else{
+                    // do a full-depth search
+                    searchedScore = alpha + 1; // a trick to ensure full-depth search is continued
+                }
+
+                // PVS search
+                if(searchedScore > alpha){
+                    searchedScore = -negamax(depth - 1, searchPly + 1, -alpha - 1, -alpha);
+
+                    // re-search the move
+                    if(searchedScore > alpha && searchedScore < beta){
+                        searchedScore = -negamax(depth - 1, searchPly + 1, -beta, -alpha);
+                    }
+                }
+            }
+
             move.unMake();
 
             // time is up
-            if (timer.isTimeUp()) {
-                searchStoppedByClock = true;
+            if (timer.isTimeUp() || searchStopped) {
+                searchStopped = true;
                 return 0;
             }
 
@@ -293,8 +361,8 @@ public class Search {
             ply--;
 
             // time is up
-            if (timer.isTimeUp()) {
-                searchStoppedByClock = true;
+            if (timer.isTimeUp() || searchStopped) {
+                searchStopped = true;
                 return 0;
             }
 
@@ -332,6 +400,10 @@ public class Search {
         return board.getPieceList(true).getCount() <= 7 && board.getPieceList(false).getCount() <= 7;
     }
 
+    private static int calculateReduction(int depth, int moveCount){
+        return (int) ((1 / 1.95) * Math.log(depth) * Math.log(moveCount));
+    }
+
     /**
      * Unit Testing
      */
@@ -340,6 +412,6 @@ public class Search {
         board.init(FENUtilities.trickyFEN);
 
         Search search = new Search(board);
-        search.startSearch(15);
+        search.startThreadedSearch(15);
     }
 }

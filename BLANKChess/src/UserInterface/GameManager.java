@@ -37,12 +37,12 @@ public class GameManager {
                 playerToMove = board.isWhiteTurn();
                 short move;
                 if(whitePlayer.isWhite() == playerToMove){
-                    move = whitePlayer.searchMove(true, 0.5);
+                    move = whitePlayer.searchMove(true, 0.5, false);
                     Move movement = new Move(board, move);
                     movement.makeMove();
                 }
                 else{
-                    move = blackPlayer.searchMove(true, 0.5);
+                    move = blackPlayer.searchMove(true, 0.5, false);
                     Move movement = new Move(board, move);
                     movement.makeMove();
                 }
@@ -93,7 +93,7 @@ public class GameManager {
 
                     // computer makes move
                     System.out.println("Engine is thinking...");
-                    short move = computerPlayer.searchMove(true, Clock.getTimePerMove(playerTwoClock.getRemainingTime() / 1000, incrementPerMove));
+                    short move = computerPlayer.searchMove(true, Clock.getTimePerMove(playerTwoClock.getRemainingTime() / 1000, incrementPerMove), false);
                     Move movement = new Move(board, move);
                     movement.makeMove();
 
@@ -157,7 +157,7 @@ public class GameManager {
                 "Input the respective indices to select desired time control.\n");
 
         Scanner sc = new Scanner(System.in);
-        int timeControlIndex = -1;
+        int timeControlIndex;
         do {
             System.out.print("Select time control: ");
             while(!sc.hasNextInt()){    // check for valid input

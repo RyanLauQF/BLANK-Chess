@@ -6,6 +6,12 @@ public class Clock {
 
     private boolean isClockStarted;
 
+    // account for lag time per move in milliseconds (when breaking out of search / processing inputs)
+    private static final int LAG_TIME = 150;
+
+    // divides the total time left by 30.
+    private static final int MOVES_TO_GO = 30;
+
     /**
      * Constructor
      */
@@ -104,16 +110,13 @@ public class Clock {
         totalTimeLeft = convertTimeToMs(totalTimeLeft);
         incrementPerMove = convertTimeToMs(incrementPerMove);
 
-        int estimatedMovesToGo = 30; // divides the total time left by 30
-        int lagTime = 150;    // account for lag time per move in milliseconds (when breaking out of search / processing inputs)
-
-        totalTimeLeft -= lagTime;
-        double timePerMove = (totalTimeLeft / estimatedMovesToGo) + incrementPerMove;
+        totalTimeLeft -= LAG_TIME;
+        double timePerMove = (totalTimeLeft / MOVES_TO_GO) + incrementPerMove;
 
         // ensure that the AI does not lose based on time
         if(incrementPerMove > 0 && totalTimeLeft < (5 * incrementPerMove)){
             // use only 75% of the increment time to play each move to account for lag time
-            return (incrementPerMove * 75) / 100;
+            return ((incrementPerMove * 75) / 100) / 1000;
         }
 
         return timePerMove / 1000;

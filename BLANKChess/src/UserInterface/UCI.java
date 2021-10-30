@@ -4,7 +4,7 @@ import java.io.InputStreamReader;
 
 public class UCI {
     public static final String ENGINE_NAME = "BLANK";
-    public static final String VERSION = "v1.0.1";
+    public static final String VERSION = "v1.1.0";
     public static final String AUTHOR = "Ryan Lau Q. F.";
     public static final int INFINITE_SEARCH = Integer.MAX_VALUE;
     public static final int DEFAULT_SEARCH = 5; // default search duration set to 5 seconds per search
@@ -13,7 +13,6 @@ public class UCI {
 
     public Board board;
     public AI engine;
-
 
     public UCI() throws IOException {
         System.out.println("BLANK Chess Engine");
@@ -87,6 +86,7 @@ public class UCI {
 
             // re-initialise the board and engine
             else if (command.equals("ucinewgame")) {
+                engine.stopSearcher(); // stop any ongoing search thread
                 board = new Board();
                 board.init(FENUtilities.startFEN);
                 engine = new AI(board.isWhiteTurn(), board);
@@ -95,7 +95,7 @@ public class UCI {
             // sets up a fen position on the board
             else if (command.startsWith("position")) {
                 parsePosition(command);
-                engine.board.state();
+                engine.board.print(false);
             }
 
             // starts search
@@ -105,11 +105,13 @@ public class UCI {
 
             // prints out the board
             else if (command.equals("print")) {
-                board.state();
+                board.print(false);
             }
 
             else if (command.contains("stop")) {
-                //** Not yet working **//
+                // stop any ongoing search thread
+                engine.stopSearcher();
+
                 // reset the chess board
                 board = new Board();
                 board.init(FEN);
@@ -124,11 +126,15 @@ public class UCI {
 
             // uses local GUI
             else if (command.equals("gui")) {
+                // stop any search before enabling gui
+                engine.stopSearcher();
                 break;
             }
 
             // quit the program
             else if (command.equals("quit")) {
+                // ensure the search thread is stopped before quitting
+                engine.stopSearcher();
                 System.exit(0);
             }
 
@@ -156,6 +162,10 @@ public class UCI {
     }
 
     private void processGo(String input) {
+        if(engine.searcher.isSearching()){
+           return;
+        }
+
         double ALLOCATED_TIME = DEFAULT_SEARCH;
         double TOTAL_TIME_LEFT = 0;
         double INCREMENT_TIME = 0;
@@ -175,33 +185,39 @@ public class UCI {
                         index += 2;
                     }
                     break;
+
                 case "btime":
                     if(!isWhite){
                         TOTAL_TIME_LEFT = Integer.parseInt(tokens[index + 1]);
                         index += 2;
                     }
                     break;
+
                 case "winc":
                     if(isWhite){
                         INCREMENT_TIME = Integer.parseInt(tokens[index + 1]);
                         index += 2;
                     }
                     break;
+
                 case "binc":
                     if(!isWhite){
                         INCREMENT_TIME = Integer.parseInt(tokens[index + 1]);
                         index += 2;
                     }
                     break;
+
                 case "movetime":
                     // search for exactly input milliseconds
                     ALLOCATED_TIME = Integer.parseInt(tokens[index + 1]);
                     ALLOCATED_TIME /= 1000; // convert from milliseconds to seconds
-                    engine.searchMove(useOpeningBook && usingOwnBook, ALLOCATED_TIME);
+                    engine.searchMove(useOpeningBook && usingOwnBook, ALLOCATED_TIME, true);
                     return;
+
                 case "infinite":
-                    TOTAL_TIME_LEFT = INFINITE_SEARCH;
-                    break;
+                    engine.searchMove(false, INFINITE_SEARCH, true);
+                    return;
+
                 case "perft":
                     int depth = Integer.parseInt(tokens[index + 1]);
                     Perft goPerft = new Perft(board);
@@ -209,6 +225,7 @@ public class UCI {
                     isPerft = true;
                     index += 2;
                     break;
+
                 default:
                     break;
             }
@@ -227,7 +244,7 @@ public class UCI {
         }
 
         // start searching with engine
-        engine.searchMove(useOpeningBook && usingOwnBook, ALLOCATED_TIME);
+        engine.searchMove(useOpeningBook && usingOwnBook, ALLOCATED_TIME, true);
     }
 
     // debugging uci commands
@@ -291,11 +308,6 @@ public class UCI {
 
                 // records the moves made in the engine's opening book
                 if(engine.isUsingOpeningBook && i != moves.length - 1){
-//                    if(previousMove != null){
-//                        System.out.println("Previous Move: " + MoveGenerator.toString(board.getPreviousMove().getEncodedMove()));
-//                    }
-                    // position startpos moves g1f3 g8f6 e2e3 g7g6 f1d3 d7d5 b1c3
-
                     for(String bookMoves : engine.openingBook.getSetOfBookMoves()){
                         if(PGNExtract.convertNotationToMove(board, isWhiteTurn, bookMoves) == currentMove){
                             moveExistsInBook = true;

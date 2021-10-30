@@ -724,14 +724,16 @@ public class Board {
     }
 
     /**
-     * Prints out state of board to show location of pieces for each side
+     * Prints out state of board in colour to show location of pieces for each side
      * along with the index of tiles on the board to compare
+     * @param debugging when set to true, the index of each tile will be displayed at the side for debugging purposes
      */
-    public void state(){
+    public void print(boolean debugging){
         for(int i = 0; i < 8; i++){
+            System.out.print("    " + (8 - i) + "  ");
             for(int k = 0; k < 8; k++){
                 if(board[k + (i * 8)].getPiece() == null){
-                    System.out.print("- ");
+                    System.out.print(". ");
                 }
 
                 else{
@@ -743,13 +745,16 @@ public class Board {
                     }
                 }
             }
-            System.out.print("       ");
-            for(int k = 0; k < 8; k++){
-                int a = k + (i * 8);
-                System.out.print(String.format("%02d", a) + " ");
+            if(debugging){
+                System.out.print("       ");
+                for(int k = 0; k < 8; k++){
+                    int a = k + (i * 8);
+                    System.out.print(String.format("%02d", a) + " ");
+                }
             }
             System.out.println();
         }
+        System.out.println("       a b c d e f g h");
     }
 
     /**
@@ -762,7 +767,7 @@ public class Board {
         String FEN = "r3kbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK2R b KQkq - 0 1";
         b.init(FEN);
 
-        b.state();
+        b.print(true);
         System.out.println();
         System.out.println("Enpassant: " + b.getEnpassant());
 
@@ -813,7 +818,7 @@ public class Board {
             }
             Move move = new Move(b, MoveGenerator.generateMove(start, end, 0));
             move.makeMove();
-            b.state();
+            b.print(true);
             System.out.println("Enpassant: " + b.getEnpassant());
         }
         // Check how game has ended
