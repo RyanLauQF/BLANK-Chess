@@ -1,30 +1,36 @@
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 
 public class Search {
-    public Thread searchThread;
-    private boolean searchCompleted;
+
+    // Used to stop search when "stop" command is given
+    private final BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
     private boolean searchStopped;
-    public final short[] bestMoveFound = new short[1];   // store best move in at a specific memory address on the heap for thread to index.
 
-    public Board board;
-
-    // null move pruning
-    private static final int REDUCTION_CONSTANT = 2;
-
-    // Late Move Reduction look-up table
+    // Late Move Reduction - reduction factor pre-calculated look-up table
     private static final int MAX_PLY = 60;
     private static final int MAX_MOVES = 300;
     private static final int REDUCTION_LIMIT = 3;
     private static final int[][] REDUCTION_TABLE;
 
+    // Search info
     public int ply;
     private int maxPly;
     private int nodeCount;
     private int cutOffCount;
 
+    // Memoization of searched nodes
     public TranspositionTable TT;
     public short[][] killerMoves;
     public short[][] historyMoves;
+
+    // null move pruning
+    private static final int REDUCTION_CONSTANT = 2;
+
+    // Used to check if the current search iteration is following a null move line
+    private boolean isDoingNullMove;
 
     // A clock to limit the search duration
     private final Clock timer;
@@ -33,10 +39,12 @@ public class Search {
     private short[][] PVMoves;
     private int[] PVLength;
 
-    // Used to check if the current search iteration is following a null move line
-    private boolean isDoingNullMove;
+    // Root board state where search begins
+    public Board board;
 
-    // init at the start of the program to fill up reduction factors for varying depth and move numbers
+    /*
+     * init at the start of the program to fill up reduction factors for varying depth and move numbers
+     */
     static {
         REDUCTION_TABLE = new int[MAX_PLY][MAX_MOVES];
         for(int depth = 0; depth < MAX_PLY; depth++){
@@ -56,8 +64,11 @@ public class Search {
         }
     }
 
+    /**
+     * Constructor
+     * @param board refers to the root board state where the search will begin
+     */
     public Search(Board board){
-        this.searchCompleted = true;
         this.board = board;
         this.isDoingNullMove = false;
         this.timer = new Clock();
@@ -70,90 +81,104 @@ public class Search {
         this.PVLength = new int[MAX_PLY];
     }
 
-    // search duration is given in seconds
-    public void startThreadedSearch(double searchDuration){
-        // Create a thread to run the search while still listening to UCI commands
-        searchThread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                startSearch();
-            }
 
-            public void startSearch() {
-                bestMoveFound[0] = 0;
+    /**
+     * search for best move using iterative deepening for a given period of time or until "stop" command is given
+     * @param searchDuration refers to the time allocated for engine to search the current position
+     * @return the encoded move determined to be the best move
+     */
+    public short startSearch(double searchDuration){
 
-                System.out.println("Time Allocated: " + searchDuration + " seconds");
+        // creates a thread to listen for "stop" command in the background
+        System.out.println("Time Allocated: " + searchDuration + " seconds");
 
-                // set the time for search.
-                timer.setTime(searchDuration);
-                timer.start();  // start the clock
-                searchStopped = false;
-                searchCompleted = false;
+        // set the time for search.
+        timer.setTime(searchDuration);
+        timer.start();  // start the clock
 
-                short currentMove;
-                double iterationEndTime, timeElapsedSinceStart;
-                int totalNodeCount = 0;
+        double iterationEndTime, timeElapsedSinceStart;
+        short currentMove, bestMove = 0;
+        int totalNodeCount = 0;
 
-                // iterative deepening search
-                for (int curr_depth = 1; curr_depth <= MAX_PLY; curr_depth++) {
+        searchStopped = false;
 
-                    // reset all counters for each iteration
-                    resetSearch();
+        // iterative deepening search
+        for (int curr_depth = 1; curr_depth <= MAX_PLY; curr_depth++) {
 
-                    int score = negamax(curr_depth, 0, Integer.MIN_VALUE + 1, Integer.MAX_VALUE);
+            // reset all variables for each iteration
+            resetSearch();
 
-                    // best move found in current iteration
-                    currentMove = PVMoves[0][0];
+            // search for bestmove for current iteration
+            int score = negamax(curr_depth, 0, Integer.MIN_VALUE + 1, Integer.MAX_VALUE);
 
-                    // end time of this iteration
-                    iterationEndTime = System.currentTimeMillis();
+            // best move found in current iteration
+            currentMove = PVMoves[0][0];
 
-                    // time taken to get to this iteration (to determine if we should continue to search next iteration in given time)
-                    timeElapsedSinceStart = iterationEndTime - timer.getStartTime();
+            // end time of this iteration
+            iterationEndTime = System.currentTimeMillis();
 
-                    // if the current search was not stopped by clock, use the results of the search
-                    if (!searchStopped) {
-                        // set best move to the best move of current iteration
-                        bestMoveFound[0] = currentMove;
+            // time taken to get to this iteration (to determine if we should continue to search next iteration in given time)
+            timeElapsedSinceStart = iterationEndTime - timer.getStartTime();
 
-                        // information obtained from the search
-                        String searchInfo = "info depth " + curr_depth + " seldepth " + maxPly + " score cp " + score
-                                + " nodes " + (totalNodeCount += nodeCount) + " ttCut " + cutOffCount + " time " + (int) timeElapsedSinceStart;
+            // if the current search was not stopped by clock, use the results of the search
+            if (!searchStopped) {
+                // set best move to the best move of current iteration
+                bestMove = currentMove;
 
-                        // PV line obtained from the search
-                        StringBuilder PVLine = new StringBuilder(" pv ");
-                        for (int i = 0; i < PVLength[0]; i++) {
-                            PVLine.append(MoveGenerator.toString(PVMoves[0][i]));
-                            PVLine.append(" ");
-                        }
-                        System.out.println(searchInfo + PVLine.toString());
-                    }
+                // information obtained from the search
+                String searchInfo = "info depth " + curr_depth +
+                        " seldepth " + maxPly +
+                        " score cp " + score +
+                        " nodes " + (totalNodeCount += nodeCount) +
+                        " ttCut " + cutOffCount +
+                        " time " + (int) timeElapsedSinceStart;
 
-                    // hard stop the search if:
-                    //      - timer is up
-                    //      - remaining time < time taken to get to current ply
-
-                    if (timer.isTimeUp() || (timer.getRemainingTime() < timeElapsedSinceStart) || searchStopped) {
-                        System.out.println("bestmove " + MoveGenerator.toString(bestMoveFound[0]));
-                        System.out.println("Time Taken: " + timeElapsedSinceStart);
-                        searchCompleted = true;
-                        break;
-                    }
+                // PV line obtained from the search
+                StringBuilder PVLine = new StringBuilder(" pv ");
+                for (int i = 0; i < PVLength[0]; i++) {
+                    PVLine.append(MoveGenerator.toString(PVMoves[0][i]));
+                    PVLine.append(" ");
                 }
-                System.out.println("Transposition Table Size: " + TT.table.size());
+                System.out.println(searchInfo + PVLine.toString());
             }
-        });
 
-        searchThread.start();
+            /*
+             * hard stop the search if:
+             *      - timer is up
+             *      - remaining time < time taken to get to current ply
+             *      - "stop" command is given
+             */
+
+            if (timer.isTimeUp() || (timer.getRemainingTime() < timeElapsedSinceStart) || searchStopped) {
+                System.out.println("bestmove " + MoveGenerator.toString(bestMove));
+                System.out.println("Time Taken: " + timeElapsedSinceStart);
+                break;
+            }
+        }
+        System.out.println("Transposition Table Size: " + TT.table.size());
+
+        searchStopped = false;
+
+        return bestMove;
+    }
+
+    public void listen() throws IOException {
+        String s;
+        if(br.ready()){
+            s = br.readLine();
+            if(s.equals("stop")){
+                stopSearch();
+            }
+            else if(s.equals("quit")){
+                br.close();
+                System.exit(0);
+            }
+        }
     }
 
     public void stopSearch(){
         searchStopped = true;
         System.out.println("stopping...");
-    }
-
-    public boolean isSearching(){
-        return !searchCompleted;
     }
 
     public int negamax(int depth, int searchPly, int alpha, int beta){
@@ -180,6 +205,16 @@ public class Search {
                     cutOffCount++;
                     return entry.eval;
                 }
+            }
+        }
+
+        // every 2047 nodes, check for UCI commands
+        if((nodeCount & 2047) == 0){
+            try{
+                listen();
+            }
+            catch (IOException ignored){
+                System.out.println("Unable to read input!");
             }
         }
 
@@ -328,11 +363,21 @@ public class Search {
         return bestScore;
     }
 
-    /**
+    /**11563
      * Evaluates the current position on the board by continuing to search all possible capture lines to reduce horizon effect
      * i.e. Prevents the AI from blundering a piece due to search being cut at a certain depth causing it to not "see" opponent attacks
      */
     private int quiescenceSearch(int alpha, int beta) {
+        // every 2047 nodes, check for UCI commands
+        if((nodeCount & 2047) == 0){
+            try{
+                listen();
+            }
+            catch (IOException ignored){
+                System.out.println("Unable to read input!");
+            }
+        }
+
         int stand_pat = EvalUtilities.evaluate(board);
         if(stand_pat >= beta){
             return stand_pat; // fail soft
@@ -412,6 +457,6 @@ public class Search {
         board.init(FENUtilities.trickyFEN);
 
         Search search = new Search(board);
-        search.startThreadedSearch(15);
+        search.startSearch(20);
     }
 }

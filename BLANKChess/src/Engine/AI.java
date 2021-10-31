@@ -1,23 +1,28 @@
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Random;
 
 public class AI {
     protected final boolean isWhite;
     protected Board board;
-    public final OpeningTrie openingBook;  // opening book used by AI
+    public OpeningTrie openingBook;  // opening book used by AI
     public final Search searcher;
 
     public int moveNum;
     public boolean isUsingOpeningBook;
 
-    public AI(boolean isWhite, Board board) throws IOException {
+    public AI(boolean isWhite, Board board){
         this.isWhite = isWhite;
         this.board = board;
-        this.openingBook = new OpeningTrie(isWhite);    // builds the opening book for the AI
         this.isUsingOpeningBook = true;
         this.moveNum = 0;  // number of moves made by this AI
         this.searcher = new Search(board);
+
+        try{
+            // builds the opening book for the AI
+            this.openingBook = new OpeningTrie(isWhite);
+        }
+        catch (IOException exception){
+            System.out.println("Unable to initialize opening book!");
+        }
     }
 
     public boolean isWhite(){
@@ -28,18 +33,7 @@ public class AI {
         this.board = board;
     }
 
-    // selects a random move when it is the AI turn
-    public short getRandomMove(){
-        ArrayList<Short> moves = board.getAllLegalMoves();
-        Random rand = new Random();
-        int randomMove = rand.nextInt(moves.size());
-        short move = moves.get(randomMove);
-        System.out.println("Making Random Move!");
-        System.out.println("Random move: " + MoveGenerator.toString(move));
-        return move;
-    }
-
-    public short searchMove(boolean enableOpeningBook, double searchDuration, boolean enableThreadedSearch) {
+    public short searchMove(boolean enableOpeningBook, double searchDuration) {
         moveNum++;
         short bestMove;
 
@@ -52,31 +46,8 @@ public class AI {
             }
         }
 
-        // Use threaded Search ONLY when in UCI mode (connected to external gui)
-        if(enableThreadedSearch){
-            // threaded search will only print "bestmove" once it has ended or has been killed
-            // hence it will not return a bestmove
-            searcher.startThreadedSearch(searchDuration);
-            return 0;
-        }
-        else{
-            // use standard search in local gui
-            //bestMove = searcher.startSearch(searchDuration);
-            searcher.startThreadedSearch(searchDuration);
-            try{
-                // wait for search to complete before continuing
-                searcher.searchThread.join();
-            }
-            catch(InterruptedException e){
-                System.out.println("Search was incomplete!");
-            }
-            bestMove = searcher.bestMoveFound[0];
-        }
+        bestMove = searcher.startSearch(searchDuration);
         return bestMove;
-    }
-
-    public void stopSearcher(){
-        searcher.stopSearch();
     }
 
     public short getOpeningMove(){
@@ -125,15 +96,28 @@ public class AI {
         return PGNExtract.convertNotationToMove(board, isWhite(), PGN_notation);
     }
 
+    /*
+     * Selects a random move to make
+     */
+//    public short getRandomMove(){
+//        ArrayList<Short> moves = board.getAllLegalMoves();
+//        Random rand = new Random();
+//        int randomMove = rand.nextInt(moves.size());
+//        short move = moves.get(randomMove);
+//        System.out.println("Making Random Move!");
+//        System.out.println("Random move: " + MoveGenerator.toString(move));
+//        return move;
+//    }
+
     /**
      * Unit Testing
      */
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args){
         Board board = new Board();
         board.init(FENUtilities.trickyFEN);
         AI testAI = new AI(false, board);
 
         int timePerSearch = 15;
-        testAI.searchMove(false, timePerSearch, true);
+        testAI.searchMove(false, timePerSearch);
     }
 }

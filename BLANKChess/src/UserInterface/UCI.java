@@ -86,9 +86,9 @@ public class UCI {
 
             // re-initialise the board and engine
             else if (command.equals("ucinewgame")) {
-                engine.stopSearcher(); // stop any ongoing search thread
                 board = new Board();
                 board.init(FENUtilities.startFEN);
+                FEN = FENUtilities.startFEN;
                 engine = new AI(board.isWhiteTurn(), board);
             }
 
@@ -109,12 +109,8 @@ public class UCI {
             }
 
             else if (command.contains("stop")) {
-                // stop any ongoing search thread
-                engine.stopSearcher();
-
-                // reset the chess board
-                board = new Board();
-                board.init(FEN);
+                // stop function is built into engine search
+                System.out.println("Stop only when search has started!");
             }
 
             else if (command.equals("help")) {
@@ -126,15 +122,11 @@ public class UCI {
 
             // uses local GUI
             else if (command.equals("gui")) {
-                // stop any search before enabling gui
-                engine.stopSearcher();
                 break;
             }
 
             // quit the program
             else if (command.equals("quit")) {
-                // ensure the search thread is stopped before quitting
-                engine.stopSearcher();
                 System.exit(0);
             }
 
@@ -162,10 +154,6 @@ public class UCI {
     }
 
     private void processGo(String input) {
-        if(engine.searcher.isSearching()){
-           return;
-        }
-
         double ALLOCATED_TIME = DEFAULT_SEARCH;
         double TOTAL_TIME_LEFT = 0;
         double INCREMENT_TIME = 0;
@@ -211,11 +199,16 @@ public class UCI {
                     // search for exactly input milliseconds
                     ALLOCATED_TIME = Integer.parseInt(tokens[index + 1]);
                     ALLOCATED_TIME /= 1000; // convert from milliseconds to seconds
-                    engine.searchMove(useOpeningBook && usingOwnBook, ALLOCATED_TIME, true);
+                    engine.searchMove(useOpeningBook && usingOwnBook, ALLOCATED_TIME);
                     return;
 
                 case "infinite":
-                    engine.searchMove(false, INFINITE_SEARCH, true);
+                    engine.searchMove(false, INFINITE_SEARCH);
+
+                    /*
+                     * MAKE SURE TO CALL 'ucinewgame' AFTER USING INFINITE SEARCH
+                     */
+
                     return;
 
                 case "perft":
@@ -244,14 +237,14 @@ public class UCI {
         }
 
         // start searching with engine
-        engine.searchMove(useOpeningBook && usingOwnBook, ALLOCATED_TIME, true);
+        engine.searchMove(useOpeningBook && usingOwnBook, ALLOCATED_TIME);
     }
 
     // debugging uci commands
     // position startpos moves e2e4 g8f6 e4e5 f6d5 c2c4 d5b6 b2b3 g7g6 c1b2 f8g7 g1f3 d7d6 f1e2 c7c5 d2d4 c5d4
     // position fen "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1" moves e2a6 b4c3
 
-    private void parsePosition(String input) throws IOException {
+    private void parsePosition(String input){
         boolean isWhiteTurn = true;
 
         // check if after making all the moves if the engine is playing white or black move
@@ -278,7 +271,14 @@ public class UCI {
                 fen = fen.substring(0, fen.indexOf("moves"));
             }
             FEN = fen.replaceAll("\"", "");
-            board.init(FEN);
+            try{
+                board.init(FEN);
+            }
+            catch(IllegalArgumentException error){
+                System.out.println("Invalid FEN!");
+                board.init(FENUtilities.startFEN);
+                FEN = FENUtilities.startFEN;
+            }
         }
 
         // create the AI based on which turn to play and the starting board state

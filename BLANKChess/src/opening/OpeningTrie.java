@@ -146,7 +146,7 @@ public class OpeningTrie {
     }
 
     /**
-     * Unit test
+     * Unit testing
      */
     public static void main(String[] args) throws IOException {
         OpeningTrie openingTrie = new OpeningTrie();

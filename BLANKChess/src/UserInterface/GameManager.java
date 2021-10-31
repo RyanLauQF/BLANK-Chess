@@ -12,9 +12,11 @@ public class GameManager {
     private final Clock playerOneClock;
     private final Clock playerTwoClock;
 
-    // default setting
+    // GAME SETTINGS
     private static int timePerPlayer = 300;    // 5 minutes per player
     private static int incrementPerMove = 5;   // 5 seconds increment per move
+    private static boolean whitePlayer_isHuman = true;
+    private static boolean blackPlayer_isHuman = false;
 
     public GameManager(ChessGUI chessGUI, Board board, boolean p1_isHuman, boolean p2_isHuman) throws IOException {
         this.chessGUI = chessGUI;
@@ -37,12 +39,12 @@ public class GameManager {
                 playerToMove = board.isWhiteTurn();
                 short move;
                 if(whitePlayer.isWhite() == playerToMove){
-                    move = whitePlayer.searchMove(true, 0.5, false);
+                    move = whitePlayer.searchMove(true, 0.5);
                     Move movement = new Move(board, move);
                     movement.makeMove();
                 }
                 else{
-                    move = blackPlayer.searchMove(true, 0.5, false);
+                    move = blackPlayer.searchMove(true, 0.5);
                     Move movement = new Move(board, move);
                     movement.makeMove();
                 }
@@ -93,7 +95,7 @@ public class GameManager {
 
                     // computer makes move
                     System.out.println("Engine is thinking...");
-                    short move = computerPlayer.searchMove(true, Clock.getTimePerMove(playerTwoClock.getRemainingTime() / 1000, incrementPerMove), false);
+                    short move = computerPlayer.searchMove(true, Clock.getTimePerMove(playerTwoClock.getRemainingTime() / 1000, incrementPerMove));
                     Move movement = new Move(board, move);
                     movement.makeMove();
 
@@ -136,7 +138,7 @@ public class GameManager {
         }
     }
 
-    private static void getTimeControl(){
+    private static void getGameINFO(){
         System.out.println("\nGame Settings\n" +
                 "----------------------------------------------------------\n" +
                 "Bullet:\n" +
@@ -154,7 +156,8 @@ public class GameManager {
                 "Type '0' for custom time control\n");
 
         System.out.println("i.e. 3|2 - represents a game of 3 minutes per player with 2 seconds increment per turn.\n" +
-                "Input the respective indices to select desired time control.\n");
+                "Input the respective indices to select desired time control.\n" +
+                "\n* Note that time control only applies to BLANK currently\n");
 
         Scanner sc = new Scanner(System.in);
         int timeControlIndex;
@@ -236,6 +239,34 @@ public class GameManager {
             }
         }
         while(timeControlIndex < 0 || timeControlIndex > 7);
+
+        // Get player side
+        int modeSelection;
+        System.out.println("\n\nModes:\n" +
+                "----------------------------------------------------------\n" +
+                "1) Play as White\n" +
+                "2) Play as Black\n" +
+                "3) Computer Vs Computer (BLANK will play against itself at 500ms per move)\n");
+
+        do{
+            System.out.print("Select Mode: ");
+            sc = new Scanner(System.in);
+            modeSelection = sc.nextInt();
+        }
+        while(modeSelection < 1 || modeSelection > 3);
+
+        switch (modeSelection){
+            case 1:
+                whitePlayer_isHuman = true;
+                blackPlayer_isHuman = false;
+                break;
+            case 2:
+                whitePlayer_isHuman = false;
+                blackPlayer_isHuman = true;
+            case 3:
+                whitePlayer_isHuman = false;
+                blackPlayer_isHuman = false;
+        }
     }
 
     /**
@@ -261,15 +292,12 @@ public class GameManager {
         new UCI();
 
         // time control setting
-        GameManager.getTimeControl();
+        GameManager.getGameINFO();
 
         // if user types in "gui" in UCI protocol, local gui will be initiated
         Board board = new Board();
         board.init(FENUtilities.startFEN);
         ChessGUI chessGUI = new ChessGUI(board);
-
-        boolean whitePlayer_isHuman = true;
-        boolean blackPlayer_isHuman = false;
 
         GameManager gameManager = new GameManager(chessGUI, board, whitePlayer_isHuman, blackPlayer_isHuman);
         gameManager.startGame();

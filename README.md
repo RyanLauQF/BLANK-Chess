@@ -13,6 +13,7 @@ BLANK is deployed on Lichess, running on Heroku servers. You can challenge it [h
 * Negamax Search with Alpha-Beta pruning
 * Quiescence Search
 * Search Extension on check
+* Late Move Reduction
 * Static board evaluation
 * Move Ordering (PV Nodes, Refutation Moves, MVV / LVA for Captures, Promotion)
 * Transposition Table (Zobrist Hashing)
@@ -23,7 +24,6 @@ BLANK is deployed on Lichess, running on Heroku servers. You can challenge it [h
 ## To-Be-Implemented:
 * Insufficient material draw
 * 50 move rule for AI
-* Late Move Reduction
 * Aspiration Window
 
 ## Installation:
