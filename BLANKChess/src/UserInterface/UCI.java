@@ -4,12 +4,12 @@ import java.io.InputStreamReader;
 
 public class UCI {
     public static final String ENGINE_NAME = "BLANK";
-    public static final String VERSION = "v1.1.0";
+    public static final String VERSION = "v1.2.0";
     public static final String AUTHOR = "Ryan Lau Q. F.";
     public static final int INFINITE_SEARCH = Integer.MAX_VALUE;
     public static final int DEFAULT_SEARCH = 5; // default search duration set to 5 seconds per search
     public static String FEN = FENUtilities.startFEN;
-    public static boolean usingOwnBook = true;
+    public static boolean loadOpeningBook = true;   // default will load opening book unless option is disabled
 
     public Board board;
     public AI engine;
@@ -39,11 +39,12 @@ public class UCI {
                 // initiates board to starting FEN and initiates engine to turn of FEN
                 board = new Board();
                 board.init(FEN);
-                engine = new AI(board.isWhiteTurn(), board);
+                engine = new AI(board.isWhiteTurn(), board, loadOpeningBook);
 
                 System.out.println("id name " + ENGINE_NAME + " " + VERSION);
                 System.out.println("id author " + AUTHOR);
-                System.out.println("\noption name OwnBook type check default true\n");
+                System.out.println("\noption name Hash type spin default 32 min 1 max 128");
+                System.out.println("option name OwnBook type check default true\n");
                 System.out.println("uciok");
 
                 // starts UCI communication
@@ -77,6 +78,14 @@ public class UCI {
 
             else if (command.startsWith("setoption name ")){
                 processOption(command);
+
+                // re-initiate engine with updated parameters
+                board = new Board();
+                board.init(FEN);
+                engine = new AI(board.isWhiteTurn(), board, loadOpeningBook);
+
+                // garbage collection to clean up memory usage
+                Runtime.getRuntime().gc();
             }
 
             // prints out the starting FEN of the board
@@ -89,7 +98,10 @@ public class UCI {
                 board = new Board();
                 board.init(FENUtilities.startFEN);
                 FEN = FENUtilities.startFEN;
-                engine = new AI(board.isWhiteTurn(), board);
+                engine = new AI(board.isWhiteTurn(), board, loadOpeningBook);
+
+                // free up memory usage from previous search
+                Runtime.getRuntime().gc();
             }
 
             // sets up a fen position on the board
@@ -101,6 +113,7 @@ public class UCI {
             // starts search
             else if (command.startsWith("go")) {
                 processGo(command);
+                Runtime.getRuntime().gc();
             }
 
             // prints out the board
@@ -137,19 +150,33 @@ public class UCI {
     }
 
     private void processOption(String input){
-        // cut "setoption name " out of the input
-        input = input.substring(15);
-        if(input.startsWith("OwnBook value ")){
-            // setoption name OwnBook value false
-            input = input.substring(input.lastIndexOf("value") + 5);
-            if(input.contains("true")){
-                usingOwnBook = true;
+        //setoption name Hash value 32
+        String[] splitInput = input.split(" ");
+
+        // Invalid input
+        if(splitInput.length != 5){
+            // all set options commands can be split into 5 parts
+            // i.e. setoption name Hash value 32
+            return;
+        }
+
+        if(splitInput[2].equals("OwnBook")){
+            // i.e. setoption name OwnBook value false
+            if(splitInput[4].equals("true")){
+                loadOpeningBook = true;
                 System.out.println("OwnBook enabled!");
             }
-            else if(input.contains("false")){
-                usingOwnBook = false;
+            else if(splitInput[4].equals("false")){
+                loadOpeningBook = false;
                 System.out.println("OwnBook disabled!");
             }
+        }
+
+        else if(splitInput[2].equals("Hash")){
+            // setoption name Hash value 32 (in megabytes)
+            int hashSize = Integer.parseInt(splitInput[4]);
+            TranspositionTable.ALLOCATED_HASH_SIZE_MEGABYTES = hashSize;
+            System.out.println("Allocated " + hashSize + " MB for hash table!");
         }
     }
 
@@ -199,7 +226,7 @@ public class UCI {
                     // search for exactly input milliseconds
                     ALLOCATED_TIME = Integer.parseInt(tokens[index + 1]);
                     ALLOCATED_TIME /= 1000; // convert from milliseconds to seconds
-                    engine.searchMove(useOpeningBook && usingOwnBook, ALLOCATED_TIME);
+                    engine.searchMove(useOpeningBook && loadOpeningBook, ALLOCATED_TIME);
                     return;
 
                 case "infinite":
@@ -237,7 +264,7 @@ public class UCI {
         }
 
         // start searching with engine
-        engine.searchMove(useOpeningBook && usingOwnBook, ALLOCATED_TIME);
+        engine.searchMove(useOpeningBook && loadOpeningBook, ALLOCATED_TIME);
     }
 
     // debugging uci commands
@@ -259,10 +286,9 @@ public class UCI {
 
         // create the board based on the initial fen input
         board = new Board();
-        boolean enableOpeningBook = false;
+
         if(input.startsWith("position startpos")){
             board.init(FENUtilities.startFEN);
-            enableOpeningBook = true;
         }
         else if(input.startsWith("position fen ")){
             // custom fen input
@@ -282,8 +308,8 @@ public class UCI {
         }
 
         // create the AI based on which turn to play and the starting board state
-        engine = new AI(isWhiteTurn, board);
-        engine.isUsingOpeningBook = enableOpeningBook;
+        engine = new AI(isWhiteTurn, board, loadOpeningBook);
+
         // process moves
         if(input.contains("moves")){
             // moves[0] will be "moves";
@@ -295,7 +321,9 @@ public class UCI {
             Move previousMove;
             board.setPreviousMove(null);
 
-            if(moves.length >= 16 || !usingOwnBook) {    // disable using opening book if the moves have exceeded the length of opening book
+            // disable using opening book if the moves have exceeded the length of opening book
+            // or if opening book is not loaded
+            if(moves.length >= 16 || !loadOpeningBook) {
                 engine.isUsingOpeningBook = false;
             }
 

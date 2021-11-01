@@ -9,19 +9,22 @@ public class AI {
     public int moveNum;
     public boolean isUsingOpeningBook;
 
-    public AI(boolean isWhite, Board board){
+    public AI(boolean isWhite, Board board, boolean loadOpeningBook){
         this.isWhite = isWhite;
         this.board = board;
-        this.isUsingOpeningBook = true;
+        this.isUsingOpeningBook = loadOpeningBook;
         this.moveNum = 0;  // number of moves made by this AI
         this.searcher = new Search(board);
 
-        try{
-            // builds the opening book for the AI
-            this.openingBook = new OpeningTrie(isWhite);
-        }
-        catch (IOException exception){
-            System.out.println("Unable to initialize opening book!");
+        // Check if in-built opening book should be created
+        if(loadOpeningBook){
+            try{
+                // builds the opening book for the AI
+                this.openingBook = new OpeningTrie(isWhite);
+            }
+            catch (IOException exception){
+                System.out.println("Unable to initialize opening book!");
+            }
         }
     }
 
@@ -115,7 +118,7 @@ public class AI {
     public static void main(String[] args){
         Board board = new Board();
         board.init(FENUtilities.trickyFEN);
-        AI testAI = new AI(false, board);
+        AI testAI = new AI(true, board, false);
 
         int timePerSearch = 15;
         testAI.searchMove(false, timePerSearch);

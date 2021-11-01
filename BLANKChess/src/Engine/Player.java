@@ -1,10 +1,8 @@
-import java.io.IOException;
-
 public class Player extends AI{
     protected final boolean isHuman;
 
-    Player(boolean isWhite, boolean isHuman, Board board) throws IOException {
-        super(isWhite, board);
+    Player(boolean isWhite, boolean isHuman, Board board){
+        super(isWhite, board, true);
         this.isHuman = isHuman;
     }
 

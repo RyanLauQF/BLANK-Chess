@@ -155,7 +155,7 @@ public class Search {
                 break;
             }
         }
-        System.out.println("Transposition Table Size: " + TT.table.size());
+        System.out.println("Transposition Table Size: " + TT.size());
 
         searchStopped = false;
 
@@ -341,7 +341,7 @@ public class Search {
             // cut off has occurred
             if(alpha >= beta) {
                 // store in tranposition table
-                TT.store(board.getZobristHash(), encodedMove, (byte) depth, alpha, TranspositionTable.LOWERBOUND_TYPE);
+                TT.recordEntry(board.getZobristHash(), encodedMove, (byte) depth, alpha, TranspositionTable.LOWERBOUND_TYPE);
 
                 // if the move that causes a cut off is a quiet move (not a capture) store move as killer and history moves
                 if(!MoveGenerator.isCapture(encodedMove)){
@@ -358,12 +358,12 @@ public class Search {
         }
 
         // store the best move at current position
-        TT.store(board.getZobristHash(), bestMove, (byte) depth, bestScore, moveFlag);
+        TT.recordEntry(board.getZobristHash(), bestMove, (byte) depth, bestScore, moveFlag);
 
         return bestScore;
     }
 
-    /**11563
+    /**
      * Evaluates the current position on the board by continuing to search all possible capture lines to reduce horizon effect
      * i.e. Prevents the AI from blundering a piece due to search being cut at a certain depth causing it to not "see" opponent attacks
      */
@@ -457,6 +457,70 @@ public class Search {
         board.init(FENUtilities.trickyFEN);
 
         Search search = new Search(board);
-        search.startSearch(20);
+        //search.startSearch(20);
+
+        /*
+         * TESTING FOR EVALUATION
+         */
+        long start = System.currentTimeMillis();
+        for(Short move : board.getAllLegalMoves()){
+            Move m = new Move(board, move);
+            m.makeMove();
+            int score = search.negamax(5, 0, Integer.MIN_VALUE + 1, Integer.MAX_VALUE);
+            m.unMake();
+
+            System.out.println(MoveGenerator.toString(move) + " " + score);
+        }
+        long end = System.currentTimeMillis();
+        System.out.println("Time Taken: " + (end - start));
+
+//        d5e6 51
+//        d5d6 227
+//        e5g6 182
+//        e5c4 480
+//        e5c6 317
+//        e5g4 330
+//        e5f7 239
+//        e5d3 285
+//        e5d7 217
+//        c3a4 324
+//        c3b1 392
+//        c3b5 293
+//        c3d1 382
+//        f3f4 438
+//        f3f5 1145
+//        f3f6 835
+//        f3e3 456
+//        f3d3 1100
+//        f3g3 569
+//        f3h3 612
+//        f3g4 1078
+//        f3h5 1172
+//        a2a3 325
+//        a2a4 330
+//        b2b3 362
+//        d2e3 290
+//        d2f4 278
+//        d2g5 300
+//        d2h6 356
+//        d2c1 299
+//        e2d3 295
+//        e2c4 480
+//        e2b5 510
+//        e2a6 -11
+//        e2f1 294
+//        e2d1 390
+//        g2h3 220
+//        g2g3 340
+//        g2g4 335
+//        a1b1 289
+//        a1c1 331
+//        a1d1 250
+//        e1d1 383
+//        e1f1 295
+//        e1g1 261
+//        e1c1 304
+//        h1g1 325
+//        h1f1 325
     }
 }

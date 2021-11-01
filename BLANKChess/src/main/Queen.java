@@ -10,7 +10,7 @@ public class Queen extends Piece{
      * Similar implementation to a Bishop + Rook movement
      */
 
-    public static final int QUEEN_VALUE = 911;
+    public static final int QUEEN_VALUE = 950;
 
     public Queen(boolean isWhite, int position, Board b){
         super(isWhite, position, b);

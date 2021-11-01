@@ -10,7 +10,7 @@ public class Knight extends Piece{
      * Knight moves by jumping over other pieces. Check if piece landed on is an allied piece.
      */
 
-    public static final int KNIGHT_VALUE = 342;
+    public static final int KNIGHT_VALUE = 305;
 
     public Knight(boolean isWhite, int position, Board b){
         super(isWhite, position, b);

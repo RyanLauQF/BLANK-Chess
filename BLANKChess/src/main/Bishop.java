@@ -10,7 +10,7 @@ public class Bishop extends Piece{
      * Similar implementation to a Rook
      */
 
-    public static final int BISHOP_VALUE = 374;
+    public static final int BISHOP_VALUE = 333;
 
     public Bishop(boolean isWhite, int position, Board b){
         super(isWhite, position, b);

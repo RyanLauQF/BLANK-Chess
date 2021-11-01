@@ -18,7 +18,7 @@ public class GameManager {
     private static boolean whitePlayer_isHuman = true;
     private static boolean blackPlayer_isHuman = false;
 
-    public GameManager(ChessGUI chessGUI, Board board, boolean p1_isHuman, boolean p2_isHuman) throws IOException {
+    public GameManager(ChessGUI chessGUI, Board board, boolean p1_isHuman, boolean p2_isHuman){
         this.chessGUI = chessGUI;
         this.whitePlayer = new Player(true, p1_isHuman, board);
         this.blackPlayer = new Player(false, p2_isHuman, board);
@@ -263,9 +263,11 @@ public class GameManager {
             case 2:
                 whitePlayer_isHuman = false;
                 blackPlayer_isHuman = true;
+                break;
             case 3:
                 whitePlayer_isHuman = false;
                 blackPlayer_isHuman = false;
+                break;
         }
     }
 
