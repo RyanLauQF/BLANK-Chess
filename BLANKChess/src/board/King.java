@@ -17,7 +17,7 @@ public class King extends Piece {
      * Similar implementation to a knight
      */
 
-    public static final int KING_VALUE = 20000;
+    public static final int KING_VALUE = 12000;
 
     public King(boolean isWhite, int position, Board b){
         super(isWhite, position, b);
@@ -135,15 +135,8 @@ public class King extends Piece {
     }
 
     @Override
-    public int getValue(){  // value of a king
-        int positionBonus;
-        if(board.getPieceList(isWhite()).getCount() < 7){
-            // has reached endgame
-            positionBonus = (isWhite()) ? EvalUtilities.kingEndGamePST[getPosition()] : EvalUtilities.kingEndGamePST[EvalUtilities.blackFlippedPosition[getPosition()]];
-        }
-        else {
-            positionBonus = (isWhite()) ? EvalUtilities.kingMidGamePST[getPosition()] : EvalUtilities.kingMidGamePST[EvalUtilities.blackFlippedPosition[getPosition()]];
-        }
+    public int getExtraEval(){
+        int positionBonus = 0;
 
         // check for king safety with pawn shields (number of allied pawns adjacent to king)
         int offSet, endPosition;
@@ -167,11 +160,23 @@ public class King extends Piece {
             positionBonus += 60;
         }
 
+        return positionBonus;
+    }
+
+    @Override
+    public int getMidGameValue(){
+        int positionBonus = (isWhite()) ? EvalUtilities.kingMidGamePST[getPosition()] : EvalUtilities.kingMidGamePST[EvalUtilities.blackFlippedPosition[getPosition()]];
         return KING_VALUE + positionBonus;
     }
 
     @Override
-    public int getPieceValue(){
+    public int getEndGameValue(){
+        int positionBonus = (isWhite()) ? EvalUtilities.kingEndGamePST[getPosition()] : EvalUtilities.kingEndGamePST[EvalUtilities.blackFlippedPosition[getPosition()]];
+        return KING_VALUE + positionBonus;
+    }
+
+    @Override
+    public int getPhaseValue(){
         return KING_VALUE;
     }
 

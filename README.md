@@ -14,7 +14,7 @@ BLANK is deployed on Lichess, running on Heroku servers. You can challenge it [h
 * Quiescence Search
 * Search Extension on check
 * Late Move Reduction
-* Static board evaluation
+* Static board evaluation (Tapered Evaluation with Passed Pawn evaluation)
 * Move Ordering (PV Nodes, Refutation Moves, MVV / LVA for Captures, Promotion)
 * Transposition Table (Zobrist Hashing)
 * Null-Move pruning

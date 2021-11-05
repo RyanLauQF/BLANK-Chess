@@ -26,7 +26,7 @@ public class ChessGUI extends JPanel {
     private boolean checkGameEndAfterEachMove; // set to true if human player vs human player
 
     /**
-     * Constructor creates a overall JPanel to represent the chess board user interface
+     * Constructor creates an overall JPanel to represent the chess board user interface
      * @param board refers to the chess board represented by a Board object
      */
     public ChessGUI(Board board){
@@ -291,20 +291,20 @@ public class ChessGUI extends JPanel {
         private Piece piece;
 
         // Image icons of all white pieces
-        private final ImageIcon whitePawn = getImage("/whitePawn.png");
-        private final ImageIcon whiteBishop = getImage("/whiteBishop.png");
-        private final ImageIcon whiteKnight = getImage("/whiteKnight.png");
-        private final ImageIcon whiteRook = getImage("/whiteRook.png");
-        private final ImageIcon whiteQueen = getImage("/whiteQueen.png");
-        private final ImageIcon whiteKing = getImage("/whiteKing.png");
+        private final ImageIcon whitePawn = getImage("piece-icons/whitePawn.png");
+        private final ImageIcon whiteBishop = getImage("piece-icons/whiteBishop.png");
+        private final ImageIcon whiteKnight = getImage("piece-icons/whiteKnight.png");
+        private final ImageIcon whiteRook = getImage("piece-icons/whiteRook.png");
+        private final ImageIcon whiteQueen = getImage("piece-icons/whiteQueen.png");
+        private final ImageIcon whiteKing = getImage("piece-icons/whiteKing.png");
 
         // Image icons of all black pieces
-        private final ImageIcon blackPawn = getImage("/blackPawn.png");
-        private final ImageIcon blackBishop = getImage("/blackBishop.png");
-        private final ImageIcon blackKnight = getImage("/blackKnight.png");
-        private final ImageIcon blackRook = getImage("/blackRook.png");
-        private final ImageIcon blackQueen = getImage("/blackQueen.png");
-        private final ImageIcon blackKing = getImage("/blackKing.png");
+        private final ImageIcon blackPawn = getImage("piece-icons/blackPawn.png");
+        private final ImageIcon blackBishop = getImage("piece-icons/blackBishop.png");
+        private final ImageIcon blackKnight = getImage("piece-icons/blackKnight.png");
+        private final ImageIcon blackRook = getImage("piece-icons/blackRook.png");
+        private final ImageIcon blackQueen = getImage("piece-icons/blackQueen.png");
+        private final ImageIcon blackKing = getImage("piece-icons/blackKing.png");
 
         /**
          * Constructor to initialize all TilePanels. Each tile panel will have a mouse listener to get user input

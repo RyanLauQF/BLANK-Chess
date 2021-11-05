@@ -13,7 +13,7 @@ public class Pawn extends Piece {
      * Pawn moves by sliding. Check if the pawn is blocked by any piece when it moves.
      */
 
-    public static final int PAWN_VALUE = 100;
+    public static final int PAWN_MG_VALUE = 82, PAWN_EG_VALUE = 94;
 
 
     public Pawn(boolean isWhite, int position, Board b){
@@ -156,7 +156,7 @@ public class Pawn extends Piece {
         }
 
 
-        // check in front of the pawn if theres any enemy pawns directly infront or on the adjacent files that can stop it
+        // check in front of the pawn if there is any enemy pawns directly in front or on the adjacent files that can stop it
         Piece piece;
         for(int i = 0; i < squaresToEdge; i++){
             endPosition = position + (offSet * (i + 1));
@@ -211,23 +211,62 @@ public class Pawn extends Piece {
         return false;
     }
 
+    private boolean isBlocked(){
+        int position = this.getPosition();
+        int positionToCheck;
+        if(isWhite()){
+            positionToCheck = position - 8;
+        }
+        else{
+            positionToCheck = position + 8;
+        }
+
+        return board.getTile(positionToCheck).isOccupied();
+    }
+
+
     @Override
-    public int getValue(){  // value of a pawn
-        int positionBonus = (isWhite()) ? EvalUtilities.pawnPST[getPosition()] : EvalUtilities.pawnPST[EvalUtilities.blackFlippedPosition[getPosition()]];
+    public int getExtraEval(){
+        int positionBonus = 0;
 
         if(isPassedPawn(board, this)){
             positionBonus += 62;
+
+            // check if passed pawn is defended by a rook
             if(rookBehindPawn()){
                 positionBonus += 30;
             }
-        }
 
-        return PAWN_VALUE + positionBonus;
+            // rank of passed pawn (how close it is to promotion)
+            int rank = getRank(this.getPosition()) - '0';
+            if(!isWhite()){
+                rank = 8 - rank;
+            }
+            positionBonus += (rank * 5);
+
+            // check if passed pawn is blocked by an enemy piece
+            if(isBlocked()){
+                positionBonus -= 10;
+            }
+        }
+        return positionBonus;
     }
 
     @Override
-    public int getPieceValue(){
-        return PAWN_VALUE;
+    public int getMidGameValue(){
+        int positionBonus = (isWhite()) ? EvalUtilities.pawnMidGamePST[getPosition()] : EvalUtilities.pawnMidGamePST[EvalUtilities.blackFlippedPosition[getPosition()]];
+        return PAWN_MG_VALUE + positionBonus + getExtraEval();
+    }
+
+    @Override
+    public int getEndGameValue(){
+        int positionBonus = (isWhite()) ? EvalUtilities.pawnEndGamePST[getPosition()] : EvalUtilities.pawnEndGamePST[EvalUtilities.blackFlippedPosition[getPosition()]];
+        return PAWN_EG_VALUE + positionBonus + getExtraEval();
+    }
+
+    @Override
+    public int getPhaseValue(){
+        return 0;
     }
 
     @Override

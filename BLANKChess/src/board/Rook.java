@@ -11,7 +11,7 @@ public class Rook extends Piece{
      * Similar implementation to a Bishop
      */
 
-    public static final int ROOK_VALUE = 563;
+    public static final int ROOK_MG_VALUE = 477, ROOK_EG_VALUE = 512;
 
     public Rook(boolean isWhite, int position, Board b){
         super(isWhite, position, b);
@@ -117,8 +117,8 @@ public class Rook extends Piece{
     }
 
     @Override
-    public int getValue(){  // value of a rook
-        int positionBonus = (isWhite()) ? EvalUtilities.rookPST[getPosition()] : EvalUtilities.rookPST[EvalUtilities.blackFlippedPosition[getPosition()]];
+    public int getExtraEval(){
+        int positionBonus = 0;
 
         if(isSeventhRankRook()){    // rook on rank 7 is able to create a major threat
             positionBonus += 41;
@@ -135,12 +135,24 @@ public class Rook extends Piece{
             positionBonus += 57;
         }
 
-        return ROOK_VALUE + positionBonus;
+        return positionBonus;
     }
 
     @Override
-    public int getPieceValue(){
-        return ROOK_VALUE;
+    public int getMidGameValue(){
+        int positionBonus = (isWhite()) ? EvalUtilities.rookMidGamePST[getPosition()] : EvalUtilities.rookMidGamePST[EvalUtilities.blackFlippedPosition[getPosition()]];
+        return ROOK_MG_VALUE + positionBonus;
+    }
+
+    @Override
+    public int getEndGameValue(){
+        int positionBonus = (isWhite()) ? EvalUtilities.rookEndGamePST[getPosition()] : EvalUtilities.rookEndGamePST[EvalUtilities.blackFlippedPosition[getPosition()]];
+        return ROOK_EG_VALUE + positionBonus;
+    }
+
+    @Override
+    public int getPhaseValue(){
+        return ROOK_MG_VALUE;
     }
 
     @Override

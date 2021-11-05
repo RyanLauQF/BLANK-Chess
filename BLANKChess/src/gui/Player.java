@@ -1,9 +1,13 @@
-public class Player extends AI{
-    protected final boolean isHuman;
+import java.io.IOException;
 
-    Player(boolean isWhite, boolean isHuman, Board board){
-        super(isWhite, board, true);
+public class Player extends EngineMain{
+    protected final boolean isHuman;
+    protected final boolean isWhite;
+
+    Player(boolean isWhite, boolean isHuman, Board board) throws IOException {
+        super(board, true);
         this.isHuman = isHuman;
+        this.isWhite = isWhite;
     }
 
     public Board getBoard(){

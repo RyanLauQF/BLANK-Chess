@@ -20,39 +20,32 @@ public class MoveOrdering {
             {0, 0, 0, 0, 0, 0, 0},          // victim None, attacker K, Q, R, B, N, P, None
     };
 
-    public static ArrayList<Short> orderMoves(ArrayList<Short> moves, Search searcher) {
+    public static ArrayList<Short> orderMoves(ArrayList<Short> moves, Search searcher, int searchPly) {
         moves.sort((move1, move2) -> {
-            int moveScore1 = getMoveScore(move1, searcher);
-            int moveScore2 = getMoveScore(move2, searcher);
+            int moveScore1 = getMoveScore(move1, searcher, searchPly);
+            int moveScore2 = getMoveScore(move2, searcher, searchPly);
 
             return Integer.compare(moveScore2, moveScore1);
         });
         return moves;
     }
 
-    private static int getMoveScore(Short move, Search searcher){
-        TranspositionTable TT = searcher.TT;
+    private static int getMoveScore(Short move, Search searcher, int ply){
         Board board = searcher.board;
-        int currentSearchPly = searcher.ply;
-
-        short hashMove = 0;
-        byte flag = -1;
-        if(TT.containsKey(board.getZobristHash())){
-            hashMove = TT.getEntry(board.getZobristHash()).bestMove;
-            flag = TT.getEntry(board.getZobristHash()).entry_TYPE;
-        }
 
         // evaluate the move scores
         int score = 0;
         int start = MoveGenerator.getStart(move);
         int end = MoveGenerator.getEnd(move);
 
-        if(move == hashMove){
-            if(flag == TranspositionTable.EXACT_TYPE){
-                score += 20000; // pv node
-            }
-            else if(flag == TranspositionTable.LOWERBOUND_TYPE){
-                score += 1000;
+        if(searcher.pvMoveScoring){
+            if (searcher.PVMoves[0][ply] == move)
+            {
+                // disable score PV flag
+                searcher.pvMoveScoring = false;
+
+                // give PV move the highest score to search it first
+                return 20000;
             }
         }
 
@@ -60,7 +53,7 @@ public class MoveOrdering {
         Piece startPiece = board.getTile(start).getPiece();
 
         if(MoveGenerator.isCapture(move)){
-            // Sort by Most Valuable Victim / Least Valuable Aggressor
+            // Sort by Most-Valuable Victim / Least-Valuable Aggressor
             if (MoveGenerator.getMoveType(move) == 4) {
                 // normal capture
                 score += MVV_LVA(board.getTile(end).getPiece(), startPiece);
@@ -71,13 +64,13 @@ public class MoveOrdering {
             }
             score += 10000; // prioritise captures
         }
-        // quiet positions
+        // quiet moves positions
         else{
             // killer move
-            if(move == searcher.killerMoves[0][currentSearchPly]){
+            if(move == searcher.killerMoves[0][ply]){
                 score += 8000;
             }
-            else if(move == searcher.killerMoves[1][currentSearchPly]){
+            else if(move == searcher.killerMoves[1][ply]){
                 score += 7000;
             }
             else{
@@ -90,11 +83,11 @@ public class MoveOrdering {
             int moveType = MoveGenerator.getMoveType(move);
             if(moveType == 8 || moveType == 12){
                 // knight promotion
-                score += Knight.KNIGHT_VALUE;
+                score += Knight.KNIGHT_MG_VALUE;
             }
             else if(moveType == 11 || moveType == 15){
                 // queen promotion
-                score += Queen.QUEEN_VALUE;
+                score += Queen.QUEEN_MG_VALUE;
             }
             else{
                 score += 300; // rook and bishop not as useful as Queen / Knight promotion (knight discovered checks)
@@ -107,7 +100,7 @@ public class MoveOrdering {
 
         if(board.checkPawnAttacking(isWhitePiece, end, 0) != 0){
             // if tile being moved to is attacked by enemy pawn, usually bad.
-            score -= startPiece.getPieceValue();
+            score -= startPiece.getMidGameValue();
         }
 
         return score;

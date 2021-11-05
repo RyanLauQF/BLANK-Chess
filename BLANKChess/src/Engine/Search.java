@@ -4,9 +4,13 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 
 public class Search {
+    private static final int INFINITY = 120000;
+    private static final int CHECKMATE_SCORE = 100000;
+    private static final int DRAW_SCORE = 0;
+    private static final int CONTEMPT_FACTOR = 20;
 
     // Used to stop search when "stop" command is given
-    private final BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+    private final BufferedReader listener = new BufferedReader(new InputStreamReader(System.in));
     private boolean searchStopped;
 
     // Late Move Reduction - reduction factor pre-calculated look-up table
@@ -16,12 +20,12 @@ public class Search {
     private static final int[][] REDUCTION_TABLE;
 
     // Search info
-    public int ply;
+    private int ply;
     private int maxPly;
     private int nodeCount;
     private int cutOffCount;
 
-    // Memoization of searched nodes
+    // Memoization of searched nodes with transposition table
     public TranspositionTable TT;
     public short[][] killerMoves;
     public short[][] historyMoves;
@@ -36,14 +40,16 @@ public class Search {
     private final Clock timer;
 
     // Used to obtain Principle Variation from iterative deepening search
-    private short[][] PVMoves;
+    public short[][] PVMoves;
     private int[] PVLength;
+    public boolean followPVLine;
+    public boolean pvMoveScoring;
 
     // Root board state where search begins
     public Board board;
 
     /*
-     * init at the start of the program to fill up reduction factors for varying depth and move numbers
+     * init at the start of the program to calculate reduction factors for varying depth and move numbers in move list
      */
     static {
         REDUCTION_TABLE = new int[MAX_PLY][MAX_MOVES];
@@ -67,20 +73,26 @@ public class Search {
     /**
      * Constructor
      * @param board refers to the root board state where the search will begin
+     * @param TT refers to the transposition table used by the searcher
      */
-    public Search(Board board){
+
+    public Search(Board board, TranspositionTable TT){
         this.board = board;
+        this.TT = TT;
         this.isDoingNullMove = false;
         this.timer = new Clock();
-
-        this.TT = new TranspositionTable();
         this.killerMoves = new short[2][MAX_PLY];
         this.historyMoves = new short[64][64];
-
         this.PVMoves = new short[MAX_PLY][MAX_PLY];
         this.PVLength = new int[MAX_PLY];
     }
 
+    /**
+     * @param newBoard refers to the new board position to be searched
+     */
+    public void setBoard(Board newBoard){
+        this.board = newBoard;
+    }
 
     /**
      * search for best move using iterative deepening for a given period of time or until "stop" command is given
@@ -88,15 +100,13 @@ public class Search {
      * @return the encoded move determined to be the best move
      */
     public short startSearch(double searchDuration){
-
-        // creates a thread to listen for "stop" command in the background
         System.out.println("Time Allocated: " + searchDuration + " seconds");
 
         // set the time for search.
         timer.setTime(searchDuration);
         timer.start();  // start the clock
 
-        double iterationEndTime, timeElapsedSinceStart;
+        double iterationEndTime, timeElapsedSinceStart = 0;
         short currentMove, bestMove = 0;
         int totalNodeCount = 0;
 
@@ -108,8 +118,11 @@ public class Search {
             // reset all variables for each iteration
             resetSearch();
 
+            // follow the Pv line found in previous search
+            followPVLine = true;
+
             // search for bestmove for current iteration
-            int score = negamax(curr_depth, 0, Integer.MIN_VALUE + 1, Integer.MAX_VALUE);
+            int score = negamax(curr_depth, 0, -INFINITY, INFINITY);
 
             // best move found in current iteration
             currentMove = PVMoves[0][0];
@@ -139,7 +152,7 @@ public class Search {
                     PVLine.append(MoveGenerator.toString(PVMoves[0][i]));
                     PVLine.append(" ");
                 }
-                System.out.println(searchInfo + PVLine.toString());
+                System.out.println(searchInfo + PVLine);
             }
 
             /*
@@ -150,11 +163,12 @@ public class Search {
              */
 
             if (timer.isTimeUp() || (timer.getRemainingTime() < timeElapsedSinceStart) || searchStopped) {
-                System.out.println("bestmove " + MoveGenerator.toString(bestMove));
-                System.out.println("Time Taken: " + timeElapsedSinceStart);
                 break;
             }
         }
+
+        System.out.println("bestmove " + MoveGenerator.toString(bestMove));
+        System.out.println("Time Taken: " + timeElapsedSinceStart);
         System.out.println("Transposition Table Size: " + TT.size());
 
         searchStopped = false;
@@ -162,27 +176,103 @@ public class Search {
         return bestMove;
     }
 
-    public void listen() throws IOException {
-        String s;
-        if(br.ready()){
-            s = br.readLine();
-            if(s.equals("stop")){
-                stopSearch();
-            }
-            else if(s.equals("quit")){
-                br.close();
-                System.exit(0);
+    /**
+     * Listens for a "stop" or "quit" command during search
+     */
+    public void listen(){
+        try{
+            if(listener.ready()){
+                String input = listener.readLine();
+                if(input.equals("stop")){
+                    stopSearch();
+                }
+                else if(input.equals("quit")){
+                    listener.close();
+                    System.exit(0);
+                }
             }
         }
+       catch (IOException ioException){
+            System.out.println("Unable to read input!");
+       }
     }
 
+    /**
+     * stops the ongoing search
+     */
     public void stopSearch(){
         searchStopped = true;
         System.out.println("stopping...");
     }
 
+    /**
+     * search for best move found for a given depth
+     * @param depth refers to the depth to search a position
+     * @return the best move found
+     */
+    public short depthSearch(int depth){
+        System.out.println("Target Depth: " + depth);
+
+        double startTime = System.currentTimeMillis(), iterationEndTime, timeElapsedSinceStart = 0;
+        short currentMove, bestMove = 0;
+        int totalNodeCount = 0;
+        searchStopped = false;
+
+        // iterative deepening search
+        for (int curr_depth = 1; curr_depth <= depth; curr_depth++) {
+
+            // reset all variables for each iteration
+            resetSearch();
+
+            followPVLine = true;
+
+            // search for bestmove for current iteration
+            int score = negamax(curr_depth, 0, -INFINITY, INFINITY);
+
+            // best move found in current iteration
+            currentMove = PVMoves[0][0];
+
+            // end time of this iteration
+            iterationEndTime = System.currentTimeMillis();
+
+            // time taken to get to this iteration (to determine if we should continue to search next iteration in given time)
+            timeElapsedSinceStart = iterationEndTime - startTime;
+
+            // if the current search was not stopped by clock, use the results of the search
+            if (!searchStopped) {
+                // set best move to the best move of current iteration
+                bestMove = currentMove;
+
+                // information obtained from the search
+                String searchInfo = "info depth " + curr_depth +
+                        " seldepth " + maxPly +
+                        " score cp " + score +
+                        " nodes " + (totalNodeCount += nodeCount) +
+                        " ttCut " + cutOffCount +
+                        " time " + (int) timeElapsedSinceStart;
+
+                // PV line obtained from the search
+                StringBuilder PVLine = new StringBuilder(" pv ");
+                for (int i = 0; i < PVLength[0]; i++) {
+                    PVLine.append(MoveGenerator.toString(PVMoves[0][i]));
+                    PVLine.append(" ");
+                }
+                System.out.println(searchInfo + PVLine);
+            }
+        }
+
+        System.out.println("bestmove " + MoveGenerator.toString(bestMove));
+        System.out.println("Time Taken: " + timeElapsedSinceStart);
+        System.out.println("Transposition Table Size: " + TT.size());
+
+        searchStopped = false;
+
+        return bestMove;
+    }
+
     public int negamax(int depth, int searchPly, int alpha, int beta){
         PVLength[searchPly] = searchPly;
+        boolean isPV = (beta - alpha) > 1;
 
         long zobrist = board.getZobristHash();
         // obtain transposition table data if current position has already been evaluated before
@@ -190,38 +280,35 @@ public class Search {
             TranspositionTable.TTEntry entry = TT.getEntry(zobrist);
 
             // if the entry depth is greater than current depth, use the stored evaluation as it is more accurate due to deeper search
-            if(entry.depth >= depth && searchPly != 0){
+            if(!isPV && entry.depth >= depth && searchPly != 0){
+                int entryScore = entry.eval;
+
                 if(entry.entry_TYPE == TranspositionTable.EXACT_TYPE){
                     cutOffCount++;
                     return entry.eval;
                 }
                 else if(entry.entry_TYPE == TranspositionTable.LOWERBOUND_TYPE){
-                    alpha = Math.max(alpha, entry.eval);
+                    alpha = Math.max(alpha, entryScore);
                 }
                 else if(entry.entry_TYPE == TranspositionTable.UPPERBOUND_TYPE){
-                    beta = Math.min(beta, entry.eval);
+                    beta = Math.min(beta, entryScore);
                 }
                 if(alpha >= beta){
                     cutOffCount++;
-                    return entry.eval;
+                    return entryScore;
                 }
             }
         }
 
-        // every 2047 nodes, check for UCI commands
-        if((nodeCount & 2047) == 0){
-            try{
-                listen();
-            }
-            catch (IOException ignored){
-                System.out.println("Unable to read input!");
-            }
+        // every 32767 (in binary: 0b111111111111111) nodes, check for UCI commands
+        if((nodeCount & 32767) == 0){
+            listen();
         }
 
-        // check for move repetition
+        // check for move repetition to avoid playing any same position more than once
         if(searchPly != 0 && board.repetitionHistory.containsKey(zobrist) && (board.repetitionHistory.get(zobrist) >= 1)){
-            // do not play any same position more than once
-            return 0;
+            // avoid taking draws unless down by more than contempt factor
+            return DRAW_SCORE - CONTEMPT_FACTOR;
         }
 
         // evaluate the positions after doing a quiescence search to remove horizon effect (search all captures)
@@ -229,6 +316,12 @@ public class Search {
             ply = searchPly;
             return quiescenceSearch(alpha, beta);
         }
+
+        // ensure that the ply searched is not greater than max ply due to extensions
+        if(searchPly > MAX_PLY - 1){
+            return EvalUtilities.evaluate(board);
+        }
+
         nodeCount++;
 
         // null move pruning
@@ -237,7 +330,7 @@ public class Search {
             Move nullMove = new Move(board, (short) 0);
             isDoingNullMove = true;
             nullMove.makeNullMove();
-            int score = -negamax(depth - 1 - REDUCTION_CONSTANT, searchPly + 1, -beta, -beta + 1);   // set R to 2
+            int score = -negamax(depth - 1 - REDUCTION_CONSTANT, searchPly + 1, -beta, -beta + 1);
             nullMove.unmakeNullMove();
             isDoingNullMove = false;
 
@@ -263,25 +356,40 @@ public class Search {
         if(encodedMoves.size() == 0){
             // checkmate found
             if(isKingChecked){
-                return -EvalUtilities.CHECKMATE_SCORE + searchPly;
+                return -CHECKMATE_SCORE + searchPly;
             }
+            // draw (stalemate)
+            return DRAW_SCORE - CONTEMPT_FACTOR;
+        }
 
-            // draw
-            return 0;
+        // if we are following the previous pv line, enable pv scoring for move ordering
+        // to prioritise searching the PV moves
+        if(followPVLine){
+            followPVLine = false;
+
+            // look through the move list to check if we have a pv move.
+            for(Short moves : encodedMoves){
+                // if PV move is found, enable pv move scoring for move ordering and continue following PV line
+                if (moves == PVMoves[0][searchPly]) {
+                    followPVLine = true;
+                    pvMoveScoring = true;
+                    break;
+                }
+            }
         }
 
         short bestMove = 0;
-        byte moveFlag = TranspositionTable.UPPERBOUND_TYPE;
-        int bestScore = Integer.MIN_VALUE + 1;
-        int moveCount = 0;
-        int searchedScore;
+        int bestScore = Integer.MIN_VALUE, moveCount = 0, searchedScore;
 
-        for (Short encodedMove : MoveOrdering.orderMoves(encodedMoves, this)) {
+        // set to check for fail-low node
+        byte moveFlag = TranspositionTable.UPPERBOUND_TYPE;
+
+        for (Short encodedMove : MoveOrdering.orderMoves(encodedMoves, this, searchPly)) {
             moveCount++;
             Move move = new Move(board, encodedMove);
             move.makeMove();
 
-            // pv move, do a full search
+            // if this is a pv move, do a full search
             if(moveCount == 1){
                 searchedScore = -negamax(depth - 1, searchPly + 1, -beta, -alpha);
             }
@@ -292,7 +400,7 @@ public class Search {
                         && !MoveGenerator.isCapture(encodedMove)
                         && !isKingChecked){
 
-                    // do reduced search based on reduction factor with a narrowed window
+                    // do reduce search based on reduction factor with a narrowed window
                     int reduction = REDUCTION_TABLE[depth][moveCount];
                     searchedScore = -negamax(depth - 1 - reduction, searchPly + 1, -alpha - 1, -alpha);
                 }
@@ -327,7 +435,14 @@ public class Search {
 
             if(bestScore > alpha){
                 alpha = bestScore;
+                // a better move has been found, switch to storing exact evaluation
                 moveFlag = TranspositionTable.EXACT_TYPE;
+
+                // if the move is a quiet move, store as history move
+                if(!MoveGenerator.isCapture(encodedMove)){
+                    // store history move data
+                    historyMoves[MoveGenerator.getStart(encodedMove)][MoveGenerator.getEnd(encodedMove)]++;
+                }
 
                 // write PV move
                 PVMoves[searchPly][searchPly] = encodedMove;
@@ -338,22 +453,19 @@ public class Search {
                 PVLength[searchPly] = PVLength[searchPly + 1];
             }
 
-            // cut off has occurred
+            // fail-hard beta cut off has occurred
             if(alpha >= beta) {
-                // store in tranposition table
-                TT.recordEntry(board.getZobristHash(), encodedMove, (byte) depth, alpha, TranspositionTable.LOWERBOUND_TYPE);
+                // store in transposition table
+                TT.recordEntry(board.getZobristHash(), encodedMove, (byte) depth, beta, TranspositionTable.LOWERBOUND_TYPE);
 
-                // if the move that causes a cut off is a quiet move (not a capture) store move as killer and history moves
+                // if the move that causes a cutoff is a quiet move (not a capture) store move as killer moves
                 if(!MoveGenerator.isCapture(encodedMove)){
                     // store killer move
                     killerMoves[1][searchPly] = killerMoves[0][searchPly];
                     killerMoves[0][searchPly] = encodedMove;
-
-                    // store history move data
-                    historyMoves[MoveGenerator.getStart(encodedMove)][MoveGenerator.getEnd(encodedMove)]++;
                 }
 
-                return alpha;
+                return beta;
             }
         }
 
@@ -367,24 +479,25 @@ public class Search {
      * Evaluates the current position on the board by continuing to search all possible capture lines to reduce horizon effect
      * i.e. Prevents the AI from blundering a piece due to search being cut at a certain depth causing it to not "see" opponent attacks
      */
-    private int quiescenceSearch(int alpha, int beta) {
-        // every 2047 nodes, check for UCI commands
-        if((nodeCount & 2047) == 0){
-            try{
-                listen();
-            }
-            catch (IOException ignored){
-                System.out.println("Unable to read input!");
-            }
+    private int quiescenceSearch(int alpha, int beta){
+        // every 32767 (in binary: 0b111111111111111) nodes, check for UCI commands
+        if((nodeCount & 32767) == 0){
+            listen();
         }
 
         int stand_pat = EvalUtilities.evaluate(board);
+
+        // ensure that the ply searched is not greater than max ply due to extensions
+        if(ply > MAX_PLY - 1){
+            return stand_pat;
+        }
+
         if(stand_pat >= beta){
             return stand_pat; // fail soft
         }
 
         // Delta pruning
-        int BIG_DELTA = Queen.QUEEN_VALUE; // queen value
+        int BIG_DELTA = Queen.QUEEN_MG_VALUE; // queen value
         if (stand_pat < (alpha - BIG_DELTA)) {
             return stand_pat;
         }
@@ -395,7 +508,7 @@ public class Search {
         }
 
         ArrayList<Short> captureMoves = board.getAllCaptures();
-        for (Short encodedMove : MoveOrdering.orderMoves(captureMoves, this)) {
+        for (Short encodedMove : MoveOrdering.orderMoves(captureMoves, this, ply)) {
             Move move = new Move(board, encodedMove);
 
             ply++;
@@ -411,12 +524,12 @@ public class Search {
                 return 0;
             }
 
-            // cut-off has occurred
-            if(searchedScore >= beta) {
-                return beta;
-            }
-            if(searchedScore > alpha) {
+            if(searchedScore > alpha){
                 alpha = searchedScore;
+                // cut-off has occurred
+                if(searchedScore >= beta) {
+                    return beta;
+                }
             }
         }
         return alpha;
@@ -434,15 +547,17 @@ public class Search {
         historyMoves = new short[64][64];
         PVMoves = new short[MAX_PLY][MAX_PLY];
         PVLength = new int[MAX_PLY];
+        followPVLine = false;
+        pvMoveScoring = false;
         isDoingNullMove = false;
     }
 
     /**
-     * If there are less than or equal to 7 pieces left, end game is reached
-     * @return true if the AI side is now in end game phase
+     * Checks if the game is in the end game phase
+     * @return true when there are less than 7 minor and major pieces (excluding x2 kings) on the board
      */
     private boolean isEndGame(){
-        return board.getPieceList(true).getCount() <= 7 && board.getPieceList(false).getCount() <= 7;
+        return (board.getPieceList(true).getCount() + board.getPieceList(false).getCount()) <= 9;
     }
 
     private static int calculateReduction(int depth, int moveCount){
@@ -452,75 +567,28 @@ public class Search {
     /**
      * Unit Testing
      */
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
         Board board = new Board();
-        board.init(FENUtilities.trickyFEN);
+        board.init("r7/p5pp/4kp2/2pn4/1p6/1P6/PBP2PPK/3R4 w - - 0 1");
 
-        Search search = new Search(board);
-        //search.startSearch(20);
+        Search search = new Search(board, new TranspositionTable());
+        search.depthSearch(9);
 
         /*
-         * TESTING FOR EVALUATION
+         * TESTING FOR EVALUATION OF INDIVIDUAL MOVES
          */
-        long start = System.currentTimeMillis();
-        for(Short move : board.getAllLegalMoves()){
-            Move m = new Move(board, move);
-            m.makeMove();
-            int score = search.negamax(5, 0, Integer.MIN_VALUE + 1, Integer.MAX_VALUE);
-            m.unMake();
 
-            System.out.println(MoveGenerator.toString(move) + " " + score);
-        }
-        long end = System.currentTimeMillis();
-        System.out.println("Time Taken: " + (end - start));
+//        long start = System.currentTimeMillis();
+//        for(Short move : board.getAllLegalMoves()){
+//            Move m = new Move(board, move);
+//            m.makeMove();
+//            int score = search.negamax(7, 0, -INFINITY, INFINITY);
+//            m.unMake();
+//
+//            System.out.println(MoveGenerator.toString(move) + " " + score);
+//        }
+//        long end = System.currentTimeMillis();
+//        System.out.println("Time Taken: " + (end - start));
 
-//        d5e6 51
-//        d5d6 227
-//        e5g6 182
-//        e5c4 480
-//        e5c6 317
-//        e5g4 330
-//        e5f7 239
-//        e5d3 285
-//        e5d7 217
-//        c3a4 324
-//        c3b1 392
-//        c3b5 293
-//        c3d1 382
-//        f3f4 438
-//        f3f5 1145
-//        f3f6 835
-//        f3e3 456
-//        f3d3 1100
-//        f3g3 569
-//        f3h3 612
-//        f3g4 1078
-//        f3h5 1172
-//        a2a3 325
-//        a2a4 330
-//        b2b3 362
-//        d2e3 290
-//        d2f4 278
-//        d2g5 300
-//        d2h6 356
-//        d2c1 299
-//        e2d3 295
-//        e2c4 480
-//        e2b5 510
-//        e2a6 -11
-//        e2f1 294
-//        e2d1 390
-//        g2h3 220
-//        g2g3 340
-//        g2g4 335
-//        a1b1 289
-//        a1c1 331
-//        a1d1 250
-//        e1d1 383
-//        e1f1 295
-//        e1g1 261
-//        e1c1 304
-//        h1g1 325
-//        h1f1 325
     }
 }

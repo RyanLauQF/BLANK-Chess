@@ -10,7 +10,7 @@ public class Queen extends Piece{
      * Similar implementation to a Bishop + Rook movement
      */
 
-    public static final int QUEEN_VALUE = 950;
+    public static final int QUEEN_MG_VALUE = 1025, QUEEN_EG_VALUE = 936;
 
     public Queen(boolean isWhite, int position, Board b){
         super(isWhite, position, b);
@@ -47,14 +47,25 @@ public class Queen extends Piece{
     }
 
     @Override
-    public int getValue(){
-        int positionBonus = (isWhite()) ? EvalUtilities.queenPST[getPosition()] : EvalUtilities.queenPST[EvalUtilities.blackFlippedPosition[getPosition()]];
-        return QUEEN_VALUE + positionBonus;
+    public int getExtraEval(){
+        return 0;
     }
 
     @Override
-    public int getPieceValue(){
-        return QUEEN_VALUE;
+    public int getMidGameValue(){
+        int positionBonus = (isWhite()) ? EvalUtilities.queenMidGamePST[getPosition()] : EvalUtilities.queenMidGamePST[EvalUtilities.blackFlippedPosition[getPosition()]];
+        return QUEEN_MG_VALUE + positionBonus;
+    }
+
+    @Override
+    public int getEndGameValue(){
+        int positionBonus = (isWhite()) ? EvalUtilities.queenEndGamePST[getPosition()] : EvalUtilities.queenEndGamePST[EvalUtilities.blackFlippedPosition[getPosition()]];
+        return QUEEN_EG_VALUE + positionBonus;
+    }
+
+    @Override
+    public int getPhaseValue(){
+        return QUEEN_MG_VALUE;
     }
 
     @Override

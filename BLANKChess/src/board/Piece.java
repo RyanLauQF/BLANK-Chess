@@ -67,7 +67,7 @@ public abstract class Piece {
             else{   // only need to capture the piece
                 for (Short moves : moveSquares) {
                     end = MoveGenerator.getEnd(moves);
-                    if(this.isPawn()){  // if this piece is a pawn, check if can capture enpassant
+                    if(this.isPawn()){  // if this piece is a pawn, check if it can capture enpassant
                         if (end == board.getAttackingPieceLocation() || end == board.getEnpassant()) {
                             if(this.isPawn() && Pawn.canPromote(this.isWhite(), MoveGenerator.getEnd(moves))){
                                 generatePawnPromotionMoves(moves, moveList);
@@ -238,7 +238,7 @@ public abstract class Piece {
             int end;
             for (Short moves : moveSquares) {
                 end = MoveGenerator.getEnd(moves);
-                if(this.isPawn()){  // if this piece is a pawn, check if can capture enpassant
+                if(this.isPawn()){  // if this piece is a pawn, check if it can capture enpassant
                     if (end == board.getAttackingPieceLocation() || end == board.getEnpassant()) {
                         if(this.isPawn() && Pawn.canPromote(this.isWhite(), MoveGenerator.getEnd(moves))){
                             generatePawnPromotionMoves(moves, moveList);
@@ -317,7 +317,7 @@ public abstract class Piece {
     }
 
     /**
-     * Getter function to obtain which row the current board position index lies on the board
+     * Getter to obtain which row the current board position index lies on the board
      * @param position refers to the index of a tile on the board
      * @return the row which the index is on (i.e. index 8 lies on row 1)
      */
@@ -326,7 +326,7 @@ public abstract class Piece {
     }
 
     /**
-     * Getter function to obtain which column the current board position index lies on the board
+     * Getter to obtain which column the current board position index lies on the board
      * @param position refers to the index of a tile on the board
      * @return the column which the index is on (i.e. index 8 lies on column 0)
      */
@@ -424,14 +424,26 @@ public abstract class Piece {
     public abstract String toString();
 
     /**
-     * Represents the total value of a piece including position evaluation
+     * Obtains value of position evaluation based off chess strategies
      * > Used for Chess Engine score evaluation
-     * @return the value of the chess piece
+     * @return the value of bonus evaluation from strategies
      */
-    public abstract int getValue();
+    public abstract int getExtraEval();
 
     /**
-     * @return the value of the piece itself without positional evaluation
+     * @return the mid-game value of a piece + PST evaluation
      */
-    public abstract int getPieceValue();
+    public abstract int getMidGameValue();
+
+
+    /**
+     * @return the end-game value of a piece + PST evaluation
+     */
+    public abstract int getEndGameValue();
+
+
+    /**
+     * @return the mid-game value of a piece (except for pawns) to determine the current game phase for interpolation
+     */
+    public abstract int getPhaseValue();
 }

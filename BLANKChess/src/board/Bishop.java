@@ -10,7 +10,7 @@ public class Bishop extends Piece{
      * Similar implementation to a Rook
      */
 
-    public static final int BISHOP_VALUE = 333;
+    public static final int BISHOP_MG_VALUE = 365, BISHOP_EG_VALUE = 297;
 
     public Bishop(boolean isWhite, int position, Board b){
         super(isWhite, position, b);
@@ -24,7 +24,7 @@ public class Bishop extends Piece{
         int end, offSet;
         Tile endTile;
         int[] directions = MoveDirections.getDirections(getPosition());
-        for(int index = 4; index < 8; index++){ // diagonals offsets start at index 4 to 7
+        for(int index = 4; index < 8; index++){ // diagonals offset start at index 4 to 7
             offSet = MoveDirections.directionOffSets[index];
             for(int i = 0; i < directions[index]; i++){
                 end = getPosition() + (offSet * (i + 1));
@@ -48,20 +48,31 @@ public class Bishop extends Piece{
     }
 
     @Override
-    public int getValue(){  // value of a bishop
-        int positionBonus = (isWhite()) ? EvalUtilities.bishopPST[getPosition()] : EvalUtilities.bishopPST[EvalUtilities.blackFlippedPosition[getPosition()]];
+    public int getExtraEval(){
+        int positionBonus = 0;
 
         // bishop on large diagonals (2 diagonals that go from edge to edge) have higher mobility and is able to control the center
         if(getPosition() % 9 == 0 || getPosition() % 7 == 0){
             positionBonus += 74;
         }
-
-        return BISHOP_VALUE + positionBonus;
+        return positionBonus;
     }
 
     @Override
-    public int getPieceValue(){
-        return BISHOP_VALUE;
+    public int getMidGameValue(){
+        int positionBonus = (isWhite()) ? EvalUtilities.bishopMidGamePST[getPosition()] : EvalUtilities.bishopMidGamePST[EvalUtilities.blackFlippedPosition[getPosition()]];
+        return BISHOP_MG_VALUE + positionBonus;
+    }
+
+    @Override
+    public int getEndGameValue(){
+        int positionBonus = (isWhite()) ? EvalUtilities.bishopEndGamePST[getPosition()] : EvalUtilities.bishopEndGamePST[EvalUtilities.blackFlippedPosition[getPosition()]];
+        return BISHOP_EG_VALUE + positionBonus;
+    }
+
+    @Override
+    public int getPhaseValue(){
+        return BISHOP_MG_VALUE;
     }
 
     @Override

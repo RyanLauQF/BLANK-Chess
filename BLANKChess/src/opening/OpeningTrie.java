@@ -5,6 +5,10 @@ import java.util.Random;
 import java.util.Set;
 
 public class OpeningTrie {
+    enum SIDE{
+        WHITE, BLACK;
+    }
+
     public static class Node {
         String move;
         int occurrence;
@@ -26,6 +30,7 @@ public class OpeningTrie {
     private final Node rootNode;      // root node of the trie
     public Node moveTracker;   // keeps track of which move we are currently at in the opening phase
     private int size;
+    private SIDE side;
 
     /**
      * Default constructor
@@ -48,9 +53,11 @@ public class OpeningTrie {
 
         if(isWhite){
             this.buildTrie("whiteProcessedBook.txt");
+            this.side = SIDE.WHITE;
         }
         else{
             this.buildTrie("blackProcessedBook.txt");
+            this.side = SIDE.BLACK;
         }
     }
 
@@ -109,7 +116,7 @@ public class OpeningTrie {
             return true;
         }
         else{
-            System.out.println("move no longer in book!");
+            //System.out.println("Move no longer in book!");
             moveTracker = null; // no longer using the opening book so set the moveTracker to null.
             return false;
         }
@@ -139,6 +146,15 @@ public class OpeningTrie {
 
     public Set<String> getSetOfBookMoves(){
         return moveTracker.nextMoves.keySet();
+    }
+
+    public void resetMoveTracker(){
+        // moveTracker points back to root node to reset it
+        moveTracker = rootNode;
+    }
+
+    public SIDE getSide() {
+        return side;
     }
 
     public int size(){

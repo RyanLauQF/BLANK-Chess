@@ -115,8 +115,8 @@ public class Clock {
 
         // ensure that the AI does not lose based on time
         if(incrementPerMove > 0 && totalTimeLeft < (5 * incrementPerMove)){
-            // use only 75% of the increment time to play each move to account for lag time
-            return ((incrementPerMove * 75) / 100) / 1000;
+            // use only 75% of the increment time to play each move
+            return (((incrementPerMove * 75) / 100) - LAG_TIME) / 1000;
         }
 
         return timePerMove / 1000;

@@ -52,7 +52,7 @@ public class MoveGenerator {
      * @param start refers to the starting position
      * @param end refers to the end position to the move
      * @param moveType refers to the type of move being made
-     * @return the generated move stored in a 16 bit short data type
+     * @return the generated move stored in a 16-bit short data type
      */
     public static short generateMove(int start, int end, int moveType){
         return (short) ((moveType & 0xf) << 12 | end & 0x3f | ((start & 0x3f) << 6));
@@ -110,7 +110,7 @@ public class MoveGenerator {
 
     /**
      * Checks if the move is a castling move
-     * @param move refers to the 16 bit encoded mpve
+     * @param move refers to the 16 bit encoded move
      * @return true if the move type is equal to 2 / 3 for king or queen side castling respectively
      */
     public static boolean isCastling(short move){

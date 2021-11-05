@@ -1,6 +1,7 @@
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.Objects;
 
 public class UCI {
     public static final String ENGINE_NAME = "BLANK";
@@ -12,7 +13,7 @@ public class UCI {
     public static boolean loadOpeningBook = true;   // default will load opening book unless option is disabled
 
     public Board board;
-    public AI engine;
+    public EngineMain BLANK_ENGINE;
 
     public UCI() throws IOException {
         System.out.println("BLANK Chess Engine");
@@ -37,15 +38,12 @@ public class UCI {
             }
             else if(command.equals("uci")){
                 // initiates board to starting FEN and initiates engine to turn of FEN
-                board = new Board();
-                board.init(FEN);
-                engine = new AI(board.isWhiteTurn(), board, loadOpeningBook);
+                initBoard(FEN);
 
-                System.out.println("id name " + ENGINE_NAME + " " + VERSION);
-                System.out.println("id author " + AUTHOR);
-                System.out.println("\noption name Hash type spin default 32 min 1 max 128");
-                System.out.println("option name OwnBook type check default true\n");
-                System.out.println("uciok");
+                // create the chess engine
+                BLANK_ENGINE = new EngineMain(board, loadOpeningBook);
+
+                printInfo();
 
                 // starts UCI communication
                 UCICommunicate();
@@ -54,7 +52,7 @@ public class UCI {
     }
 
     /**
-     * Implements the UCI protocol (Not all functions are available)
+     * Implements the UCI protocol
      */
     public void UCICommunicate() throws IOException {
         BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
@@ -65,10 +63,7 @@ public class UCI {
 
             // tells the engine to use UCI protocol. Engine will identify itself and respond with uciok
             if (command.equals("uci")) {
-                System.out.println("id name " + ENGINE_NAME + " " + VERSION);
-                System.out.println("id author " + AUTHOR);
-                System.out.println("\noption name OwnBook type check default true\n");
-                System.out.println("uciok");
+                printInfo();
             }
 
             // used by GUI to check if engine is responding
@@ -80,9 +75,8 @@ public class UCI {
                 processOption(command);
 
                 // re-initiate engine with updated parameters
-                board = new Board();
-                board.init(FEN);
-                engine = new AI(board.isWhiteTurn(), board, loadOpeningBook);
+                initBoard(FEN);
+                BLANK_ENGINE = new EngineMain(board, loadOpeningBook);
 
                 // garbage collection to clean up memory usage
                 Runtime.getRuntime().gc();
@@ -95,25 +89,23 @@ public class UCI {
 
             // re-initialise the board and engine
             else if (command.equals("ucinewgame")) {
-                board = new Board();
-                board.init(FENUtilities.startFEN);
-                FEN = FENUtilities.startFEN;
-                engine = new AI(board.isWhiteTurn(), board, loadOpeningBook);
+                initBoard(FENUtilities.startFEN);
+                BLANK_ENGINE = new EngineMain(board, loadOpeningBook);
 
-                // free up memory usage from previous search
+                // free up memory usage from previous searches
                 Runtime.getRuntime().gc();
             }
 
             // sets up a fen position on the board
             else if (command.startsWith("position")) {
                 parsePosition(command);
-                engine.board.print(false);
+                BLANK_ENGINE.board.print(false);
             }
 
             // starts search
             else if (command.startsWith("go")) {
                 processGo(command);
-                Runtime.getRuntime().gc();
+                BLANK_ENGINE.resetOpeningTrie();
             }
 
             // prints out the board
@@ -133,11 +125,6 @@ public class UCI {
                 System.out.println("- go perft <depth>");
             }
 
-            // uses local GUI
-            else if (command.equals("gui")) {
-                break;
-            }
-
             // quit the program
             else if (command.equals("quit")) {
                 System.exit(0);
@@ -149,6 +136,31 @@ public class UCI {
         }
     }
 
+    /**
+     * Prints the engine info and options when "uci" is called
+     */
+    private void printInfo(){
+        System.out.println("id name " + ENGINE_NAME + " " + VERSION);
+        System.out.println("id author " + AUTHOR);
+        System.out.println("\noption name Hash type spin default 32 min 1 max 128");
+        System.out.println("option name OwnBook type check default true\n");
+        System.out.println("uciok");
+    }
+
+    /**
+     * Initiates a new board with the new FEN
+     * @param FEN refers to the standard chess notation to describe a particular chess board position
+     */
+    private void initBoard(String FEN){
+        board = new Board();
+        board.init(FEN);
+        UCI.FEN = FEN;
+    }
+
+    /**
+     * Takes in a UCI setoption command and applies relevant options to engine
+     * @param input refers to the UCI command (i.e. setoption name Hash value 32)
+     */
     private void processOption(String input){
         //setoption name Hash value 32
         String[] splitInput = input.split(" ");
@@ -180,15 +192,28 @@ public class UCI {
         }
     }
 
-    private void processGo(String input) {
+    private void processGo(String input){
         double ALLOCATED_TIME = DEFAULT_SEARCH;
         double TOTAL_TIME_LEFT = 0;
         double INCREMENT_TIME = 0;
 
-        boolean isWhite = engine.isWhite();
-        boolean useOpeningBook = engine.isUsingOpeningBook;
+        boolean isWhite = BLANK_ENGINE.isWhite();
+        boolean useOpeningBook;
+
+        if(isWhite){
+            useOpeningBook = BLANK_ENGINE.isUsingWhiteBook;
+        }
+        else{
+            useOpeningBook = BLANK_ENGINE.isUsingBlackBook;
+        }
+
+        if(!Objects.equals(FEN, FENUtilities.startFEN)){
+            useOpeningBook = false;
+        }
+
         boolean isPerft = false;
         boolean defaultTiming = false;
+        int depth;
 
         int index = 0;
         String[] tokens = input.split(" ");
@@ -226,20 +251,24 @@ public class UCI {
                     // search for exactly input milliseconds
                     ALLOCATED_TIME = Integer.parseInt(tokens[index + 1]);
                     ALLOCATED_TIME /= 1000; // convert from milliseconds to seconds
-                    engine.searchMove(useOpeningBook && loadOpeningBook, ALLOCATED_TIME);
+
+                    BLANK_ENGINE.searchMove(useOpeningBook && loadOpeningBook, ALLOCATED_TIME);
                     return;
 
                 case "infinite":
-                    engine.searchMove(false, INFINITE_SEARCH);
-
+                    BLANK_ENGINE.searchMove(false, INFINITE_SEARCH);
                     /*
                      * MAKE SURE TO CALL 'ucinewgame' AFTER USING INFINITE SEARCH
                      */
+                    return;
 
+                case "depth":
+                    depth = Integer.parseInt(tokens[index + 1]);
+                    BLANK_ENGINE.fixedDepthSearch(depth);
                     return;
 
                 case "perft":
-                    int depth = Integer.parseInt(tokens[index + 1]);
+                    depth = Integer.parseInt(tokens[index + 1]);
                     Perft goPerft = new Perft(board);
                     goPerft.perft(depth);
                     isPerft = true;
@@ -264,7 +293,7 @@ public class UCI {
         }
 
         // start searching with engine
-        engine.searchMove(useOpeningBook && loadOpeningBook, ALLOCATED_TIME);
+        BLANK_ENGINE.searchMove(useOpeningBook && loadOpeningBook, ALLOCATED_TIME);
     }
 
     // debugging uci commands
@@ -272,18 +301,6 @@ public class UCI {
     // position fen "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1" moves e2a6 b4c3
 
     private void parsePosition(String input){
-        boolean isWhiteTurn = true;
-
-        // check if after making all the moves if the engine is playing white or black move
-        String moveString = "";
-        if(input.contains("moves")){    // cut the string before the moves are processed
-            moveString = input.substring(input.indexOf("moves"));
-            String[] moves = moveString.split(" ");
-            if((moves.length - 1) % 2 != 0){
-                isWhiteTurn = false;
-            }
-        }
-
         // create the board based on the initial fen input
         board = new Board();
 
@@ -308,14 +325,22 @@ public class UCI {
         }
 
         // create the AI based on which turn to play and the starting board state
-        engine = new AI(isWhiteTurn, board, loadOpeningBook);
+        //engine = new AI(isWhiteTurn, board, loadOpeningBook);
+
+        // reset the tracker in the opening book and set to current board state
+        if(loadOpeningBook){
+            BLANK_ENGINE.resetOpeningTrie();
+        }
+
+        BLANK_ENGINE.setBoard(board);
 
         // process moves
         if(input.contains("moves")){
             // moves[0] will be "moves";
             // index 1 onwards will be the individual moves made.
+            String moveString = input.substring(input.indexOf("moves"));
             String[] moves = moveString.split(" ");
-            isWhiteTurn = board.isWhiteTurn();
+            boolean isWhiteTurn = board.isWhiteTurn();
             boolean moveExistsInBook = false;
             String lastMove = "";
             Move previousMove;
@@ -323,8 +348,13 @@ public class UCI {
 
             // disable using opening book if the moves have exceeded the length of opening book
             // or if opening book is not loaded
-            if(moves.length >= 16 || !loadOpeningBook) {
-                engine.isUsingOpeningBook = false;
+            if(moves.length >= 16 || !loadOpeningBook || !Objects.equals(FEN, FENUtilities.startFEN)) {
+                BLANK_ENGINE.disableBooks();
+                if(loadOpeningBook){
+                    // if opening books are loaded, the engine will clear the book after the opening sequence
+                    // or if the FEN of the current position is not equal to starting fen
+                    BLANK_ENGINE.clearBooks();
+                }
             }
 
             for (int i = 1; i < moves.length; i++) {
@@ -334,9 +364,9 @@ public class UCI {
 
                 short currentMove = MoveGenerator.generateMove(startPosition, endPosition, determineMoveType(moves[i], board));
 
-                // records the moves made in the engine's opening book
-                if(engine.isUsingOpeningBook && i != moves.length - 1){
-                    for(String bookMoves : engine.openingBook.getSetOfBookMoves()){
+                // records the moves made in the engine's white opening book
+                if(BLANK_ENGINE.isUsingWhiteBook && i != moves.length - 1){
+                    for(String bookMoves : BLANK_ENGINE.whiteOpeningBook.getSetOfBookMoves()){
                         if(PGNExtract.convertNotationToMove(board, isWhiteTurn, bookMoves) == currentMove){
                             moveExistsInBook = true;
                             lastMove = bookMoves;   // get the PGN String format of the move
@@ -346,16 +376,41 @@ public class UCI {
 
                     if(moveExistsInBook){
                         // update the opening book
-                        boolean bookWasUpdated = engine.openingBook.makeMove(lastMove);
+                        boolean bookWasUpdated = BLANK_ENGINE.whiteOpeningBook.makeMove(lastMove);
                         if(!bookWasUpdated){
-                            engine.isUsingOpeningBook = false;
+                            BLANK_ENGINE.isUsingWhiteBook = false;
                         }
-                        else{
-                            System.out.println("Move recorded in Book: " + lastMove);
-                        }
+//                        else{
+//                            System.out.println("Move recorded in White Book: " + lastMove);
+//                        }
                     }
                     else{
-                        engine.isUsingOpeningBook = false;
+                        BLANK_ENGINE.isUsingWhiteBook = false;
+                    }
+                }
+
+                // records the moves made in the engine's black opening book
+                if(BLANK_ENGINE.isUsingBlackBook && i != moves.length - 1){
+                    for(String bookMoves : BLANK_ENGINE.blackOpeningBook.getSetOfBookMoves()){
+                        if(PGNExtract.convertNotationToMove(board, isWhiteTurn, bookMoves) == currentMove){
+                            moveExistsInBook = true;
+                            lastMove = bookMoves;   // get the PGN String format of the move
+                            break;
+                        }
+                    }
+
+                    if(moveExistsInBook){
+                        // update the opening book
+                        boolean bookWasUpdated = BLANK_ENGINE.blackOpeningBook.makeMove(lastMove);
+                        if(!bookWasUpdated){
+                            BLANK_ENGINE.isUsingBlackBook = false;
+                        }
+//                        else{
+//                            System.out.println("Move recorded in Black Book: " + lastMove);
+//                        }
+                    }
+                    else{
+                        BLANK_ENGINE.isUsingBlackBook = false;
                     }
                 }
 

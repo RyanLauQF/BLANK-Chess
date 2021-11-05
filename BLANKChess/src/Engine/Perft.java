@@ -60,7 +60,7 @@ public class Perft {
         double NPS = (double) ans / convertTime;
 
         System.out.println();
-        System.out.println("Seach to Depth " + depth + ": " + ans);
+        System.out.println("Search to Depth " + depth + ": " + ans);
         System.out.println("Time Elapsed: " + convertTime + " seconds");
         System.out.println("NPS: " + NPS);
     }

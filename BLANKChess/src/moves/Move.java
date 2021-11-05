@@ -17,6 +17,7 @@ public class Move {
     private final boolean blackQueenSideCastling;
     private final Move previousMove;
     private final long zobrist;
+    private final int fullMoveNumber;
 
     /**
      * Move a piece on the board based on move rules and update the board
@@ -31,7 +32,7 @@ public class Move {
      *      6) Change to opponent's turn
      *
      * @param board refers to a reference to the current state of the chess board
-     * @param encodedMove refers to the encoded move information containing start, end positions and movetype
+     * @param encodedMove refers to the encoded move information containing start, end positions and move type
      */
     public Move(Board board, short encodedMove){
         this.board = board;
@@ -51,8 +52,10 @@ public class Move {
         this.whiteQueenSideCastling = board.getWhiteQueenSideCastle();
         this.blackKingSideCastling = board.getBlackKingSideCastle();
         this.blackQueenSideCastling = board.getBlackQueenSideCastle();
+
         this.previousMove = board.getPreviousMove();
         this.zobrist = board.getZobristHash();
+        this.fullMoveNumber = board.getFullMoveNum();
     }
 
     public void makeMove(){
@@ -61,6 +64,12 @@ public class Move {
 
         Piece startPiece = startTile.getPiece();
         boolean isWhitePiece = startPiece.isWhite();
+
+        // increment full move counter in board after black moves
+        if(!isWhitePiece){
+            int fullMoveNum = board.getFullMoveNum();
+            board.setFullMoveNum(++fullMoveNum);
+        }
 
         // Calculate if there is an enpassant availability if the move is a double pawn move
         int enpassantPosition = -1;
@@ -214,6 +223,9 @@ public class Move {
 
     // undo the move made on the board
     public void unMake(){
+        // return the full move number to original
+        board.setFullMoveNum(fullMoveNumber);
+
         board.setTurn(!board.isWhiteTurn());
         board.setPreviousMove(previousMove);
         Tile startTile = board.getTile(getStart());
@@ -339,7 +351,7 @@ public class Move {
 
     /**
      * Updates the piece list that keeps track of the location of pieces for each side of the board
-     * @param isWhitePiece referes to the colour of the piece being moved
+     * @param isWhitePiece refers to the colour of the piece being moved
      * @param startPosition refers to the initial position the piece occupies
      * @param endPosition refers to the position which the piece has moved to
      */

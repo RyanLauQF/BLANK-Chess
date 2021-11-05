@@ -1,3 +1,5 @@
+import java.io.IOException;
+
 public class TranspositionTable {
     public static byte EXACT_TYPE = 0;
     public static byte LOWERBOUND_TYPE = 1;
@@ -175,11 +177,11 @@ public class TranspositionTable {
     /**
      * Unit Testing
      */
-    public static void main(String[] args){
+    public static void main(String[] args) throws IOException {
         Board board = new Board();
         board.init(FENUtilities.trickyFEN);
 
-        Search search = new Search(board);
+        Search search = new Search(board, new TranspositionTable());
         search.startSearch(10);
 
 //        Sample Entries:

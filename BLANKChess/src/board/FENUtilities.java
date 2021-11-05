@@ -126,7 +126,7 @@ public class FENUtilities {
     }
 
     /**
-     * Converts a rank and file format of chess position to and index from 0 - 63.
+     * Converts a rank and file format of chess position to and index from 0 to 63.
      * Board is indexed with zero starting at the top left and 63 being at the bottom right
      *
      * E.g. for a square at rank "a" and file "8", "a8" will be equal to index 0

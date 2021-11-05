@@ -18,7 +18,7 @@ public class GameManager {
     private static boolean whitePlayer_isHuman = true;
     private static boolean blackPlayer_isHuman = false;
 
-    public GameManager(ChessGUI chessGUI, Board board, boolean p1_isHuman, boolean p2_isHuman){
+    public GameManager(ChessGUI chessGUI, Board board, boolean p1_isHuman, boolean p2_isHuman) throws IOException {
         this.chessGUI = chessGUI;
         this.whitePlayer = new Player(true, p1_isHuman, board);
         this.blackPlayer = new Player(false, p2_isHuman, board);
@@ -27,7 +27,7 @@ public class GameManager {
         this.playerTwoClock = new Clock();
     }
 
-    public void startGame() throws InterruptedException {
+    public void startGame() throws InterruptedException{
         // initiate the chessGUI
         chessGUI.initGUI();
 
