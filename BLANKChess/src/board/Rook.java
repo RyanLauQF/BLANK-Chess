@@ -139,6 +139,11 @@ public class Rook extends Piece{
     }
 
     @Override
+    public int getPieceValue(){
+        return ROOK_MG_VALUE;
+    }
+
+    @Override
     public int getMidGameValue(){
         int positionBonus = (isWhite()) ? EvalUtilities.rookMidGamePST[getPosition()] : EvalUtilities.rookMidGamePST[EvalUtilities.blackFlippedPosition[getPosition()]];
         return ROOK_MG_VALUE + positionBonus;

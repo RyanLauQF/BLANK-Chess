@@ -52,6 +52,11 @@ public class Queen extends Piece{
     }
 
     @Override
+    public int getPieceValue(){
+        return QUEEN_MG_VALUE;
+    }
+
+    @Override
     public int getMidGameValue(){
         int positionBonus = (isWhite()) ? EvalUtilities.queenMidGamePST[getPosition()] : EvalUtilities.queenMidGamePST[EvalUtilities.blackFlippedPosition[getPosition()]];
         return QUEEN_MG_VALUE + positionBonus;

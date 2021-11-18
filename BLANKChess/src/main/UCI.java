@@ -5,7 +5,7 @@ import java.util.Objects;
 
 public class UCI {
     public static final String ENGINE_NAME = "BLANK";
-    public static final String VERSION = "v1.2.0";
+    public static final String VERSION = "v1.3.0";
     public static final String AUTHOR = "Ryan Lau Q. F.";
     public static final int INFINITE_SEARCH = Integer.MAX_VALUE;
     public static final int DEFAULT_SEARCH = 5; // default search duration set to 5 seconds per search

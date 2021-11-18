@@ -59,6 +59,11 @@ public class Bishop extends Piece{
     }
 
     @Override
+    public int getPieceValue(){
+        return BISHOP_MG_VALUE;
+    }
+
+    @Override
     public int getMidGameValue(){
         int positionBonus = (isWhite()) ? EvalUtilities.bishopMidGamePST[getPosition()] : EvalUtilities.bishopMidGamePST[EvalUtilities.blackFlippedPosition[getPosition()]];
         return BISHOP_MG_VALUE + positionBonus;

@@ -173,6 +173,12 @@ public class EvalUtilities {
             Piece piece = chessBoard[whitePieces.occupiedTiles[i]].getPiece();
             whiteMidGameEval += piece.getMidGameValue();
             whiteEndGameEval += piece.getEndGameValue();
+            if(piece.isPawn()){
+                // check for passed pawn evaluation
+                int bonusEval = piece.getExtraEval();
+                whiteMidGameEval += bonusEval;
+                whiteEndGameEval += bonusEval;
+            }
             gamePhase += piece.getPhaseValue();
         }
 
@@ -181,6 +187,12 @@ public class EvalUtilities {
             Piece piece = chessBoard[blackPieces.occupiedTiles[i]].getPiece();
             blackMidGameEval += piece.getMidGameValue();
             blackEndGameEval += piece.getEndGameValue();
+            if(piece.isPawn()){
+                // check for passed pawn evaluation
+                int bonusEval = piece.getExtraEval();
+                blackMidGameEval += bonusEval;
+                blackEndGameEval += bonusEval;
+            }
             gamePhase += piece.getPhaseValue();
         }
 

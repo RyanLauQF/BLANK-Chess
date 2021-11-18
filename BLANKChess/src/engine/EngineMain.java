@@ -53,6 +53,7 @@ public class EngineMain {
     }
 
     public short fixedDepthSearch(int depth){
+        searcher.setBoard(board);
         return searcher.depthSearch(depth);
     }
 

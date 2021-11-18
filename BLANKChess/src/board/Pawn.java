@@ -253,15 +253,20 @@ public class Pawn extends Piece {
     }
 
     @Override
+    public int getPieceValue(){
+        return PAWN_MG_VALUE;
+    }
+
+    @Override
     public int getMidGameValue(){
         int positionBonus = (isWhite()) ? EvalUtilities.pawnMidGamePST[getPosition()] : EvalUtilities.pawnMidGamePST[EvalUtilities.blackFlippedPosition[getPosition()]];
-        return PAWN_MG_VALUE + positionBonus + getExtraEval();
+        return PAWN_MG_VALUE + positionBonus;
     }
 
     @Override
     public int getEndGameValue(){
         int positionBonus = (isWhite()) ? EvalUtilities.pawnEndGamePST[getPosition()] : EvalUtilities.pawnEndGamePST[EvalUtilities.blackFlippedPosition[getPosition()]];
-        return PAWN_EG_VALUE + positionBonus + getExtraEval();
+        return PAWN_EG_VALUE + positionBonus;
     }
 
     @Override

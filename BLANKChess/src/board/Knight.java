@@ -81,6 +81,11 @@ public class Knight extends Piece{
     }
 
     @Override
+    public int getPieceValue(){
+        return KNIGHT_MG_VALUE;
+    }
+
+    @Override
     public int getMidGameValue(){
         int positionBonus = (isWhite()) ? EvalUtilities.knightMidGamePST[getPosition()] : EvalUtilities.knightMidGamePST[EvalUtilities.blackFlippedPosition[getPosition()]];
         return KNIGHT_MG_VALUE + positionBonus;

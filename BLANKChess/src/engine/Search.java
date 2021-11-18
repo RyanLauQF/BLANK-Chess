@@ -6,12 +6,17 @@ import java.util.ArrayList;
 public class Search {
     private static final int INFINITY = 120000;
     private static final int CHECKMATE_SCORE = 100000;
+    private static final int CHECKMATE_THRESHOLD = 99000;
     private static final int DRAW_SCORE = 0;
     private static final int CONTEMPT_FACTOR = 20;
+    private static final int STATIC_NULL_MOVE_PRUNING_MARGIN = 120;
 
     // Used to stop search when "stop" command is given
     private final BufferedReader listener = new BufferedReader(new InputStreamReader(System.in));
     private boolean searchStopped;
+
+    // Futility Pruning Margins
+    private static final int[] futilityMargin = {0, 200, 300, 500};
 
     // Late Move Reduction - reduction factor pre-calculated look-up table
     private static final int MAX_PLY = 60;
@@ -31,7 +36,8 @@ public class Search {
     public short[][] historyMoves;
 
     // null move pruning
-    private static final int REDUCTION_CONSTANT = 2;
+    private static final int STANDARD_REDUCTION_CONSTANT = 2;
+    private static final int DEEPER_REDUCTION_CONSTANT = 3;
 
     // Used to check if the current search iteration is following a null move line
     private boolean isDoingNullMove;
@@ -106,7 +112,7 @@ public class Search {
         timer.setTime(searchDuration);
         timer.start();  // start the clock
 
-        double iterationEndTime, timeElapsedSinceStart = 0;
+        double iterationEndTime, timeElapsedSinceStart = 1;
         short currentMove, bestMove = 0;
         int totalNodeCount = 0;
 
@@ -132,19 +138,45 @@ public class Search {
 
             // time taken to get to this iteration (to determine if we should continue to search next iteration in given time)
             timeElapsedSinceStart = iterationEndTime - timer.getStartTime();
+            if(timeElapsedSinceStart == 0){
+                timeElapsedSinceStart = 1;  // prevent division by 0 when calculating nps
+            }
 
             // if the current search was not stopped by clock, use the results of the search
             if (!searchStopped) {
                 // set best move to the best move of current iteration
                 bestMove = currentMove;
 
+                String searchInfo;
                 // information obtained from the search
-                String searchInfo = "info depth " + curr_depth +
-                        " seldepth " + maxPly +
-                        " score cp " + score +
-                        " nodes " + (totalNodeCount += nodeCount) +
-                        " ttCut " + cutOffCount +
-                        " time " + (int) timeElapsedSinceStart;
+                if(score > CHECKMATE_THRESHOLD || score < -CHECKMATE_THRESHOLD){
+                    // print out mate value instead of score
+                    String mate = "";
+                    if(score > CHECKMATE_THRESHOLD){
+                        int movesToMate = ((CHECKMATE_SCORE - score) / 2) + 1;
+                        mate = String.valueOf(movesToMate);
+                    }
+                    if(score < -CHECKMATE_THRESHOLD){
+                        int movesToMate = ((-CHECKMATE_SCORE - score) / 2) - 1;
+                        mate = String.valueOf(movesToMate);
+                    }
+                    searchInfo = "info depth " + curr_depth +
+                            " seldepth " + maxPly +
+                            " score mate " + mate +
+                            " nodes " + (totalNodeCount += nodeCount) +
+                            " nps " + (long) ((totalNodeCount * 1000L) / timeElapsedSinceStart) +
+                            " ttCut " + cutOffCount +
+                            " time " + (int) timeElapsedSinceStart;
+                }
+                else{
+                    searchInfo = "info depth " + curr_depth +
+                            " seldepth " + maxPly +
+                            " score cp " + score +
+                            " nodes " + (totalNodeCount += nodeCount) +
+                            " nps " + (long) ((totalNodeCount * 1000L) / timeElapsedSinceStart) +
+                            " ttCut " + cutOffCount +
+                            " time " + (int) timeElapsedSinceStart;
+                }
 
                 // PV line obtained from the search
                 StringBuilder PVLine = new StringBuilder(" pv ");
@@ -213,7 +245,7 @@ public class Search {
     public short depthSearch(int depth){
         System.out.println("Target Depth: " + depth);
 
-        double startTime = System.currentTimeMillis(), iterationEndTime, timeElapsedSinceStart = 0;
+        double startTime = System.currentTimeMillis(), iterationEndTime, timeElapsedSinceStart = 1;
         short currentMove, bestMove = 0;
         int totalNodeCount = 0;
         searchStopped = false;
@@ -237,19 +269,45 @@ public class Search {
 
             // time taken to get to this iteration (to determine if we should continue to search next iteration in given time)
             timeElapsedSinceStart = iterationEndTime - startTime;
+            if(timeElapsedSinceStart == 0){
+                timeElapsedSinceStart = 1;  // prevent division by 0 when calculating nps
+            }
 
             // if the current search was not stopped by clock, use the results of the search
             if (!searchStopped) {
                 // set best move to the best move of current iteration
                 bestMove = currentMove;
 
+                String searchInfo;
                 // information obtained from the search
-                String searchInfo = "info depth " + curr_depth +
-                        " seldepth " + maxPly +
-                        " score cp " + score +
-                        " nodes " + (totalNodeCount += nodeCount) +
-                        " ttCut " + cutOffCount +
-                        " time " + (int) timeElapsedSinceStart;
+                if(score > CHECKMATE_THRESHOLD || score < -CHECKMATE_THRESHOLD){
+                    // print out mate value instead of score
+                    String mate = "";
+                    if(score > CHECKMATE_THRESHOLD){
+                        int movesToMate = ((CHECKMATE_SCORE - score) / 2) + 1;
+                        mate = String.valueOf(movesToMate);
+                    }
+                    if(score < -CHECKMATE_THRESHOLD){
+                        int movesToMate = ((-CHECKMATE_SCORE - score) / 2) - 1;
+                        mate = String.valueOf(movesToMate);
+                    }
+                    searchInfo = "info depth " + curr_depth +
+                            " seldepth " + maxPly +
+                            " score mate " + mate +
+                            " nodes " + (totalNodeCount += nodeCount) +
+                            " nps " + (long) ((totalNodeCount * 1000L) / timeElapsedSinceStart) +
+                            " ttCut " + cutOffCount +
+                            " time " + (int) timeElapsedSinceStart;
+                }
+                else{
+                    searchInfo = "info depth " + curr_depth +
+                            " seldepth " + maxPly +
+                            " score cp " + score +
+                            " nodes " + (totalNodeCount += nodeCount) +
+                            " nps " + (long) ((totalNodeCount * 1000L) / timeElapsedSinceStart) +
+                            " ttCut " + cutOffCount +
+                            " time " + (int) timeElapsedSinceStart;
+                }
 
                 // PV line obtained from the search
                 StringBuilder PVLine = new StringBuilder(" pv ");
@@ -257,6 +315,7 @@ public class Search {
                     PVLine.append(MoveGenerator.toString(PVMoves[0][i]));
                     PVLine.append(" ");
                 }
+
                 System.out.println(searchInfo + PVLine);
             }
         }
@@ -271,17 +330,40 @@ public class Search {
     }
 
     public int negamax(int depth, int searchPly, int alpha, int beta){
+        // ensure that the ply searched is not greater than max ply due to extensions
+        if(searchPly > MAX_PLY - 1){
+            return EvalUtilities.evaluate(board);
+        }
+
         PVLength[searchPly] = searchPly;
+
+        // check for following draw conditions:
+        //      - fifty move rule
+        //      - 3-move repetition (avoid playing any same position more than once)
+        //      - insufficient material draw
+        if(searchPly != 0 && isDraw(board)){
+            // avoid taking draws unless down by more than contempt factor
+            return CONTEMPT_FACTOR;
+        }
+
         boolean isPV = (beta - alpha) > 1;
 
-        long zobrist = board.getZobristHash();
         // obtain transposition table data if current position has already been evaluated before
-        if(TT.containsKey(zobrist)){
+        long zobrist = board.getZobristHash();
+        if(searchPly != 0 && !isPV && TT.containsKey(zobrist)){
             TranspositionTable.TTEntry entry = TT.getEntry(zobrist);
 
             // if the entry depth is greater than current depth, use the stored evaluation as it is more accurate due to deeper search
-            if(!isPV && entry.depth >= depth && searchPly != 0){
+            if(entry.depth >= depth){
                 int entryScore = entry.eval;
+
+                // adjust to current depth if a score is within checkmate threshold and checkmate is found
+                if(entryScore > CHECKMATE_THRESHOLD){
+                    entryScore += searchPly;
+                }
+                else if(entryScore < -CHECKMATE_THRESHOLD){
+                    entryScore -= searchPly;
+                }
 
                 if(entry.entry_TYPE == TranspositionTable.EXACT_TYPE){
                     cutOffCount++;
@@ -305,10 +387,12 @@ public class Search {
             listen();
         }
 
-        // check for move repetition to avoid playing any same position more than once
-        if(searchPly != 0 && board.repetitionHistory.containsKey(zobrist) && (board.repetitionHistory.get(zobrist) >= 1)){
-            // avoid taking draws unless down by more than contempt factor
-            return DRAW_SCORE - CONTEMPT_FACTOR;
+        // do not enter quiescence search while in check
+        boolean isKingChecked = board.isKingChecked();
+
+        // Check extension
+        if(isKingChecked){
+            depth++;
         }
 
         // evaluate the positions after doing a quiescence search to remove horizon effect (search all captures)
@@ -317,20 +401,30 @@ public class Search {
             return quiescenceSearch(alpha, beta);
         }
 
-        // ensure that the ply searched is not greater than max ply due to extensions
-        if(searchPly > MAX_PLY - 1){
-            return EvalUtilities.evaluate(board);
-        }
-
         nodeCount++;
 
+        // static null move pruning
+        if(!isKingChecked && !isPV && beta > -CHECKMATE_THRESHOLD){
+            int staticEval = EvalUtilities.evaluate(board);
+            int scoreMargin = STATIC_NULL_MOVE_PRUNING_MARGIN * depth;
+            if((staticEval - scoreMargin) >= beta){
+                return beta;
+            }
+        }
+
         // null move pruning
-        boolean isKingChecked = board.isKingChecked();
-        if(depth >= 3 && !isDoingNullMove && !isKingChecked && !isEndGame()){
+        if(depth >= 3 && !isPV && !isDoingNullMove && !isKingChecked && !isEndGame()){
+            int reduction;
+            if(depth > 6){  // can afford to reduce more if there is still a lot of depth to search
+                reduction = DEEPER_REDUCTION_CONSTANT;
+            }
+            else{
+                reduction = STANDARD_REDUCTION_CONSTANT;
+            }
             Move nullMove = new Move(board, (short) 0);
             isDoingNullMove = true;
             nullMove.makeNullMove();
-            int score = -negamax(depth - 1 - REDUCTION_CONSTANT, searchPly + 1, -beta, -beta + 1);
+            int score = -negamax(depth - 1 - reduction, searchPly + 1, -beta, -beta + 1);
             nullMove.unmakeNullMove();
             isDoingNullMove = false;
 
@@ -345,9 +439,18 @@ public class Search {
             }
         }
 
-        // Check extension
-        if(isKingChecked){
-            depth++;
+        // extended futility pruning
+        boolean enableFutilityPruning = false;
+        if(!isPV && depth <= 3 && !isKingChecked && alpha < CHECKMATE_THRESHOLD){
+            // do not do futility pruning when in check or if last move was a capture
+            if(board.getPreviousMove() != null && !MoveGenerator.isCapture(board.getPreviousMove().getEncodedMove())){
+                // static evaluation
+                int staticEval = EvalUtilities.evaluate(board);
+                // test if static evaluation + a margin is better than alpha, if it is not, prune last ply
+                if ((staticEval + futilityMargin[depth]) <= alpha){
+                    enableFutilityPruning = true;
+                }
+            }
         }
 
         ArrayList<Short> encodedMoves = board.getAllLegalMoves();
@@ -390,31 +493,36 @@ public class Search {
             move.makeMove();
 
             // if this is a pv move, do a full search
-            if(moveCount == 1){
+            if (moveCount == 1) {
                 searchedScore = -negamax(depth - 1, searchPly + 1, -beta, -alpha);
-            }
-            else{
+            } else {
+                boolean deliversCheck = board.isKingChecked();
+                if (!deliversCheck && !MoveGenerator.isCapture(encodedMove) && !MoveGenerator.isPromotion(encodedMove) && enableFutilityPruning) {
+                    // prune this move if futility pruning is enabled and if the move is not a capture and does not deliver check.
+                    move.unMake();
+                    continue;
+                }
+
                 // late move reductions
-                if(depth >= REDUCTION_LIMIT && moveCount > 1
+                if (depth >= REDUCTION_LIMIT && moveCount > 1
                         && !MoveGenerator.isPromotion(encodedMove)
                         && !MoveGenerator.isCapture(encodedMove)
-                        && !isKingChecked){
+                        && !isKingChecked) {
 
                     // do reduce search based on reduction factor with a narrowed window
                     int reduction = REDUCTION_TABLE[depth][moveCount];
                     searchedScore = -negamax(depth - 1 - reduction, searchPly + 1, -alpha - 1, -alpha);
-                }
-                else{
+                } else {
                     // do a full-depth search
                     searchedScore = alpha + 1; // a trick to ensure full-depth search is continued
                 }
 
                 // PVS search
-                if(searchedScore > alpha){
+                if (searchedScore > alpha) {
                     searchedScore = -negamax(depth - 1, searchPly + 1, -alpha - 1, -alpha);
 
                     // re-search the move
-                    if(searchedScore > alpha && searchedScore < beta){
+                    if (searchedScore > alpha && searchedScore < beta) {
                         searchedScore = -negamax(depth - 1, searchPly + 1, -beta, -alpha);
                     }
                 }
@@ -493,13 +601,14 @@ public class Search {
         }
 
         if(stand_pat >= beta){
-            return stand_pat; // fail soft
+            return beta; // fail hard
         }
 
         // Delta pruning
         int BIG_DELTA = Queen.QUEEN_MG_VALUE; // queen value
+
         if (stand_pat < (alpha - BIG_DELTA)) {
-            return stand_pat;
+            return alpha;
         }
         nodeCount++;
 
@@ -508,6 +617,7 @@ public class Search {
         }
 
         ArrayList<Short> captureMoves = board.getAllCaptures();
+
         for (Short encodedMove : MoveOrdering.orderMoves(captureMoves, this, ply)) {
             Move move = new Move(board, encodedMove);
 
@@ -564,16 +674,95 @@ public class Search {
         return (int) ((1 / 1.95) * Math.log(depth) * Math.log(moveCount));
     }
 
+    private boolean isDraw(Board board){
+        long zobrist = board.getZobristHash();
+
+        // check for fifty move rule
+        if(board.getHalfMoveClock() >= 50){
+            return true;
+        }
+
+        // check for 3 move repetition
+        else if(board.repetitionHistory.containsKey(zobrist) && (board.repetitionHistory.get(zobrist) >= 1)){
+            return true;
+        }
+
+        // check for insufficient material draw
+        int whitePieceCount = board.getWhitePieces().getCount();
+        int blackPieceCount = board.getBlackPieces().getCount();
+
+        // King vs King
+        if(whitePieceCount == 1 && blackPieceCount == 1){
+            return true;
+        }
+
+        // King + Bishop/Knight vs King
+        else if((whitePieceCount == 1 && blackPieceCount == 2) || (whitePieceCount == 2 && blackPieceCount == 1)){
+            PieceList pieceList;
+            if(whitePieceCount == 2){
+                pieceList = board.getWhitePieces();
+            }
+            else{
+                pieceList = board.getBlackPieces();
+            }
+
+            // check if the other piece remaining is a bishop or knight
+            for(int i = 0; i < 2; i++){
+                Piece piece = board.getTile(pieceList.occupiedTiles[i]).getPiece();
+                if(piece.isKnight() || piece.isBishop()){
+                    return true;
+                }
+            }
+        }
+
+        // King + Bishop vs King + Bishop (same coloured bishops)
+        else if(whitePieceCount == 2 && blackPieceCount == 2){
+            PieceList whitePieces = board.getWhitePieces();
+            PieceList blackPieces = board.getBlackPieces();
+
+            int whiteBishopPosition = -1, blackBishopPosition = -1;
+
+            // check if the other piece remaining is a bishop or knight
+            for(int i = 0; i < 2; i++){
+                Piece whitePiece = board.getTile(whitePieces.occupiedTiles[i]).getPiece();
+                Piece blackPiece = board.getTile(blackPieces.occupiedTiles[i]).getPiece();
+
+                if(whitePiece.isBishop()){
+                    whiteBishopPosition = whitePiece.getPosition();
+                }
+                if(blackPiece.isBishop()){
+                    blackBishopPosition = blackPiece.getPosition();
+                }
+            }
+
+            // if both remaining pieces are bishops
+            if(whiteBishopPosition != -1 && blackBishopPosition != -1){
+                // if both bishops sit on same coloured squares, it is a draw
+                return isLightSquare(whiteBishopPosition) == isLightSquare(blackBishopPosition);
+            }
+        }
+        return false;
+    }
+
+    private boolean isLightSquare(int position){
+        int row = (position - (position % 8)) / 8;
+        int col = position % 8;
+        return (row + col + 1) % 2 != 0;
+    }
+
     /**
      * Unit Testing
      */
     public static void main(String[] args) throws IOException {
         Board board = new Board();
-        board.init("r7/p5pp/4kp2/2pn4/1p6/1P6/PBP2PPK/3R4 w - - 0 1");
-
+        board.init("8/8/2p3kp/ppp5/6PK/2P4P/P1P5/8 w - - 0 1");
+        // mate in 4
+        //board.init("k7/4RP2/n1p2r2/8/p2N4/2P3Pp/1P5P/6K1 w - - 3 46");
+        //board.init(FENUtilities.trickyFEN);
+        //board.init("r1bq1rk1/2p1bppp/p1np1n2/1p2p3/3PP3/1B3N2/PPP2PPP/RNBQR1K1 w - - 0 9");
         Search search = new Search(board, new TranspositionTable());
-        search.depthSearch(9);
-
+        search.depthSearch(12);
+        System.exit(0);
         /*
          * TESTING FOR EVALUATION OF INDIVIDUAL MOVES
          */
@@ -589,6 +778,5 @@ public class Search {
 //        }
 //        long end = System.currentTimeMillis();
 //        System.out.println("Time Taken: " + (end - start));
-
     }
 }

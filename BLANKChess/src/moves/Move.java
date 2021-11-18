@@ -18,6 +18,7 @@ public class Move {
     private final Move previousMove;
     private final long zobrist;
     private final int fullMoveNumber;
+    private final int halfMoveClock;
 
     /**
      * Move a piece on the board based on move rules and update the board
@@ -56,6 +57,7 @@ public class Move {
         this.previousMove = board.getPreviousMove();
         this.zobrist = board.getZobristHash();
         this.fullMoveNumber = board.getFullMoveNum();
+        this.halfMoveClock = board.getHalfMoveClock();
     }
 
     public void makeMove(){
@@ -64,6 +66,14 @@ public class Move {
 
         Piece startPiece = startTile.getPiece();
         boolean isWhitePiece = startPiece.isWhite();
+
+        if(MoveGenerator.isCapture(encodedMove) || startPiece.isPawn()){
+            board.setHalfMoveClock(0);  // reset half-move clock if a pawn moves or a capture is made
+        }
+        else{
+            // increment half-move clock
+            board.setHalfMoveClock(halfMoveClock + 1);
+        }
 
         // increment full move counter in board after black moves
         if(!isWhitePiece){
@@ -223,8 +233,9 @@ public class Move {
 
     // undo the move made on the board
     public void unMake(){
-        // return the full move number to original
+        // return the full move number and half-move clock to original
         board.setFullMoveNum(fullMoveNumber);
+        board.setHalfMoveClock(halfMoveClock);
 
         board.setTurn(!board.isWhiteTurn());
         board.setPreviousMove(previousMove);

@@ -164,6 +164,11 @@ public class King extends Piece {
     }
 
     @Override
+    public int getPieceValue(){
+        return KING_VALUE;
+    }
+
+    @Override
     public int getMidGameValue(){
         int positionBonus = (isWhite()) ? EvalUtilities.kingMidGamePST[getPosition()] : EvalUtilities.kingMidGamePST[EvalUtilities.blackFlippedPosition[getPosition()]];
         return KING_VALUE + positionBonus;

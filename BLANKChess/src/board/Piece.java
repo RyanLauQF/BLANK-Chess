@@ -424,11 +424,9 @@ public abstract class Piece {
     public abstract String toString();
 
     /**
-     * Obtains value of position evaluation based off chess strategies
-     * > Used for Chess Engine score evaluation
-     * @return the value of bonus evaluation from strategies
+     * @return the mid-game value of a piece
      */
-    public abstract int getExtraEval();
+    public abstract int getPieceValue();
 
     /**
      * @return the mid-game value of a piece + PST evaluation
@@ -441,6 +439,12 @@ public abstract class Piece {
      */
     public abstract int getEndGameValue();
 
+    /**
+     * Obtains value of position evaluation based off chess strategies
+     * > Used for Chess Engine score evaluation
+     * @return the value of bonus evaluation from strategies
+     */
+    public abstract int getExtraEval();
 
     /**
      * @return the mid-game value of a piece (except for pawns) to determine the current game phase for interpolation

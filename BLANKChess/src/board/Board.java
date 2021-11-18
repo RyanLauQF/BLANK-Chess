@@ -85,6 +85,8 @@ public class Board {
         this.hasBlackKingCastled = false;
         this.repetitionHistory = new HashMap<>();
         this.zobristHash = 0;
+        this.halfMoveClock = 0;
+        this.fullMoveNum = 0;
     }
 
     /**

@@ -137,16 +137,16 @@ public class MoveOrdering {
     }
 
     public static void main(String[] args) throws IOException {
-//        Board board = new Board();
-//        board.init("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
-//        TranspositionTable TT = new TranspositionTable();
-//        AI ai = new AI(true, board);
-//        ai.iterativeDS(10, false);
-//        ArrayList<Short> allMoves = orderMoves(board.getAllLegalMoves(), board, TT, ai);
-//
-//        for(Short moves : allMoves){
-//            System.out.print(FENUtilities.convertIndexToRankAndFile(MoveGenerator.getStart(moves)) + "-" + FENUtilities.convertIndexToRankAndFile(MoveGenerator.getEnd(moves)) + " ");
-//            System.out.println("Score: " + getMoveScore(moves, board, TT, ai) + " ");
-//        }
+        Board board = new Board();
+        //board.init("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
+        board.init("k7/4RP2/n1p2r2/8/p2N4/2P3Pp/1P5P/6K1 w - - 3 46");
+        Search searcher = new Search(board, new TranspositionTable());
+        searcher.depthSearch(4);
+
+        ArrayList<Short> allMoves = orderMoves(board.getAllLegalMoves(), searcher, 1);
+        for(Short moves : allMoves){
+            System.out.print(FENUtilities.convertIndexToRankAndFile(MoveGenerator.getStart(moves)) + "-" + FENUtilities.convertIndexToRankAndFile(MoveGenerator.getEnd(moves)) + " ");
+            System.out.println("Score: " + getMoveScore(moves, searcher, 1) + " ");
+        }
     }
 }
