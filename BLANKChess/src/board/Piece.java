@@ -238,7 +238,7 @@ public abstract class Piece {
             int end;
             for (Short moves : moveSquares) {
                 end = MoveGenerator.getEnd(moves);
-                if(this.isPawn()){  // if this piece is a pawn, check if it can capture enpassant
+                if(this.isPawn()){  // if this piece is a pawn, check if it can capture enpassant as well
                     if (end == board.getAttackingPieceLocation() || end == board.getEnpassant()) {
                         if(this.isPawn() && Pawn.canPromote(this.isWhite(), MoveGenerator.getEnd(moves))){
                             generatePawnPromotionMoves(moves, moveList);

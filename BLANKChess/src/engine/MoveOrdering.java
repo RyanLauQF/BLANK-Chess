@@ -49,7 +49,6 @@ public class MoveOrdering {
             }
         }
 
-        boolean isWhitePiece = board.getTile(start).getPiece().isWhite();
         Piece startPiece = board.getTile(start).getPiece();
 
         if(MoveGenerator.isCapture(move)){
@@ -94,15 +93,6 @@ public class MoveOrdering {
             }
         }
 
-        if(MoveGenerator.isCastling(move)){
-            score += 100;
-        }
-
-        if(board.checkPawnAttacking(isWhitePiece, end, 0) != 0){
-            // if tile being moved to is attacked by enemy pawn, usually bad.
-            score -= startPiece.getMidGameValue();
-        }
-
         return score;
     }
 
@@ -138,10 +128,10 @@ public class MoveOrdering {
 
     public static void main(String[] args) throws IOException {
         Board board = new Board();
-        //board.init("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
-        board.init("k7/4RP2/n1p2r2/8/p2N4/2P3Pp/1P5P/6K1 w - - 3 46");
+        board.init("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
+        //board.init("k7/4RP2/n1p2r2/8/p2N4/2P3Pp/1P5P/6K1 w - - 3 46");
         Search searcher = new Search(board, new TranspositionTable());
-        searcher.depthSearch(4);
+        searcher.depthSearch(8);
 
         ArrayList<Short> allMoves = orderMoves(board.getAllLegalMoves(), searcher, 1);
         for(Short moves : allMoves){

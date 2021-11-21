@@ -1,4 +1,4 @@
-import java.util.Random;
+import java.util.*;
 
 public class Zobrist {
     /*
@@ -57,6 +57,7 @@ public class Zobrist {
         enpassantHash = new long[8];
 
         Random rand = new Random();
+        rand.setSeed(7620876781721148884L);
 
         // generate piece position hash
         for(int i = 0; i < 64; i++){

@@ -3,7 +3,7 @@
 >_BLANK is a UCI chess engine._
 
 This engine was written from scratch based off Object-Oriented design using Java.
-The basic  [UCI (Universal Chess Interface) protocol](http://wbec-ridderkerk.nl/html/UCIProtocol.html) has been implemented for communication with UCI-compatible GUIs. It also has an in-built GUI to directly interact with the engine.
+The basic [UCI (Universal Chess Interface) protocol](http://wbec-ridderkerk.nl/html/UCIProtocol.html) has been implemented for communication with UCI-compatible GUIs. It also has an in-built GUI to directly interact with the engine.
 
 ### Lichess
 BLANK is deployed on Lichess, running on Heroku servers. You can challenge it [here!](https://lichess.org/@/BLANK_BOT)
@@ -12,18 +12,18 @@ BLANK is deployed on Lichess, running on Heroku servers. You can challenge it [h
 * Opening Book (Built into an `OpeningTrie` using a database of >2600 Elo Games)
 * Negamax Search with Alpha-Beta pruning
 * Quiescence Search
-* Search Extension on check
+* Iterative Deepening Search
+* Null-Move pruning
 * Late Move Reduction
+* Search Extension on check
 * Static board evaluation (Tapered Evaluation with Passed Pawn evaluation)
 * Move Ordering (PV Nodes, Refutation Moves, MVV / LVA for Captures, Promotion)
-* Transposition Table (Zobrist Hashing)
-* Null-Move pruning
 * Killer / History Heuristics
-* Iterative Deepening Search
+* Transposition Table (Zobrist Hashing)
+* Insufficient material and 50-move rule draw
 
 ## To-Be-Implemented:
-* Insufficient material draw
-* 50 move rule for AI
+
 * Aspiration Window
 
 ## Installation:

@@ -11,18 +11,23 @@ public class Search {
     private static final int CONTEMPT_FACTOR = 20;
     private static final int STATIC_NULL_MOVE_PRUNING_MARGIN = 120;
 
-    // Used to stop search when "stop" command is given
-    private final BufferedReader listener = new BufferedReader(new InputStreamReader(System.in));
-    private boolean searchStopped;
-
-    // Futility Pruning Margins
-    private static final int[] futilityMargin = {0, 200, 300, 500};
-
-    // Late Move Reduction - reduction factor pre-calculated look-up table
+    // Late Move Reduction - Reduction factor pre-calculated in look-up table
     private static final int MAX_PLY = 60;
     private static final int MAX_MOVES = 300;
     private static final int REDUCTION_LIMIT = 3;
     private static final int[][] REDUCTION_TABLE;
+
+    // Futility Pruning Margins
+    private static final int[] futilityMargin = {0, 200, 300, 500};
+
+    // Null move pruning
+    private static final int STANDARD_REDUCTION_CONSTANT = 2;
+    private static final int DEEPER_REDUCTION_CONSTANT = 3;
+    private boolean isDoingNullMove;
+
+    // Used to stop search when "stop" command is given
+    private final BufferedReader listener = new BufferedReader(new InputStreamReader(System.in));
+    private boolean searchStopped;
 
     // Search info
     private int ply;
@@ -30,26 +35,19 @@ public class Search {
     private int nodeCount;
     private int cutOffCount;
 
-    // Memoization of searched nodes with transposition table
-    public TranspositionTable TT;
-    public short[][] killerMoves;
-    public short[][] historyMoves;
-
-    // null move pruning
-    private static final int STANDARD_REDUCTION_CONSTANT = 2;
-    private static final int DEEPER_REDUCTION_CONSTANT = 3;
-
-    // Used to check if the current search iteration is following a null move line
-    private boolean isDoingNullMove;
-
     // A clock to limit the search duration
     private final Clock timer;
 
     // Used to obtain Principle Variation from iterative deepening search
+    public int[] PVLength;
     public short[][] PVMoves;
-    private int[] PVLength;
     public boolean followPVLine;
     public boolean pvMoveScoring;
+
+    // Memoization of searched nodes with transposition table
+    public TranspositionTable TT;
+    public short[][] killerMoves;
+    public short[][] historyMoves;
 
     // Root board state where search begins
     public Board board;
@@ -58,14 +56,14 @@ public class Search {
      * init at the start of the program to calculate reduction factors for varying depth and move numbers in move list
      */
     static {
-        REDUCTION_TABLE = new int[MAX_PLY][MAX_MOVES];
-        for(int depth = 0; depth < MAX_PLY; depth++){
+        REDUCTION_TABLE = new int[MAX_PLY + 1][MAX_MOVES];
+        for(int depth = 0; depth < MAX_PLY + 1; depth++){
             for(int moveCount = 0; moveCount < MAX_MOVES; moveCount++){
                 REDUCTION_TABLE[depth][moveCount] = calculateReduction(depth, moveCount);
             }
         }
 
-        for(int depth = 0; depth < MAX_PLY; depth++){
+        for(int depth = 0; depth < MAX_PLY + 1; depth++){
             REDUCTION_TABLE[depth][0] = 0;
             REDUCTION_TABLE[depth][1] = 0;
         }
@@ -81,7 +79,6 @@ public class Search {
      * @param board refers to the root board state where the search will begin
      * @param TT refers to the transposition table used by the searcher
      */
-
     public Search(Board board, TranspositionTable TT){
         this.board = board;
         this.TT = TT;
@@ -117,6 +114,10 @@ public class Search {
         int totalNodeCount = 0;
 
         searchStopped = false;
+        killerMoves = new short[2][MAX_PLY];
+        historyMoves = new short[64][64];
+
+        int numberOfMoves = board.getAllLegalMoves().size();
 
         // iterative deepening search
         for (int curr_depth = 1; curr_depth <= MAX_PLY; curr_depth++) {
@@ -192,9 +193,13 @@ public class Search {
              *      - timer is up
              *      - remaining time < time taken to get to current ply
              *      - "stop" command is given
+             *      - there is only 1 legal move to make
              */
 
-            if (timer.isTimeUp() || (timer.getRemainingTime() < timeElapsedSinceStart) || searchStopped) {
+            if (timer.isTimeUp()
+                    || (timer.getRemainingTime() < timeElapsedSinceStart)
+                    || searchStopped
+                    || numberOfMoves == 1) {
                 break;
             }
         }
@@ -249,6 +254,9 @@ public class Search {
         short currentMove, bestMove = 0;
         int totalNodeCount = 0;
         searchStopped = false;
+
+        killerMoves = new short[2][MAX_PLY];
+        historyMoves = new short[64][64];
 
         // iterative deepening search
         for (int curr_depth = 1; curr_depth <= depth; curr_depth++) {
@@ -348,7 +356,7 @@ public class Search {
 
         boolean isPV = (beta - alpha) > 1;
 
-        // obtain transposition table data if current position has already been evaluated before
+        // Probe transposition table if current position has already been evaluated before
         long zobrist = board.getZobristHash();
         if(searchPly != 0 && !isPV && TT.containsKey(zobrist)){
             TranspositionTable.TTEntry entry = TT.getEntry(zobrist);
@@ -415,7 +423,7 @@ public class Search {
         // null move pruning
         if(depth >= 3 && !isPV && !isDoingNullMove && !isKingChecked && !isEndGame()){
             int reduction;
-            if(depth > 6){  // can afford to reduce more if there is still a lot of depth to search
+            if(depth > 6){  // we can afford to reduce more if there is still a lot of depth to search
                 reduction = DEEPER_REDUCTION_CONSTANT;
             }
             else{
@@ -497,8 +505,10 @@ public class Search {
                 searchedScore = -negamax(depth - 1, searchPly + 1, -beta, -alpha);
             } else {
                 boolean deliversCheck = board.isKingChecked();
-                if (!deliversCheck && !MoveGenerator.isCapture(encodedMove) && !MoveGenerator.isPromotion(encodedMove) && enableFutilityPruning) {
-                    // prune this move if futility pruning is enabled and if the move is not a capture and does not deliver check.
+                if (!deliversCheck && enableFutilityPruning
+                        && !MoveGenerator.isCapture(encodedMove)
+                        && !MoveGenerator.isPromotion(encodedMove)){
+                    // prune this move if futility pruning is enabled and if the move is not a capture/promotion and does not deliver check.
                     move.unMake();
                     continue;
                 }
@@ -549,7 +559,7 @@ public class Search {
                 // if the move is a quiet move, store as history move
                 if(!MoveGenerator.isCapture(encodedMove)){
                     // store history move data
-                    historyMoves[MoveGenerator.getStart(encodedMove)][MoveGenerator.getEnd(encodedMove)]++;
+                    historyMoves[MoveGenerator.getStart(encodedMove)][MoveGenerator.getEnd(encodedMove)] += (depth * depth);
                 }
 
                 // write PV move
@@ -593,6 +603,10 @@ public class Search {
             listen();
         }
 
+        if(isDraw(board)){
+            return 0;
+        }
+
         int stand_pat = EvalUtilities.evaluate(board);
 
         // ensure that the ply searched is not greater than max ply due to extensions
@@ -619,6 +633,7 @@ public class Search {
         ArrayList<Short> captureMoves = board.getAllCaptures();
 
         for (Short encodedMove : MoveOrdering.orderMoves(captureMoves, this, ply)) {
+
             Move move = new Move(board, encodedMove);
 
             ply++;
@@ -653,8 +668,6 @@ public class Search {
         maxPly = 0;
         nodeCount = 0;
         cutOffCount = 0;
-        killerMoves = new short[2][MAX_PLY];
-        historyMoves = new short[64][64];
         PVMoves = new short[MAX_PLY][MAX_PLY];
         PVLength = new int[MAX_PLY];
         followPVLine = false;
@@ -677,8 +690,8 @@ public class Search {
     private boolean isDraw(Board board){
         long zobrist = board.getZobristHash();
 
-        // check for fifty move rule
-        if(board.getHalfMoveClock() >= 50){
+        // check for fifty move rule (>= 100 half moves)
+        if(board.getHalfMoveClock() >= 100){
             return true;
         }
 
@@ -755,14 +768,16 @@ public class Search {
      */
     public static void main(String[] args) throws IOException {
         Board board = new Board();
-        board.init("8/8/2p3kp/ppp5/6PK/2P4P/P1P5/8 w - - 0 1");
+        //board.init("8/8/2p3kp/ppp5/6PK/2P4P/P1P5/8 w - - 0 1");
         // mate in 4
         //board.init("k7/4RP2/n1p2r2/8/p2N4/2P3Pp/1P5P/6K1 w - - 3 46");
-        //board.init(FENUtilities.trickyFEN);
+        board.init(FENUtilities.trickyFEN);
         //board.init("r1bq1rk1/2p1bppp/p1np1n2/1p2p3/3PP3/1B3N2/PPP2PPP/RNBQR1K1 w - - 0 9");
+        //board.init("8/7k/5Q2/8/8/8/8/1K6 b - - 0 1");
         Search search = new Search(board, new TranspositionTable());
-        search.depthSearch(12);
+        search.depthSearch(11);
         System.exit(0);
+
         /*
          * TESTING FOR EVALUATION OF INDIVIDUAL MOVES
          */
@@ -771,7 +786,7 @@ public class Search {
 //        for(Short move : board.getAllLegalMoves()){
 //            Move m = new Move(board, move);
 //            m.makeMove();
-//            int score = search.negamax(7, 0, -INFINITY, INFINITY);
+//            int score = search.negamax(8, 0, -INFINITY, INFINITY);
 //            m.unMake();
 //
 //            System.out.println(MoveGenerator.toString(move) + " " + score);
