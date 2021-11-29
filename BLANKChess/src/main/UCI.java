@@ -474,7 +474,7 @@ public class UCI {
                             moveType = 14;
                         } else if (promotionType == 'b') {
                             moveType = 13;
-                        } else if (promotionType == 'k') {
+                        } else if (promotionType == 'n') {
                             moveType = 12;
                         }
                     } else {
@@ -485,7 +485,7 @@ public class UCI {
                             moveType = 10;
                         } else if (promotionType == 'b') {
                             moveType = 9;
-                        } else if (promotionType == 'k') {
+                        } else if (promotionType == 'n') {
                             moveType = 8;
                         }
                     }

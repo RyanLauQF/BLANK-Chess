@@ -358,6 +358,7 @@ public class Search {
 
         // Probe transposition table if current position has already been evaluated before
         long zobrist = board.getZobristHash();
+        short prevBestMove = -1;
         if(searchPly != 0 && !isPV && TT.containsKey(zobrist)){
             TranspositionTable.TTEntry entry = TT.getEntry(zobrist);
 
@@ -387,6 +388,7 @@ public class Search {
                     cutOffCount++;
                     return entryScore;
                 }
+                prevBestMove = entry.bestMove;
             }
         }
 
@@ -495,7 +497,7 @@ public class Search {
         // set to check for fail-low node
         byte moveFlag = TranspositionTable.UPPERBOUND_TYPE;
 
-        for (Short encodedMove : MoveOrdering.orderMoves(encodedMoves, this, searchPly)) {
+        for (Short encodedMove : MoveOrdering.orderMoves(encodedMoves, this, searchPly, prevBestMove)) {
             moveCount++;
             Move move = new Move(board, encodedMove);
             move.makeMove();
@@ -598,6 +600,8 @@ public class Search {
      * i.e. Prevents the AI from blundering a piece due to search being cut at a certain depth causing it to not "see" opponent attacks
      */
     private int quiescenceSearch(int alpha, int beta){
+        //info depth 11 seldepth 26 score cp -86 nodes 1386950 nps 124916 ttCut 28247 time 11103 pv e2a6 e6d5 c3d5 f6d5 e4d5 e7e5 e1f1 e8g8 a6b7 e5b2 a1d1 h3g2 f1g2
+
         // every 32767 (in binary: 0b111111111111111) nodes, check for UCI commands
         if((nodeCount & 32767) == 0){
             listen();
@@ -626,14 +630,19 @@ public class Search {
         }
         nodeCount++;
 
+        short prevBestMove = -1;
+        if(TT.containsKey(board.getZobristHash())){
+            TranspositionTable.TTEntry entry = TT.getEntry(board.getZobristHash());
+            prevBestMove = entry.bestMove;
+        }
+
         if(alpha < stand_pat){
             alpha = stand_pat;
         }
 
         ArrayList<Short> captureMoves = board.getAllCaptures();
 
-        for (Short encodedMove : MoveOrdering.orderMoves(captureMoves, this, ply)) {
-
+        for (Short encodedMove : MoveOrdering.orderQuiescence(captureMoves, this, prevBestMove)) {
             Move move = new Move(board, encodedMove);
 
             ply++;
@@ -651,10 +660,17 @@ public class Search {
 
             if(searchedScore > alpha){
                 alpha = searchedScore;
+                stand_pat = searchedScore;
                 // cut-off has occurred
                 if(searchedScore >= beta) {
+                    TT.recordEntry(board.getZobristHash(), encodedMove, (byte) 0, beta, TranspositionTable.LOWERBOUND_TYPE);
                     return beta;
                 }
+                TT.recordEntry(board.getZobristHash(), encodedMove, (byte) 0, alpha, TranspositionTable.UPPERBOUND_TYPE);
+            }
+            else if(searchedScore > stand_pat){
+                stand_pat = searchedScore;
+                TT.recordEntry(board.getZobristHash(), encodedMove, (byte) 0, stand_pat, TranspositionTable.UPPERBOUND_TYPE);
             }
         }
         return alpha;
@@ -775,7 +791,8 @@ public class Search {
         //board.init("r1bq1rk1/2p1bppp/p1np1n2/1p2p3/3PP3/1B3N2/PPP2PPP/RNBQR1K1 w - - 0 9");
         //board.init("8/7k/5Q2/8/8/8/8/1K6 b - - 0 1");
         Search search = new Search(board, new TranspositionTable());
-        search.depthSearch(11);
+        search.depthSearch(13);
+        search.depthSearch(13);
         System.exit(0);
 
         /*

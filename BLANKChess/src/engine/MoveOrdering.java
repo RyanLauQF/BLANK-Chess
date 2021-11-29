@@ -10,6 +10,18 @@ public class MoveOrdering {
     private static final int PAWN_INDEX = 5;
     private static final int NONE_INDEX = 6;
 
+    // Move ordering scores
+    private static final int PV_MOVE_SCORE = 30000;
+    private static final int HASH_MOVE_SCORE = 20000;
+    private static final int CAPTURE_BONUS = 10000;
+    private static final int QUEEN_PROMOTION_BONUS = 9000;
+    private static final int FIRST_KILLER = 8000;
+    private static final int SECOND_KILLER = 7000;
+    private static final int CASTLING_BONUS = 3000;
+    private static final int KNIGHT_PROMOTION_BONUS = 1000;
+    private static final int UNINTERESTING_PROMOTION = 300;
+    private static final int SILENT_MOVE_PENALTY = -1000;
+
     private static final int[][] MVV_LVA_SCORES = {
             {0, 0, 0, 0, 0, 0, 0},          // victim K, attacker K, Q, R, B, N, P, None
             {50, 51, 52, 53, 54, 55, 0},    // victim Q, attacker K, Q, R, B, N, P, None
@@ -20,17 +32,17 @@ public class MoveOrdering {
             {0, 0, 0, 0, 0, 0, 0},          // victim None, attacker K, Q, R, B, N, P, None
     };
 
-    public static ArrayList<Short> orderMoves(ArrayList<Short> moves, Search searcher, int searchPly) {
+    public static ArrayList<Short> orderMoves(ArrayList<Short> moves, Search searcher, int searchPly, short ttMove) {
         moves.sort((move1, move2) -> {
-            int moveScore1 = getMoveScore(move1, searcher, searchPly);
-            int moveScore2 = getMoveScore(move2, searcher, searchPly);
+            int moveScore1 = getMoveScore(move1, searcher, searchPly, ttMove);
+            int moveScore2 = getMoveScore(move2, searcher, searchPly, ttMove);
 
             return Integer.compare(moveScore2, moveScore1);
         });
         return moves;
     }
 
-    private static int getMoveScore(Short move, Search searcher, int ply){
+    private static int getMoveScore(Short move, Search searcher, int ply, short ttMove){
         Board board = searcher.board;
 
         // evaluate the move scores
@@ -38,6 +50,7 @@ public class MoveOrdering {
         int start = MoveGenerator.getStart(move);
         int end = MoveGenerator.getEnd(move);
 
+        // PV Move
         if(searcher.pvMoveScoring){
             if (searcher.PVMoves[0][ply] == move)
             {
@@ -45,8 +58,116 @@ public class MoveOrdering {
                 searcher.pvMoveScoring = false;
 
                 // give PV move the highest score to search it first
-                return 20000;
+                return PV_MOVE_SCORE;
             }
+        }
+
+        // Hash Move
+        if(move == ttMove){
+            return HASH_MOVE_SCORE;
+        }
+
+        if(MoveGenerator.isCastling(move)){
+            return CASTLING_BONUS;
+        }
+
+        Piece startPiece = board.getTile(start).getPiece();
+
+        // Captures sorted by MVV-LVA
+        if(MoveGenerator.isCapture(move)){
+            // Most-Valuable Victim / Least-Valuable Aggressor
+            if (MoveGenerator.getMoveType(move) == 4) {
+                // normal capture
+                score += MVV_LVA(board.getTile(end).getPiece(), startPiece);
+            }
+            else{
+                // enpassant capture
+                score += MVV_LVA_SCORES[PAWN_INDEX][PAWN_INDEX];  // pawn (victim) - pawn (attacker) capture
+            }
+            score += CAPTURE_BONUS; // prioritise captures
+        }
+        // quiet moves positions
+        else{
+            // killer move
+            if(move == searcher.killerMoves[0][ply]){
+                score += FIRST_KILLER;
+            }
+            else if(move == searcher.killerMoves[1][ply]){
+                score += SECOND_KILLER;
+            }
+            else{
+               // history move score
+                score += searcher.historyMoves[start][end];
+            }
+        }
+
+        // Promotion bonus score (Queen promotion is prioritised to search)
+        if(MoveGenerator.isPromotion(move)){
+            int moveType = MoveGenerator.getMoveType(move);
+            if(moveType == 8 || moveType == 12){
+                // knight promotion
+                score += KNIGHT_PROMOTION_BONUS;
+            }
+            else if(moveType == 11 || moveType == 15){
+                // queen promotion
+                score += QUEEN_PROMOTION_BONUS;
+            }
+            else{
+                score += UNINTERESTING_PROMOTION; // rook and bishop not as useful as Queen / Knight promotion (knight discovered checks)
+            }
+        }
+
+        // silent move
+        // score using change of Mid-game PSQT values
+        if(score == 0){
+            int startPos = (startPiece.isWhite()) ? start : EvalUtilities.blackFlippedPosition[start];
+            int endPos = (startPiece.isWhite()) ? end : EvalUtilities.blackFlippedPosition[end];
+
+            if(startPiece.isPawn()){
+                score += EvalUtilities.pawnMidGamePST[endPos] - EvalUtilities.pawnMidGamePST[startPos];
+            }
+            else if(startPiece.isBishop()){
+                score += EvalUtilities.bishopMidGamePST[endPos] - EvalUtilities.bishopMidGamePST[startPos];
+            }
+            else if(startPiece.isKnight()){
+                score += EvalUtilities.knightMidGamePST[endPos] - EvalUtilities.knightMidGamePST[startPos];
+            }
+            else if(startPiece.isRook()){
+                score += EvalUtilities.rookMidGamePST[endPos] - EvalUtilities.rookMidGamePST[startPos];
+            }
+            else if(startPiece.isQueen()){
+                score += EvalUtilities.queenMidGamePST[endPos] - EvalUtilities.queenMidGamePST[startPos];
+            }
+            else if(startPiece.isKing()){
+                score += EvalUtilities.kingMidGamePST[endPos] - EvalUtilities.kingMidGamePST[startPos];
+            }
+
+            score += SILENT_MOVE_PENALTY;
+        }
+
+        return score;
+    }
+
+    public static ArrayList<Short> orderQuiescence(ArrayList<Short> moves, Search searcher, short bestMove) {
+        moves.sort((move1, move2) -> {
+            int moveScore1 = getQuiescenceScore(move1, searcher, bestMove);
+            int moveScore2 = getQuiescenceScore(move2, searcher, bestMove);
+
+            return Integer.compare(moveScore2, moveScore1);
+        });
+        return moves;
+    }
+
+    private static int getQuiescenceScore(Short move, Search searcher, short bestMove){
+        Board board = searcher.board;
+
+        // evaluate the move scores
+        int score = 0;
+        int start = MoveGenerator.getStart(move);
+        int end = MoveGenerator.getEnd(move);
+
+        if(move == bestMove){
+            return HASH_MOVE_SCORE;
         }
 
         Piece startPiece = board.getTile(start).getPiece();
@@ -61,35 +182,21 @@ public class MoveOrdering {
                 // enpassant capture
                 score += MVV_LVA_SCORES[PAWN_INDEX][PAWN_INDEX];  // pawn (victim) - pawn (attacker) capture
             }
-            score += 10000; // prioritise captures
-        }
-        // quiet moves positions
-        else{
-            // killer move
-            if(move == searcher.killerMoves[0][ply]){
-                score += 8000;
-            }
-            else if(move == searcher.killerMoves[1][ply]){
-                score += 7000;
-            }
-            else{
-               // history move score
-                score += searcher.historyMoves[start][end];
-            }
+            score += CAPTURE_BONUS; // prioritise captures
         }
 
         if(MoveGenerator.isPromotion(move)){
             int moveType = MoveGenerator.getMoveType(move);
             if(moveType == 8 || moveType == 12){
                 // knight promotion
-                score += Knight.KNIGHT_MG_VALUE;
+                score += KNIGHT_PROMOTION_BONUS;
             }
             else if(moveType == 11 || moveType == 15){
                 // queen promotion
-                score += Queen.QUEEN_MG_VALUE;
+                score += QUEEN_PROMOTION_BONUS;
             }
             else{
-                score += 300; // rook and bishop not as useful as Queen / Knight promotion (knight discovered checks)
+                score += UNINTERESTING_PROMOTION; // rook and bishop not as useful as Queen / Knight promotion (knight discovered checks)
             }
         }
 
@@ -133,10 +240,10 @@ public class MoveOrdering {
         Search searcher = new Search(board, new TranspositionTable());
         searcher.depthSearch(8);
 
-        ArrayList<Short> allMoves = orderMoves(board.getAllLegalMoves(), searcher, 1);
+        ArrayList<Short> allMoves = orderMoves(board.getAllLegalMoves(), searcher, 1, (short) 0);
         for(Short moves : allMoves){
             System.out.print(FENUtilities.convertIndexToRankAndFile(MoveGenerator.getStart(moves)) + "-" + FENUtilities.convertIndexToRankAndFile(MoveGenerator.getEnd(moves)) + " ");
-            System.out.println("Score: " + getMoveScore(moves, searcher, 1) + " ");
+            System.out.println("Score: " + getMoveScore(moves, searcher, 1, (short) 0) + " ");
         }
     }
 }
